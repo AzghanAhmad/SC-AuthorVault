@@ -26,5 +26,9 @@ export const routes: Routes = [
     path: 'settings',
     loadComponent: () => import('./components/pages/settings/settings.component').then(m => m.SettingsComponent)
   },
+  {
+    path: 'company-vault',
+    loadComponent: () => import('./components/pages/company-vault/company-vault.component').then(m => m.CompanyVaultComponent)
+  },
   { path: '**', redirectTo: '/login' }
 ];

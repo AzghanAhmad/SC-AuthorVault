@@ -1,0 +1,259 @@
+<div class="page" *ngIf="vault()">
+  <div class="detail-header">
+    <div><h1 class="page-title">Company Vault</h1><p class="page-subtitle">Vance Publishing LLC — Publishing Company Management</p></div>
+  </div>
+
+  <div class="detail-layout">
+    <nav class="detail-nav">
+      @for(s of sections; track s.id){
+        <button class="tab-item" [class.active]="activeSection()===s.id" (click)="activeSection.set(s.id)">
+          <span class="tab-label">{{s.label}}</span>
+        </button>
+      }
+    </nav>
+
+    <div class="detail-content">
+      <!-- OVERVIEW -->
+      <div class="tab-panel" *ngIf="activeSection()==='overview'">
+        <div class="summary-cards">
+          <div class="summary-card"><div class="sc-icon blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg></div><div class="sc-value">{{vault()!.overview.totalPlatforms}}</div><div class="sc-label">Platforms</div></div>
+          <div class="summary-card"><div class="sc-icon green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg></div><div class="sc-value">{{vault()!.overview.activeContracts}}</div><div class="sc-label">Contracts</div></div>
+          <div class="summary-card"><div class="sc-icon purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div><div class="sc-value">{{vault()!.overview.teamMembers}}</div><div class="sc-label">Team</div></div>
+          <div class="summary-card"><div class="sc-icon amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div class="sc-value">{{vault()!.overview.upcomingDeadlines}}</div><div class="sc-label">Deadlines</div></div>
+        </div>
+        <div class="card section-card">
+          <h3 class="section-title">Alerts &amp; Reminders</h3>
+          <div class="alert-list">
+            @for(a of vault()!.overview.alerts; track a.id){
+              <div class="alert-row">
+                <span class="alert-emoji">{{alertIcon(a.type)}}</span>
+                <div class="alert-info"><span class="alert-title">{{a.title}}</span><span class="alert-desc">{{a.description}}</span></div>
+                <span class="badge" [class]="severityClass(a.severity)">{{a.severity}}</span>
+                <span class="alert-date" *ngIf="a.dueDate">{{a.dueDate}}</span>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- COMPANY PROFILE -->
+      <div class="tab-panel" *ngIf="activeSection()==='profile'">
+        <div class="sub-tabs">
+          <button [class.active]="profileTab()==='identity'" (click)="profileTab.set('identity')">Identity</button>
+          <button [class.active]="profileTab()==='ownership'" (click)="profileTab.set('ownership')">Ownership</button>
+          <button [class.active]="profileTab()==='domains'" (click)="profileTab.set('domains')">Web &amp; Domains</button>
+          <button [class.active]="profileTab()==='branding'" (click)="profileTab.set('branding')">Branding</button>
+        </div>
+        <!-- Identity -->
+        <div *ngIf="profileTab()==='identity'" class="card section-card">
+          <h3 class="section-title">Business Identity</h3>
+          <div class="form-grid">
+            <div class="form-group"><label class="form-label">Legal Name</label><input class="form-input" [(ngModel)]="vault()!.profile.identity.legalName"/></div>
+            <div class="form-group"><label class="form-label">DBA</label><input class="form-input" [(ngModel)]="vault()!.profile.identity.dba"/></div>
+            <div class="form-group"><label class="form-label">EIN</label><input class="form-input" [(ngModel)]="vault()!.profile.identity.ein"/></div>
+            <div class="form-group"><label class="form-label">Entity Type</label><select class="form-input" [(ngModel)]="vault()!.profile.identity.entityType"><option>LLC</option><option>S-Corp</option><option>C-Corp</option><option>Sole Proprietor</option></select></div>
+            <div class="form-group"><label class="form-label">State</label><input class="form-input" [(ngModel)]="vault()!.profile.identity.stateOfIncorporation"/></div>
+            <div class="form-group"><label class="form-label">Date Incorporated</label><input type="date" class="form-input" [(ngModel)]="vault()!.profile.identity.dateIncorporated"/></div>
+            <div class="form-group full"><label class="form-label">Business Address</label><input class="form-input" [(ngModel)]="vault()!.profile.identity.businessAddress"/></div>
+            <div class="form-group"><label class="form-label">Phone</label><input class="form-input" [(ngModel)]="vault()!.profile.identity.phone"/></div>
+            <div class="form-group"><label class="form-label">Email</label><input class="form-input" [(ngModel)]="vault()!.profile.identity.email"/></div>
+          </div>
+          <button class="btn-primary btn-sm" style="margin-top:1rem" (click)="saveProfile()">Save Identity</button>
+        </div>
+        <!-- Ownership -->
+        <div *ngIf="profileTab()==='ownership'">
+          <div class="section-header"><h3 class="section-title">Owners &amp; Management</h3></div>
+          @for(o of vault()!.profile.owners; track o.id){
+            <div class="card section-card owner-card">
+              <div class="owner-row"><div class="owner-avatar">{{o.name.charAt(0)}}</div><div class="owner-info"><strong>{{o.name}}</strong><span class="text-muted">{{o.role}} · {{o.ownershipPercent}}% ownership</span><span class="text-muted">{{o.email}}</span></div></div>
+            </div>
+          }
+        </div>
+        <!-- Domains -->
+        <div *ngIf="profileTab()==='domains'">
+          <h3 class="section-title" style="margin-bottom:1rem">Websites &amp; Domains</h3>
+          @for(d of vault()!.profile.domains; track d.id){
+            <div class="card section-card"><div class="domain-row">
+              <div><strong>{{d.domain}}</strong><span class="text-muted">{{d.registrar}} · Hosted on {{d.hostingProvider}}</span></div>
+              <div class="domain-meta"><span class="status-dot" [class]="sslClass(d.sslStatus)"></span><span class="text-sm">SSL {{d.sslStatus}}</span><span class="badge" [class]="d.autoRenew?'badge-approved':'badge-draft'">{{d.autoRenew?'Auto-renew':'Manual'}}</span><span class="text-muted text-sm">Expires {{d.expiryDate}}</span></div>
+            </div></div>
+          }
+        </div>
+        <!-- Branding -->
+        <div *ngIf="profileTab()==='branding'">
+          <h3 class="section-title" style="margin-bottom:1rem">Brand Logos</h3>
+          <div class="logo-grid">
+            @for(l of vault()!.profile.logos; track l.id){
+              <div class="card section-card logo-card"><div class="logo-placeholder">{{l.type.charAt(0).toUpperCase()}}</div><div class="logo-info"><strong>{{l.name}}</strong><span class="text-muted text-sm">{{l.type}} · Uploaded {{l.uploadedAt}}</span></div></div>
+            }
+            <div class="card section-card logo-card upload-zone"><span class="upload-icon">+</span><span class="text-muted text-sm">Upload Logo</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- OPERATIONS -->
+      <div class="tab-panel" *ngIf="activeSection()==='operations'">
+        <div class="sub-tabs">
+          <button [class.active]="opsTab()==='platforms'" (click)="opsTab.set('platforms')">Platforms</button>
+          <button [class.active]="opsTab()==='team'" (click)="opsTab.set('team')">Team</button>
+          <button [class.active]="opsTab()==='inventory'" (click)="opsTab.set('inventory')">Inventory</button>
+          <button [class.active]="opsTab()==='email'" (click)="opsTab.set('email')">Email Systems</button>
+        </div>
+        <!-- Platforms -->
+        <div *ngIf="opsTab()==='platforms'">
+          <div class="platform-grid">
+            @for(p of vault()!.operations.platforms; track p.id; let i=$index){
+              <div class="card section-card platform-card"><div class="plat-header" [style.background]="platformColor(i)"><span class="plat-initial">{{p.name.charAt(0)}}</span></div><div class="plat-body"><h4>{{p.name}}</h4><span class="text-muted text-sm">ID: {{p.accountId}}</span><div class="plat-stats"><div><span class="plat-val">{{p.booksPublished}}</span><span class="text-muted text-sm">Books</span></div><div><span class="plat-val">{{p.monthlyRevenue}}</span><span class="text-muted text-sm">Monthly</span></div></div><div class="plat-foot"><span class="badge" [class]="p.status==='active'?'badge-approved':'badge-draft'">{{p.status}}</span><span class="text-muted text-sm">Synced {{p.lastSync}}</span></div></div></div>
+            }
+          </div>
+        </div>
+        <!-- Team -->
+        <div *ngIf="opsTab()==='team'">
+          <h3 class="section-title" style="margin-bottom:1rem">Team &amp; Vendors</h3>
+          <div class="data-table"><div class="dt-header"><span>Name</span><span>Role</span><span>Type</span><span>Rate</span><span>Status</span></div>
+            @for(t of vault()!.operations.team; track t.id){
+              <div class="dt-row"><span class="dt-bold">{{t.name}}</span><span>{{t.role}}</span><span class="badge" [class]="t.type==='employee'?'badge-published':t.type==='contractor'?'badge-pending':'badge-draft'">{{t.type}}</span><span>{{t.rate}}</span><span class="badge" [class]="t.status==='active'?'badge-approved':'badge-rejected'">{{t.status}}</span></div>
+            }
+          </div>
+        </div>
+        <!-- Inventory -->
+        <div *ngIf="opsTab()==='inventory'">
+          <h3 class="section-title" style="margin-bottom:1rem">Inventory &amp; Fulfillment</h3>
+          <div class="data-table"><div class="dt-header"><span>Title</span><span>SKU</span><span>Qty</span><span>Reorder</span><span>Warehouse</span></div>
+            @for(inv of vault()!.operations.inventory; track inv.id){
+              <div class="dt-row"><span class="dt-bold">{{inv.title}}</span><span class="text-muted">{{inv.sku}}</span><span [class]="inv.quantityOnHand<=inv.reorderLevel?'text-danger':''" class="dt-bold">{{inv.quantityOnHand}}</span><span class="text-muted">{{inv.reorderLevel}}</span><span>{{inv.warehouse}}</span></div>
+            }
+          </div>
+        </div>
+        <!-- Email -->
+        <div *ngIf="opsTab()==='email'">
+          <h3 class="section-title" style="margin-bottom:1rem">Email &amp; Communications</h3>
+          @for(e of vault()!.operations.emailSystems; track e.id){
+            <div class="card section-card"><div class="email-row"><div><strong>{{e.provider}}</strong><span class="text-muted">{{e.domain}} · {{e.listSize | number}} subscribers</span></div><div class="email-checks"><span [class]="e.spfConfigured?'check-ok':'check-fail'">SPF</span><span [class]="e.dkimConfigured?'check-ok':'check-fail'">DKIM</span><span [class]="e.dmarcConfigured?'check-ok':'check-fail'">DMARC</span><span class="badge" [class]="e.status==='active'?'badge-approved':'badge-rejected'">{{e.status}}</span></div></div></div>
+          }
+        </div>
+      </div>
+
+      <!-- FINANCIALS -->
+      <div class="tab-panel" *ngIf="activeSection()==='financials'">
+        <div class="security-banner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Do not store sensitive credentials, full account numbers, or passwords here.</div>
+        <div class="sub-tabs">
+          <button [class.active]="finTab()==='banking'" (click)="finTab.set('banking')">Banking</button>
+          <button [class.active]="finTab()==='tax'" (click)="finTab.set('tax')">Tax</button>
+          <button [class.active]="finTab()==='reports'" (click)="finTab.set('reports')">Reports</button>
+        </div>
+        <!-- Banking -->
+        <div *ngIf="finTab()==='banking'">
+          <h3 class="section-title" style="margin-bottom:1rem">Bank Accounts</h3>
+          @for(b of vault()!.financials.bankAccounts; track b.id){
+            <div class="card section-card"><div class="bank-row"><div><strong>{{b.bankName}}</strong><span class="text-muted">{{b.accountType | titlecase}} · ****{{b.lastFour}}</span></div><span class="badge" *ngIf="b.isPrimary" class="badge badge-approved">Primary</span></div></div>
+          }
+          <h3 class="section-title" style="margin:1.5rem 0 1rem">Payment Processors</h3>
+          @for(pp of vault()!.financials.paymentProcessors; track pp.id){
+            <div class="card section-card"><div class="bank-row"><div><strong>{{pp.name}}</strong><span class="text-muted">{{pp.accountEmail}} · Vol: {{pp.monthlyVolume}}/mo</span></div><span class="badge" [class]="pp.status==='active'?'badge-approved':'badge-rejected'">{{pp.status}}</span></div></div>
+          }
+        </div>
+        <!-- Tax -->
+        <div *ngIf="finTab()==='tax'">
+          <h3 class="section-title" style="margin-bottom:1rem">Tax Documents</h3>
+          <div class="data-table"><div class="dt-header"><span>Document</span><span>Type</span><span>Year</span><span>Due</span><span>Status</span></div>
+            @for(tx of vault()!.financials.taxDocuments; track tx.id){
+              <div class="dt-row"><span class="dt-bold">{{tx.name}}</span><span class="text-muted">{{tx.type}}</span><span>{{tx.year}}</span><span class="text-muted">{{tx.dueDate || '—'}}</span><span class="badge" [class]="tx.status==='filed'?'badge-approved':tx.status==='pending'?'badge-draft':'badge-rejected'">{{tx.status}}</span></div>
+            }
+          </div>
+        </div>
+        <!-- Reports -->
+        <div *ngIf="finTab()==='reports'">
+          <h3 class="section-title" style="margin-bottom:1rem">Financial Summary — {{vault()!.financials.summary.period}}</h3>
+          <div class="summary-cards" style="grid-template-columns:repeat(3,1fr)">
+            <div class="summary-card"><div class="sc-value" style="color:var(--success)">{{vault()!.financials.summary.totalRevenue}}</div><div class="sc-label">Total Revenue</div></div>
+            <div class="summary-card"><div class="sc-value" style="color:var(--error)">{{vault()!.financials.summary.totalExpenses}}</div><div class="sc-label">Total Expenses</div></div>
+            <div class="summary-card"><div class="sc-value">{{vault()!.financials.summary.netIncome}}</div><div class="sc-label">Net Income</div></div>
+          </div>
+          <div class="card section-card chart-placeholder"><div class="chart-bar-group"><div class="chart-bar revenue" style="height:70%"></div><div class="chart-bar expense" style="height:30%"></div></div><div class="chart-bar-group"><div class="chart-bar revenue" style="height:65%"></div><div class="chart-bar expense" style="height:28%"></div></div><div class="chart-bar-group"><div class="chart-bar revenue" style="height:80%"></div><div class="chart-bar expense" style="height:35%"></div></div><div class="chart-bar-group"><div class="chart-bar revenue" style="height:75%"></div><div class="chart-bar expense" style="height:32%"></div></div><div class="chart-bar-group"><div class="chart-bar revenue" style="height:90%"></div><div class="chart-bar expense" style="height:40%"></div></div><div class="chart-legend"><span class="legend-item"><span class="legend-dot revenue"></span>Revenue</span><span class="legend-item"><span class="legend-dot expense"></span>Expenses</span></div></div>
+        </div>
+      </div>
+
+      <!-- ASSETS & RECORDS -->
+      <div class="tab-panel" *ngIf="activeSection()==='records'">
+        <div class="sub-tabs">
+          <button [class.active]="recTab()==='contracts'" (click)="recTab.set('contracts')">Contracts</button>
+          <button [class.active]="recTab()==='legal'" (click)="recTab.set('legal')">Legal</button>
+          <button [class.active]="recTab()==='isbns'" (click)="recTab.set('isbns')">ISBNs</button>
+          <button [class.active]="recTab()==='templates'" (click)="recTab.set('templates')">Templates</button>
+        </div>
+        <!-- Contracts -->
+        <div *ngIf="recTab()==='contracts'">
+          <div class="data-table"><div class="dt-header"><span>Title</span><span>Counterparty</span><span>Type</span><span>End Date</span><span>Status</span></div>
+            @for(c of vault()!.records.contracts; track c.id){
+              <div class="dt-row"><span class="dt-bold">{{c.title}}</span><span>{{c.counterparty}}</span><span class="badge badge-published">{{c.type}}</span><span class="text-muted">{{c.endDate}}</span><span class="badge" [class]="c.status==='active'?'badge-approved':c.status==='expired'?'badge-rejected':'badge-draft'">{{c.status}}</span></div>
+            }
+          </div>
+        </div>
+        <!-- Legal -->
+        <div *ngIf="recTab()==='legal'">
+          @for(lr of vault()!.records.legalRecords; track lr.id){
+            <div class="card section-card"><div class="bank-row"><div><strong>{{lr.title}}</strong><span class="text-muted">{{lr.category}} · Filed {{lr.filingDate}}</span><span class="text-muted text-sm" *ngIf="lr.notes">{{lr.notes}}</span></div><span class="badge" [class]="lr.status==='current'?'badge-approved':lr.status==='needs-renewal'?'badge-draft':'badge-rejected'">{{lr.status}}</span></div></div>
+          }
+        </div>
+        <!-- ISBNs -->
+        <div *ngIf="recTab()==='isbns'">
+          <div class="summary-cards" style="grid-template-columns:repeat(3,1fr);margin-bottom:1.5rem">
+            <div class="summary-card"><div class="sc-value">{{isbnStats().total}}</div><div class="sc-label">Total ISBNs</div></div>
+            <div class="summary-card"><div class="sc-value" style="color:var(--accent-blue)">{{isbnStats().assigned}}</div><div class="sc-label">Assigned</div></div>
+            <div class="summary-card"><div class="sc-value" style="color:var(--success)">{{isbnStats().available}}</div><div class="sc-label">Available</div></div>
+          </div>
+          <div class="data-table"><div class="dt-header"><span>ISBN</span><span>Format</span><span>Assigned To</span><span>Status</span></div>
+            @for(isbn of vault()!.records.isbns; track isbn.id){
+              <div class="dt-row"><span class="dt-bold" style="font-family:monospace">{{isbn.isbn}}</span><span class="badge badge-published">{{isbn.format}}</span><span>{{isbn.assignedTo || '—'}}</span><span class="badge" [class]="isbn.status==='assigned'?'badge-pending':'badge-approved'">{{isbn.status}}</span></div>
+            }
+          </div>
+        </div>
+        <!-- Templates -->
+        <div *ngIf="recTab()==='templates'">
+          @for(sop of vault()!.records.templates; track sop.id){
+            <div class="card section-card"><div class="bank-row"><div><strong>{{sop.title}}</strong><span class="text-muted">{{sop.category}} · v{{sop.version}} · Updated {{sop.lastUpdated}}</span></div><span class="badge" [class]="sop.status==='current'?'badge-approved':sop.status==='draft'?'badge-draft':'badge-rejected'">{{sop.status}}</span></div></div>
+          }
+        </div>
+      </div>
+
+      <!-- SYSTEM & SECURITY -->
+      <div class="tab-panel" *ngIf="activeSection()==='system'">
+        <div class="sub-tabs">
+          <button [class.active]="sysTab()==='access'" (click)="sysTab.set('access')">Access Control</button>
+          <button [class.active]="sysTab()==='recovery'" (click)="sysTab.set('recovery')">Recovery</button>
+          <button [class.active]="sysTab()==='calendar'" (click)="sysTab.set('calendar')">Calendar</button>
+        </div>
+        <!-- Access -->
+        <div *ngIf="sysTab()==='access'">
+          <div class="data-table"><div class="dt-header"><span>User</span><span>Role</span><span>2FA</span><span>Last Login</span></div>
+            @for(ac of vault()!.system.accessList; track ac.id){
+              <div class="dt-row"><div><span class="dt-bold">{{ac.user}}</span><br/><span class="text-muted text-sm">{{ac.email}}</span></div><span class="badge" [class]="ac.role==='admin'?'badge-rejected':ac.role==='editor'?'badge-pending':'badge-published'">{{ac.role}}</span><span><span class="status-dot" [class]="ac.twoFactorEnabled?'status-green':'status-red'"></span></span><span class="text-muted">{{ac.lastLogin}}</span></div>
+            }
+          </div>
+        </div>
+        <!-- Recovery -->
+        <div *ngIf="sysTab()==='recovery'">
+          <h3 class="section-title" style="margin-bottom:1rem">Recovery Methods</h3>
+          @for(r of vault()!.system.recoveryMethods; track r.id){
+            <div class="card section-card"><div class="bank-row"><div><strong>{{r.type | titlecase}}</strong><span class="text-muted">{{r.value}}</span><span class="text-muted text-sm">Last tested: {{r.lastTested}}</span></div><span class="badge" [class]="r.verified?'badge-approved':'badge-rejected'">{{r.verified?'Verified':'Unverified'}}</span></div></div>
+          }
+        </div>
+        <!-- Calendar -->
+        <div *ngIf="sysTab()==='calendar'">
+          <h3 class="section-title" style="margin-bottom:1rem">Important Dates</h3>
+          @for(dt of vault()!.system.importantDates; track dt.id){
+            <div class="card section-card"><div class="cal-row"><div class="cal-date"><span class="cal-month">{{dt.date.substring(5,7)}}</span><span class="cal-day">{{dt.date.substring(8,10)}}</span></div><div class="cal-info"><strong>{{dt.title}}</strong><span class="text-muted text-sm" *ngIf="dt.notes">{{dt.notes}}</span></div><span class="badge" [class]="dateTypeClass(dt.type)">{{dt.type}}</span><span class="badge badge-published" *ngIf="dt.recurring">Recurring</span></div></div>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Loading -->
+<div class="page" *ngIf="loading()">
+  <div class="skeleton" style="height:40px;width:300px;margin-bottom:1rem"></div>
+  <div class="skeleton" style="height:20px;width:200px;margin-bottom:2rem"></div>
+  <div style="display:grid;grid-template-columns:200px 1fr;gap:2rem"><div class="skeleton" style="height:400px;border-radius:16px"></div><div class="skeleton" style="height:400px;border-radius:16px"></div></div>
+</div>
