@@ -1,0 +1,304 @@
+import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Book, VaultLevel } from '../../../../models/author-vault.model';
+
+@Component({
+  selector: 'app-vault-book',
+  standalone: true,
+  imports: [CommonModule],
+  template: `
+    <div class="detail-header">
+      <h1 class="page-title">📕 {{book.coreWork.masterTitle}}</h1>
+      <p class="page-subtitle">#{{book.coreWork.seriesNumber}} · {{book.coreWork.genre || 'Fiction'}} · <span class="status" [ngClass]="getStatusClass(book.coreWork.bookStatus)">{{book.coreWork.bookStatus}}</span></p>
+    </div>
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-value">{{book.languageBranches.length}}</div><div class="stat-label">Editions</div></div>
+      <div class="stat-card"><div class="stat-value">{{book.contributors.length}}</div><div class="stat-label">Contributors</div></div>
+      <div class="stat-card"><div class="stat-value">{{book.awards.length}}</div><div class="stat-label">Awards</div></div>
+      <div class="stat-card"><div class="stat-value">{{book.promotionalCampaigns.length}}</div><div class="stat-label">Campaigns</div></div>
+    </div>
+    <div class="vault-layout">
+      <nav class="vault-nav">
+        @for(t of tabs; track t.id) { <button class="tab-item" [class.active]="activeTab===t.id" (click)="tabChange.emit(t.id)">{{t.label}}</button> }
+      </nav>
+      <div class="vault-content">
+
+        @if(activeTab==='core') {
+          <div class="card"><h2 class="section-title">Core Work Identity</h2>
+            <div class="form-grid">
+              <div class="form-group"><span class="form-label">Title</span><div class="form-value">{{book.coreWork.masterTitle}}</div></div>
+              <div class="form-group"><span class="form-label">Subtitle</span><div class="form-value">{{book.coreWork.masterSubtitle || '—'}}</div></div>
+              <div class="form-group"><span class="form-label">Series #</span><div class="form-value">{{book.coreWork.seriesNumber}}</div></div>
+              <div class="form-group"><span class="form-label">Status</span><div class="form-value">{{book.coreWork.bookStatus}}</div></div>
+              <div class="form-group"><span class="form-label">Pen Name</span><div class="form-value">{{book.coreWork.penName || '—'}}</div></div>
+              <div class="form-group"><span class="form-label">Legal Author</span><div class="form-value">{{book.coreWork.legalAuthorName}}</div></div>
+              <div class="form-group"><span class="form-label">Copyright Holder</span><div class="form-value">{{book.coreWork.copyrightHolder}}</div></div>
+              <div class="form-group"><span class="form-label">Original Language</span><div class="form-value">{{book.coreWork.originalLanguage}}</div></div>
+              <div class="form-group"><span class="form-label">Genre</span><div class="form-value">{{book.coreWork.genre || '—'}}</div></div>
+              <div class="form-group"><span class="form-label">Target Audience</span><div class="form-value">{{book.coreWork.targetAudience}}</div></div>
+              <div class="form-group"><span class="form-label">First Published</span><div class="form-value">{{book.coreWork.firstPublicationDate || '—'}}</div></div>
+              <div class="form-group"><span class="form-label">Company</span><div class="form-value">{{book.coreWork.companyName}}</div></div>
+            </div>
+          </div>
+        }
+
+        @if(activeTab==='story') {
+          <div class="card"><h2 class="section-title">Story & Content Summary</h2>
+            <div class="form-grid">
+              <div class="form-group full"><span class="form-label">One-line Hook</span><div class="form-value">{{book.storySummary.oneLineHook}}</div></div>
+              <div class="form-group full"><span class="form-label">Elevator Pitch</span><div class="form-value">{{book.storySummary.elevatorPitch || '—'}}</div></div>
+              <div class="form-group"><span class="form-label">Heat Level</span><div class="form-value">{{book.storySummary.heatLevel}}</div></div>
+              <div class="form-group"><span class="form-label">Violence Level</span><div class="form-value">{{book.storySummary.violenceLevel}}</div></div>
+              <div class="form-group"><span class="form-label">Content Intensity</span><div class="form-value">{{book.storySummary.contentIntensity}}</div></div>
+              <div class="form-group"><span class="form-label">Ending Type</span><div class="form-value">{{book.storySummary.endingType}}</div></div>
+            </div>
+            <h3 class="section-title" style="margin-top:1rem">Tropes & Themes</h3>
+            <div class="tag-row">@for(t of book.storySummary.tropes; track t) { <span class="tag">{{t}}</span> }</div>
+            <div class="tag-row" style="margin-top:.4rem">@for(t of book.storySummary.themes; track t) { <span class="tag">{{t}}</span> }</div>
+          </div>
+        }
+
+        @if(activeTab==='rights') {
+          <div class="card"><h2 class="section-title">Rights & Ownership</h2>
+            <div class="form-grid three-col">
+              <div class="form-group"><span class="form-label">Ebook</span><div class="form-value">{{book.rights.ebookRights}}</div></div>
+              <div class="form-group"><span class="form-label">Print</span><div class="form-value">{{book.rights.printRights}}</div></div>
+              <div class="form-group"><span class="form-label">Audio</span><div class="form-value">{{book.rights.audioRights}}</div></div>
+              <div class="form-group"><span class="form-label">Translation</span><div class="form-value">{{book.rights.translationRights}}</div></div>
+              <div class="form-group"><span class="form-label">Territorial</span><div class="form-value">{{book.rights.territorialRights}}</div></div>
+              <div class="form-group"><span class="form-label">Film/TV</span><div class="form-value">{{book.rights.filmTvRights}}</div></div>
+              <div class="form-group"><span class="form-label">Bundle</span><div class="form-value">{{book.rights.bundleRights}}</div></div>
+              <div class="form-group"><span class="form-label">Serial</span><div class="form-value">{{book.rights.serialRights}}</div></div>
+              <div class="form-group"><span class="form-label">Direct Sales</span><div class="form-value">{{book.rights.directSalesRights}}</div></div>
+            </div>
+          </div>
+        }
+
+        @if(activeTab==='contributors') {
+          <div class="card"><h2 class="section-title">Contributors</h2>
+            @if(!book.contributors.length) { <div class="empty-state"><div class="empty-icon">👥</div><p>No contributors recorded</p></div> }
+            <table class="data-table" *ngIf="book.contributors.length"><thead><tr><th>Name</th><th>Type</th><th>Role</th><th>Fee</th><th>Status</th></tr></thead>
+              <tbody>@for(c of book.contributors; track c.id) {
+                <tr><td class="td-primary">{{c.displayName}}</td><td>{{c.type}}</td><td>{{c.role}}</td><td>{{c.feeAmount}}</td>
+                  <td><span class="status" [ngClass]="getStatusClass(c.qaStatus)">{{c.qaStatus}}</span></td></tr>
+              }</tbody>
+            </table>
+          </div>
+        }
+
+        @if(activeTab==='identifiers') {
+          <div class="card"><h2 class="section-title">Identifiers</h2>
+            <div class="form-grid">
+              <div class="form-group"><span class="form-label">ASIN</span><div class="form-value">{{book.identifiers.asin}}</div></div>
+              <div class="form-group"><span class="form-label">Apple Books ID</span><div class="form-value">{{book.identifiers.appleBooksId || '—'}}</div></div>
+              <div class="form-group"><span class="form-label">Kobo ID</span><div class="form-value">{{book.identifiers.koboId || '—'}}</div></div>
+              <div class="form-group"><span class="form-label">Google Play ID</span><div class="form-value">{{book.identifiers.googlePlayId || '—'}}</div></div>
+              <div class="form-group"><span class="form-label">B&N ID</span><div class="form-value">{{book.identifiers.barnesNobleId || '—'}}</div></div>
+              <div class="form-group"><span class="form-label">IngramSpark ID</span><div class="form-value">{{book.identifiers.ingramId || '—'}}</div></div>
+              <div class="form-group"><span class="form-label">BookFunnel ID</span><div class="form-value">{{book.identifiers.bookFunnelId || '—'}}</div></div>
+              <div class="form-group"><span class="form-label">Shopify ID</span><div class="form-value">{{book.identifiers.shopifyProductId || '—'}}</div></div>
+            </div>
+          </div>
+        }
+
+        @if(activeTab==='covers') {
+          <div class="card"><h2 class="section-title">Cover & Visual Assets</h2>
+            <div class="form-grid">
+              <div class="form-group"><span class="form-label">Cover Designer</span><div class="form-value">{{book.coverAssets.coverDesigner}}</div></div>
+              <div class="form-group"><span class="form-label">Approval Date</span><div class="form-value">{{book.coverAssets.approvalDate}}</div></div>
+              <div class="form-group full"><span class="form-label">Master Concept</span><div class="form-value">{{book.coverAssets.masterConcept || '—'}}</div></div>
+              <div class="form-group full"><span class="form-label">License Terms</span><div class="form-value">{{book.coverAssets.licenseTerms || '—'}}</div></div>
+              <div class="form-group"><span class="form-label">Stock Image Licenses</span><div class="form-value">{{book.coverAssets.stockImageLicenses || '—'}}</div></div>
+              <div class="form-group"><span class="form-label">Font Licenses</span><div class="form-value">{{book.coverAssets.fontLicenses || '—'}}</div></div>
+            </div>
+          </div>
+        }
+
+        @if(activeTab==='marketing') {
+          <div class="card"><h2 class="section-title">Marketing Copy</h2>
+            <div class="form-grid">
+              <div class="form-group full"><span class="form-label">One-line Hook</span><div class="form-value">{{book.marketingCopy.oneLineHook}}</div></div>
+              <div class="form-group full"><span class="form-label">Ad Copy (Short)</span><div class="form-value">{{book.marketingCopy.adCopyShort || '—'}}</div></div>
+              <div class="form-group full"><span class="form-label">Retailer Description</span><div class="form-value">{{book.marketingCopy.retailerDescription || '—'}}</div></div>
+              <div class="form-group full"><span class="form-label">Newsletter Announcement</span><div class="form-value">{{book.marketingCopy.newsletterAnnouncement || '—'}}</div></div>
+              <div class="form-group full"><span class="form-label">Press Release</span><div class="form-value">{{book.marketingCopy.pressReleaseCopy || '—'}}</div></div>
+            </div>
+          </div>
+        }
+
+        @if(activeTab==='arc') {
+          <div class="card"><h2 class="section-title">ARC Distribution</h2>
+            <div class="form-grid">
+              <div class="form-group"><span class="form-label">Method</span><div class="form-value">{{book.arcDistribution.distributionMethod}}</div></div>
+              <div class="form-group"><span class="form-label">File Type</span><div class="form-value">{{book.arcDistribution.fileType}}</div></div>
+              <div class="form-group"><span class="form-label">Total Sent</span><div class="form-value">{{book.arcDistribution.totalSent}}</div></div>
+              <div class="form-group"><span class="form-label">Street Team</span><div class="form-value">{{book.arcDistribution.streetTeamRecipients}}</div></div>
+              <div class="form-group"><span class="form-label">New Readers</span><div class="form-value">{{book.arcDistribution.newReaderRecipients}}</div></div>
+              <div class="form-group"><span class="form-label">Open Date</span><div class="form-value">{{book.arcDistribution.openDate}}</div></div>
+            </div>
+          </div>
+          <div class="card"><h2 class="section-title">ARC Reviews</h2>
+            <table class="data-table"><thead><tr><th>Reviewer</th><th>Rating</th><th>Posted</th><th>Platforms</th><th>Usable Quote</th></tr></thead>
+              <tbody>@for(r of book.arcReviews; track r.id) {
+                <tr><td class="td-primary">{{r.recipientName}}</td><td>{{r.rating}}★</td><td>{{r.reviewPosted ? 'Yes' : 'No'}}</td><td>{{r.reviewPlatforms}}</td><td>{{r.quoteUsable ? r.quoteText : '—'}}</td></tr>
+              }</tbody>
+            </table>
+          </div>
+        }
+
+        @if(activeTab==='launch') {
+          <div class="card"><h2 class="section-title">Launch Plan</h2>
+            <div class="form-grid">
+              <div class="form-group"><span class="form-label">Launch Type</span><div class="form-value">{{book.launchPlan.launchType}}</div></div>
+              <div class="form-group"><span class="form-label">Target Date</span><div class="form-value">{{book.launchPlan.targetReleaseDate}}</div></div>
+              <div class="form-group"><span class="form-label">Budget</span><div class="form-value">{{book.launchPlan.launchBudget}}</div></div>
+              <div class="form-group"><span class="form-label">Team Lead</span><div class="form-value">{{book.launchPlan.launchTeamLead}}</div></div>
+              <div class="form-group full"><span class="form-label">Budget Breakdown</span><div class="form-value">{{book.launchPlan.budgetBreakdown}}</div></div>
+            </div>
+          </div>
+          <div class="card"><h2 class="section-title">Timeline</h2>
+            <div class="timeline">@for(m of book.launchPlan.timeline; track m.milestone) {
+              <div class="timeline-item" [class.done]="m.status==='Done'"><div class="timeline-dot"></div>
+                <div class="timeline-info"><div class="timeline-milestone">{{m.milestone}}</div><div class="timeline-target">{{m.target}}</div></div>
+              </div>
+            }</div>
+          </div>
+          <div class="card"><h2 class="section-title">Launch Checklist</h2>
+            <div class="checklist">@for(c of book.launchPlan.checklist; track c.item) {
+              <div class="check-item" [class.done]="c.done"><div class="check-dot">{{c.done ? '✓' : ''}}</div>{{c.item}}</div>
+            }</div>
+          </div>
+        }
+
+        @if(activeTab==='promos') {
+          <div class="card"><h2 class="section-title">Promotional Campaigns</h2>
+            @for(pc of book.promotionalCampaigns; track pc.id) {
+              <div class="record-card">
+                <div class="record-header"><h3 class="record-title">{{pc.campaignType}} — {{pc.servicePlatform}}</h3>
+                  <span class="status" [ngClass]="getStatusClass(pc.overallRating)">{{pc.overallRating}}</span></div>
+                <div class="record-grid">
+                  <div class="record-field"><span class="label">Cost</span><span class="value">{{pc.campaignCost}}</span></div>
+                  <div class="record-field"><span class="label">Units Sold</span><span class="value">{{pc.unitsSold | number}}</span></div>
+                  <div class="record-field"><span class="label">Revenue</span><span class="value">{{pc.revenue}}</span></div>
+                  <div class="record-field"><span class="label">ROI</span><span class="value">{{pc.roi}}</span></div>
+                  <div class="record-field"><span class="label">Best Rank</span><span class="value">{{pc.bestRankAchieved}}</span></div>
+                  <div class="record-field"><span class="label">Dates</span><span class="value">{{pc.startDate}} — {{pc.endDate}}</span></div>
+                </div>
+              </div>
+            }
+          </div>
+        }
+
+        @if(activeTab==='awards') {
+          <div class="card"><h2 class="section-title">Awards & Recognition</h2>
+            @if(!book.awards.length) { <div class="empty-state"><div class="empty-icon">🏆</div><p>No awards recorded</p></div> }
+            @for(aw of book.awards; track aw.id) {
+              <div class="record-card">
+                <div class="record-header"><h3 class="record-title">{{aw.awardName}}</h3>
+                  <span class="status" [ngClass]="aw.result==='Won'?'status-green':aw.result==='Finalist'?'status-blue':'status-amber'">{{aw.result}}</span></div>
+                <div class="record-grid">
+                  <div class="record-field"><span class="label">Organization</span><span class="value">{{aw.organization}}</span></div>
+                  <div class="record-field"><span class="label">Category</span><span class="value">{{aw.category}}</span></div>
+                  <div class="record-field"><span class="label">Year</span><span class="value">{{aw.year}}</span></div>
+                  <div class="record-field"><span class="label">Fee</span><span class="value">{{aw.submissionFee}}</span></div>
+                  <div class="record-field"><span class="label">Revenue Impact</span><span class="value">{{aw.revenueImpact}}</span></div>
+                  <div class="record-field"><span class="label">Seal on Cover</span><span class="value">{{aw.sealAddedToCover ? 'Yes' : 'No'}}</span></div>
+                </div>
+                @if(aw.awardQuote) { <p style="margin:.5rem 0 0;font-style:italic;font-size:.8125rem;color:var(--text-secondary)">"{{aw.awardQuote}}"</p> }
+              </div>
+            }
+          </div>
+        }
+
+        @if(activeTab==='serial') {
+          <div class="card"><h2 class="section-title">Serial / Subscription Platforms</h2>
+            @if(!book.serialPlatforms.length) { <div class="empty-state"><div class="empty-icon">📱</div><p>No serialization records</p></div> }
+          </div>
+        }
+
+        @if(activeTab==='directsales') {
+          <div class="card"><h2 class="section-title">Direct Sales</h2>
+            <div class="form-grid">
+              <div class="form-group"><span class="form-label">SKU</span><div class="form-value">{{book.directSales.sku}}</div></div>
+              <div class="form-group"><span class="form-label">Store Platform</span><div class="form-value">{{book.directSales.storePlatform}}</div></div>
+              <div class="form-group"><span class="form-label">Tax Category</span><div class="form-value">{{book.directSales.taxCategory}}</div></div>
+              <div class="form-group"><span class="form-label">Coupon Eligible</span><div class="form-value">{{book.directSales.couponEligibility}}</div></div>
+              <div class="form-group"><span class="form-label">Refund Terms</span><div class="form-value">{{book.directSales.refundTerms}}</div></div>
+            </div>
+          </div>
+        }
+
+        @if(activeTab==='compliance') {
+          <div class="card"><h2 class="section-title">Compliance & Legal</h2>
+            <div class="form-grid">
+              <div class="form-group"><span class="form-label">Copyright Registration</span><div class="form-value">{{book.complianceLegal.copyrightRegistration}}</div></div>
+              <div class="form-group"><span class="form-label">AI Content Disclosure</span><div class="form-value">{{book.complianceLegal.aiContentDisclosure}}</div></div>
+              <div class="form-group"><span class="form-label">Stock Image Licenses</span><div class="form-value">{{book.complianceLegal.stockImageLicenses}}</div></div>
+              <div class="form-group"><span class="form-label">Font Licenses</span><div class="form-value">{{book.complianceLegal.fontLicenses}}</div></div>
+            </div>
+          </div>
+        }
+
+        @if(activeTab==='analytics') {
+          <div class="card"><h2 class="section-title">Analytics Mapping</h2>
+            <div class="form-grid">
+              <div class="form-group full"><span class="form-label">Platform Mapping</span><div class="form-value">{{book.analyticsMapping.platformMapping}}</div></div>
+              <div class="form-group"><span class="form-label">UTM Structures</span><div class="form-value">{{book.analyticsMapping.utmStructures || '—'}}</div></div>
+              <div class="form-group"><span class="form-label">Ad Campaign IDs</span><div class="form-value">{{book.analyticsMapping.adCampaignIds || '—'}}</div></div>
+            </div>
+          </div>
+        }
+
+        @if(activeTab==='revisions') {
+          <div class="card"><h2 class="section-title">Revision History</h2>
+            <table class="data-table"><thead><tr><th>Date</th><th>Type</th><th>By</th><th>Reason</th><th>Platforms</th></tr></thead>
+              <tbody>@for(r of book.revisionHistory; track r.id) {
+                <tr><td>{{r.date}}</td><td class="td-primary">{{r.revisionType}}</td><td>{{r.performedBy}}</td><td>{{r.reason}}</td><td>{{r.affectedPlatforms}}</td></tr>
+              }</tbody>
+            </table>
+          </div>
+        }
+
+        @if(activeTab==='languages') {
+          <div class="card"><h2 class="section-title">Language / Edition Branches</h2>
+            <div class="entity-list">
+              @for(lb of book.languageBranches; track lb.id) {
+                <div class="entity-card" (click)="navigateTo.emit({level:'language', id:lb.id, label:lb.edition.editionName})">
+                  <div class="entity-card-header"><h3 class="entity-name">🌐 {{lb.edition.editionName}}</h3>
+                    <span class="status" [ngClass]="getStatusClass(lb.edition.publicationStatus)">{{lb.edition.publicationStatus}}</span></div>
+                  <p class="entity-meta">{{lb.edition.language}} ({{lb.edition.languageCode}}) · {{lb.edition.editionType}}</p>
+                  <div class="entity-stats">
+                    <span class="entity-stat"><strong>{{lb.formats.length}}</strong> Formats</span>
+                    <span class="entity-stat"><strong>{{lb.edition.wordCount | number}}</strong> Words</span>
+                    @if(lb.edition.isPrimaryLanguage) { <span class="tag">Primary</span> }
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  `,
+  styleUrls: ['../company-vault.component.css']
+})
+export class VaultBookComponent {
+  @Input() book!: Book;
+  @Input() activeTab = 'core';
+  @Output() tabChange = new EventEmitter<string>();
+  @Output() navigateTo = new EventEmitter<{level: VaultLevel; id: string; label: string}>();
+  tabs = [
+    {id:'core',label:'Core Work'},{id:'story',label:'Story'},{id:'rights',label:'Rights'},{id:'contributors',label:'Contributors'},
+    {id:'identifiers',label:'IDs'},{id:'covers',label:'Covers'},{id:'marketing',label:'Marketing'},{id:'arc',label:'ARC'},
+    {id:'launch',label:'Launch'},{id:'promos',label:'Promos'},{id:'awards',label:'Awards'},{id:'serial',label:'Serial'},
+    {id:'directsales',label:'Direct Sales'},{id:'compliance',label:'Legal'},{id:'analytics',label:'Analytics'},
+    {id:'revisions',label:'Revisions'},{id:'languages',label:'Editions'}
+  ];
+  getStatusClass(s: string): string {
+    const v = s.toLowerCase();
+    if (['active','published','live','approved','won','excellent','success'].includes(v)) return 'status-green';
+    if (['draft','planned','pending','in progress','good','break-even'].includes(v)) return 'status-amber';
+    if (['retired','rejected','failed','poor'].includes(v)) return 'status-red';
+    return 'status-blue';
+  }
+}

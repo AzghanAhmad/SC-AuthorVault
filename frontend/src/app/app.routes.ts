@@ -26,9 +26,30 @@ export const routes: Routes = [
     path: 'settings',
     loadComponent: () => import('./components/pages/settings/settings.component').then(m => m.SettingsComponent)
   },
+  // AuthorVAULT hierarchy pages
   {
-    path: 'company-vault',
-    loadComponent: () => import('./components/pages/company-vault/company-vault.component').then(m => m.CompanyVaultComponent)
+    path: 'vault/company',
+    loadComponent: () => import('./components/pages/vault/vault-company-page.component').then(m => m.VaultCompanyPageComponent)
+  },
+  {
+    path: 'vault/imprints',
+    loadComponent: () => import('./components/pages/vault/vault-imprints-page.component').then(m => m.VaultImprintsPageComponent)
+  },
+  {
+    path: 'vault/pen-names',
+    loadComponent: () => import('./components/pages/vault/vault-pennames-page.component').then(m => m.VaultPenNamesPageComponent)
+  },
+  {
+    path: 'vault/series',
+    loadComponent: () => import('./components/pages/vault/vault-series-page.component').then(m => m.VaultSeriesPageComponent)
+  },
+  {
+    path: 'vault/languages',
+    loadComponent: () => import('./components/pages/vault/vault-languages-page.component').then(m => m.VaultLanguagesPageComponent)
+  },
+  {
+    path: 'vault/formats',
+    loadComponent: () => import('./components/pages/vault/vault-formats-page.component').then(m => m.VaultFormatsPageComponent)
   },
   { path: '**', redirectTo: '/login' }
 ];

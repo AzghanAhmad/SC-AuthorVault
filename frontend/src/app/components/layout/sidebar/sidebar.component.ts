@@ -51,6 +51,21 @@ interface NavItem {
               <svg *ngSwitchCase="'building'" viewBox="0 0 24 24" aria-hidden="true">
                 <rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22V12h6v10"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M8 10h.01"/><path d="M16 10h.01"/>
               </svg>
+              <svg *ngSwitchCase="'stamp'" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M5 21h14"/><path d="M12 17H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-7z"/>
+              </svg>
+              <svg *ngSwitchCase="'pen'" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+              </svg>
+              <svg *ngSwitchCase="'layers'" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m12 2 10 6.5-10 6.5L2 8.5Z"/><path d="m2 15.5 10 6.5 10-6.5"/><path d="m2 12 10 6.5L22 12"/>
+              </svg>
+              <svg *ngSwitchCase="'globe'" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+              </svg>
+              <svg *ngSwitchCase="'format'" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15h6"/>
+              </svg>
               <svg *ngSwitchCase="'settings'" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"></path>
                 <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
@@ -294,7 +309,12 @@ export class SidebarComponent {
   navItems: NavItem[] = [
     { label: 'Dashboard', icon: 'home', route: '/dashboard' },
     { label: 'Books', icon: 'book', route: '/books' },
-    { label: 'Company Vault', icon: 'building', route: '/company-vault' },
+    { label: 'Company', icon: 'building', route: '/vault/company' },
+    { label: 'Imprints', icon: 'stamp', route: '/vault/imprints' },
+    { label: 'Pen Names', icon: 'pen', route: '/vault/pen-names' },
+    { label: 'Series', icon: 'layers', route: '/vault/series' },
+    { label: 'Languages', icon: 'globe', route: '/vault/languages' },
+    { label: 'Formats', icon: 'format', route: '/vault/formats' },
     { label: 'Settings', icon: 'settings', route: '/settings' },
   ];
 
