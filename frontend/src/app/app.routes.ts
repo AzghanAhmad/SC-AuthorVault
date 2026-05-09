@@ -51,5 +51,13 @@ export const routes: Routes = [
     path: 'vault/formats',
     loadComponent: () => import('./components/pages/vault/vault-formats-page.component').then(m => m.VaultFormatsPageComponent)
   },
+  {
+    path: 'company/isbns',
+    loadComponent: () => import('./components/pages/company/company-isbns.component').then(m => m.CompanyIsbnsComponent)
+  },
+  {
+    path: 'company/calendar',
+    loadComponent: () => import('./components/pages/company/company-calendar.component').then(m => m.CompanyCalendarComponent)
+  },
   { path: '**', redirectTo: '/login' }
 ];

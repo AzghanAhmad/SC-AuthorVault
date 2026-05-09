@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../services/auth.service';
@@ -195,8 +195,8 @@ import { ThemeService } from '../../../services/theme.service';
   `,
   styles: [`
     .page {
-      max-width: 1200px;
-      animation: fadeIn 0.5s ease-out;
+      width: 100%;
+      animation: fadeIn 0.3s ease-out;
     }
 
     .page-header { margin-bottom: 2rem; }
@@ -465,9 +465,16 @@ export class SettingsComponent implements OnInit {
   constructor(
     private authService: AuthService,
     private settingsService: SettingsService,
-    private themeService: ThemeService,
-    private cdr: ChangeDetectorRef
-  ) { }
+    private themeService: ThemeService
+  ) {
+    // Pre-populate immediately from cached auth so content shows on first render
+    const user = this.authService.user();
+    if (user) {
+      this.accountName = user.name;
+      this.accountEmail = user.email;
+      this.authorName = user.name;
+    }
+  }
 
   ngOnInit() {
     this.settingsService.getSettings().subscribe({
@@ -510,7 +517,6 @@ export class SettingsComponent implements OnInit {
 
   saveSettings() {
     this.saving = true;
-    this.cdr.detectChanges();
     this.settingsService.updateSettings({
       name: this.accountName,
       email: this.accountEmail,
@@ -531,15 +537,11 @@ export class SettingsComponent implements OnInit {
         this.saving = false;
         this.authService.updateCachedUser({ name: this.accountName, email: this.accountEmail });
         this.themeService.setTheme(this.theme as 'light' | 'dark' | 'auto');
-        this.toastMessage = 'Settings saved!';
-        this.showToast = true;
-        this.cdr.detectChanges();
-        setTimeout(() => { this.showToast = false; this.cdr.detectChanges(); }, 2500);
+        this.showToastMsg('Settings saved!');
       },
       error: (err) => {
         this.saving = false;
         this.showToastMsg('Failed: ' + (err?.message || 'Could not save'));
-        this.cdr.detectChanges();
       }
     });
   }
@@ -571,8 +573,7 @@ export class SettingsComponent implements OnInit {
   private showToastMsg(msg: string) {
     this.toastMessage = msg;
     this.showToast = true;
-    this.cdr.detectChanges();
-    setTimeout(() => { this.showToast = false; this.cdr.detectChanges(); }, 2500);
+    setTimeout(() => { this.showToast = false; }, 2500);
   }
 
   sections = [
