@@ -7,6 +7,14 @@ import { ToastService } from '../../../services/toast.service';
 import { Book, BookFile, MarketingAsset, PlatformVersion, BookStatus } from '../../../models/book.model';
 
 type TabId = 'overview' | 'files' | 'metadata' | 'platforms' | 'marketing' | 'ai';
+type CorePlacementTarget = {
+  key: string;
+  label: string;
+  section: string;
+  category: BookFile['category'];
+  defaultFormat?: BookFile['format'];
+  defaultPlatform?: string;
+};
 
 @Component({
   selector: 'app-book-detail',
@@ -123,45 +131,285 @@ type TabId = 'overview' | 'files' | 'metadata' | 'platforms' | 'marketing' | 'ai
           <div class="tab-panel" *ngIf="activeTab() === 'files'">
             <div class="section-header">
               <h2 class="section-title">Core Book Files</h2>
-              <button class="btn-primary btn-sm" (click)="showUploadModal = true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <button class="btn-primary btn-sm" (click)="openUploadModal()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                 Upload File
               </button>
             </div>
 
-            <!-- Drag & Drop Zone -->
-            <div class="drop-zone" (dragover)="$event.preventDefault()" (drop)="onDrop($event)" (click)="showUploadModal = true">
-              <div class="drop-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
-              <p class="drop-text">Drag & drop files here, or <span class="drop-cta">click to browse</span></p>
-              <p class="drop-hint">Supports EPUB, PDF, Audio, PSD, AI, and more</p>
+            <div class="card core-flow-card">
+              <div class="core-flow-copy">
+                <h3>Place a file exactly where it belongs</h3>
+                <p>Select the book, language, target slot, format, and platform, then open the upload modal with that placement pre-filled.</p>
+              </div>
+              <div class="core-flow-grid">
+                <div class="form-group">
+                  <label class="form-label">Select Title</label>
+                  <select class="form-input" [(ngModel)]="coreTitleFilter">
+                    <option [value]="book()!.id">{{ book()!.title }}</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Select Language</label>
+                  <select class="form-input" [(ngModel)]="filesLangFilter">
+                    @for (language of languageOptions; track language.code) {
+                      <option [value]="language.code">{{ language.label }}</option>
+                    }
+                  </select>
+                </div>
+                <div class="form-group wide">
+                  <label class="form-label">Select File Slot</label>
+                  <select class="form-input" [(ngModel)]="coreTargetKey">
+                    @for (target of corePlacementTargets; track target.key) {
+                      <option [value]="target.key">{{ target.section }} · {{ target.label }}</option>
+                    }
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Select Format</label>
+                  <select class="form-input" [(ngModel)]="coreFormatFilter">
+                    @for (format of formatOptions; track format.value) {
+                      <option [value]="format.value">{{ format.label }}</option>
+                    }
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Select Platform</label>
+                  <select class="form-input" [(ngModel)]="corePlatformFilter">
+                    @for (platform of platformOptions; track platform.value) {
+                      <option [value]="platform.value">{{ platform.label }}</option>
+                    }
+                  </select>
+                </div>
+                <button class="btn-primary core-flow-go" (click)="openUploadFromCoreFlow()">Go</button>
+              </div>
             </div>
 
-            <!-- File Categories -->
-            @for (cat of fileCategories; track cat.key) {
-              <div class="file-category">
-                <h3 class="cat-title">{{ cat.label }}</h3>
-                <div class="file-list" *ngIf="getFilesByCategory(cat.key).length > 0">
-                  @for (file of getFilesByCategory(cat.key); track file.id) {
-                    <div class="file-card">
-                      <div class="file-icon" [class]="'fi-' + file.format">
-                        {{ file.format | uppercase }}
-                      </div>
-                      <div class="file-info">
-                        <div class="file-name">{{ file.name }}</div>
-                        <div class="file-meta">{{ formatSize(file.size) }} · {{ file.language | uppercase }} · {{ file.uploadedAt }}</div>
-                        <div class="file-tags">
-                          @for (tag of file.tags; track tag) {
-                            <span class="tag-chip">{{ tag }}</span>
-                          }
-                        </div>
-                      </div>
-                      <span class="badge" [class]="'badge-' + file.status">{{ file.status }}</span>
-                    </div>
-                  }
-                </div>
-                <p class="empty-text" *ngIf="getFilesByCategory(cat.key).length === 0">No {{ cat.label.toLowerCase() }} uploaded yet.</p>
+            <p style="font-size:.8125rem;color:var(--text-muted);margin-bottom:1.25rem;padding:.625rem .875rem;background:var(--primary-light);border-radius:8px">
+              📌 Showing the complete Core File map for {{ getLanguageLabel(filesLangFilter) }}. Change the language to repeat the same structure for another edition. Drag a file onto a slot, click a slot, or use the placement workflow above.
+            </p>
+
+            <!-- ── FRONT MATTER ── -->
+            <div class="file-section">
+              <div class="file-section-header">
+                <h3 class="file-section-title">📖 Front Matter</h3>
+                <span class="file-section-desc">Everything before Chapter 1 — title page, copyright, dedication, TOC, foreword, preface</span>
               </div>
-            }
+              <div class="file-slots-grid">
+                @for (slot of frontMatterSlots; track slot.key) {
+                  <div class="file-slot" (click)="openUploadForSlot(slot)" (dragover)="$event.preventDefault()" (drop)="onDropToSlot($event, slot)">
+                    <div class="slot-icon">{{ slot.icon }}</div>
+                    <div class="slot-info">
+                      <div class="slot-name">{{ slot.label }}</div>
+                      <div class="slot-desc">{{ slot.desc }}</div>
+                    </div>
+                    <div class="slot-status empty">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                      Upload
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- ── BODY ── -->
+            <div class="file-section">
+              <div class="file-section-header">
+                <h3 class="file-section-title">📝 Body</h3>
+                <span class="file-section-desc">The main manuscript — chapters, parts, epilogue</span>
+              </div>
+              <div class="file-slots-grid">
+                @for (slot of bodySlots; track slot.key) {
+                  <div class="file-slot" (click)="openUploadForSlot(slot)" (dragover)="$event.preventDefault()" (drop)="onDropToSlot($event, slot)">
+                    <div class="slot-icon">{{ slot.icon }}</div>
+                    <div class="slot-info">
+                      <div class="slot-name">{{ slot.label }}</div>
+                      <div class="slot-desc">{{ slot.desc }}</div>
+                    </div>
+                    <div class="slot-status empty">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                      Upload
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- ── BACK MATTER ── -->
+            <div class="file-section">
+              <div class="file-section-header">
+                <h3 class="file-section-title">📚 Back Matter</h3>
+                <span class="file-section-desc">Everything after the story — acknowledgments, author bio, bibliography, index, bonus content, next-book preview</span>
+              </div>
+              <div class="file-slots-grid">
+                @for (slot of backMatterSlots; track slot.key) {
+                  <div class="file-slot" (click)="openUploadForSlot(slot)" (dragover)="$event.preventDefault()" (drop)="onDropToSlot($event, slot)">
+                    <div class="slot-icon">{{ slot.icon }}</div>
+                    <div class="slot-info">
+                      <div class="slot-name">{{ slot.label }}</div>
+                      <div class="slot-desc">{{ slot.desc }}</div>
+                    </div>
+                    <div class="slot-status empty">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                      Upload
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- ── METADATA & RETAILER COPY ── -->
+            <div class="file-section">
+              <div class="file-section-header">
+                <h3 class="file-section-title">🏷 Metadata & Retailer Copy</h3>
+                <span class="file-section-desc">Book metadata, retailer descriptions, keywords, categories, and platform-specific back-matter instructions</span>
+              </div>
+              <div class="file-slots-grid">
+                @for (slot of metadataSlots; track slot.key) {
+                  <div class="file-slot" (click)="openUploadForSlot(slot)" (dragover)="$event.preventDefault()" (drop)="onDropToSlot($event, slot)">
+                    <div class="slot-icon">{{ slot.icon }}</div>
+                    <div class="slot-info">
+                      <div class="slot-name">{{ slot.label }}</div>
+                      <div class="slot-desc">{{ slot.desc }}</div>
+                    </div>
+                    <div class="slot-status empty">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                      Upload
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- ── EBOOK FILES (per platform) ── -->
+            <div class="file-section">
+              <div class="file-section-header">
+                <h3 class="file-section-title">📱 Ebook Files — Per Platform</h3>
+                <span class="file-section-desc">Each platform may require different metadata in the back matter, different cover sizes, or different EPUB specs</span>
+              </div>
+              <div class="platform-file-grid">
+                @for (pf of ebookPlatformSlots; track pf.platform) {
+                  <div class="platform-file-card">
+                    <div class="pf-header">
+                      <span class="pf-platform">{{ pf.platform }}</span>
+                      <span class="pf-spec">{{ pf.spec }}</span>
+                    </div>
+                    <div class="pf-slots">
+                      @for (slot of pf.slots; track slot.key) {
+                        <div class="pf-slot" (click)="openUploadForSlot(slot)" (dragover)="$event.preventDefault()" (drop)="onDropToSlot($event, slot)">
+                          <span class="pf-slot-label">{{ slot.label }}</span>
+                          <span class="pf-slot-upload">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                          </span>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- ── PAPERBACK INTERIORS (per trim size) ── -->
+            <div class="file-section">
+              <div class="file-section-header">
+                <h3 class="file-section-title">📄 Paperback Interiors — Per Trim Size</h3>
+                <span class="file-section-desc">Each trim size is a separate formatted file. Most authors use one size; some use several.</span>
+              </div>
+              <div class="platform-file-grid">
+                @for (ts of paperbackTrimSlots; track ts.size) {
+                  <div class="platform-file-card">
+                    <div class="pf-header">
+                      <span class="pf-platform">{{ ts.size }}</span>
+                      <span class="pf-spec">{{ ts.note }}</span>
+                    </div>
+                    <div class="pf-slots">
+                      @for (slot of ts.slots; track slot.key) {
+                        <div class="pf-slot" (click)="openUploadForSlot(slot)" (dragover)="$event.preventDefault()" (drop)="onDropToSlot($event, slot)">
+                          <span class="pf-slot-label">{{ slot.label }}</span>
+                          <span class="pf-slot-upload">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                          </span>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- ── COVER ART (per platform/format) ── -->
+            <div class="file-section">
+              <div class="file-section-header">
+                <h3 class="file-section-title">🎨 Cover Art — Per Platform & Format</h3>
+                <span class="file-section-desc">Each platform and format requires specific cover dimensions. Source files (PSD/AI) go here too.</span>
+              </div>
+              <div class="platform-file-grid">
+                @for (cv of coverArtSlots; track cv.platform) {
+                  <div class="platform-file-card">
+                    <div class="pf-header">
+                      <span class="pf-platform">{{ cv.platform }}</span>
+                      <span class="pf-spec">{{ cv.spec }}</span>
+                    </div>
+                    <div class="pf-slots">
+                      @for (slot of cv.slots; track slot.key) {
+                        <div class="pf-slot" (click)="openUploadForSlot(slot)" (dragover)="$event.preventDefault()" (drop)="onDropToSlot($event, slot)">
+                          <span class="pf-slot-label">{{ slot.label }}</span>
+                          <span class="pf-slot-upload">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                          </span>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- ── AUDIOBOOK ── -->
+            <div class="file-section">
+              <div class="file-section-header">
+                <h3 class="file-section-title">🎧 Audiobook Files</h3>
+                <span class="file-section-desc">Audio is one-size-fits-all across platforms. Upload chapter files or the full production master.</span>
+              </div>
+              <div class="file-slots-grid">
+                @for (slot of audiobookSlots; track slot.key) {
+                  <div class="file-slot" (click)="openUploadForSlot(slot)" (dragover)="$event.preventDefault()" (drop)="onDropToSlot($event, slot)">
+                    <div class="slot-icon">{{ slot.icon }}</div>
+                    <div class="slot-info">
+                      <div class="slot-name">{{ slot.label }}</div>
+                      <div class="slot-desc">{{ slot.desc }}</div>
+                    </div>
+                    <div class="slot-status empty">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                      Upload
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- ── EXISTING UPLOADED FILES ── -->
+            <div class="file-section" *ngIf="visibleFiles().length > 0">
+              <div class="file-section-header">
+                <h3 class="file-section-title">📁 Uploaded Files for {{ getLanguageLabel(filesLangFilter) }}</h3>
+                <span class="file-section-desc">Files attached to the selected language edition</span>
+              </div>
+              <div class="file-list">
+                @for (file of visibleFiles(); track file.id) {
+                  <div class="file-card">
+                    <div class="file-icon" [class]="'fi-' + file.format">{{ file.format | uppercase }}</div>
+                    <div class="file-info">
+                      <div class="file-name">{{ file.name }}</div>
+                      <div class="file-meta">{{ formatSize(file.size) }} · {{ file.language | uppercase }} · {{ file.uploadedAt }}</div>
+                      <div class="file-tags">
+                        @for (tag of file.tags; track tag) { <span class="tag-chip">{{ tag }}</span> }
+                      </div>
+                    </div>
+                    <span class="badge" [class]="'badge-' + file.status">{{ file.status }}</span>
+                  </div>
+                }
+              </div>
+            </div>
           </div>
 
           <!-- ═══ METADATA ═══ -->
@@ -388,17 +636,48 @@ type TabId = 'overview' | 'files' | 'metadata' | 'platforms' | 'marketing' | 'ai
       </div>
 
       <!-- Upload Modal -->
-      <div class="modal-overlay" *ngIf="showUploadModal" (click)="showUploadModal = false">
+      <div class="modal-overlay" *ngIf="showUploadModal" (click)="closeUploadModal()">
         <div class="modal-card" (click)="$event.stopPropagation()">
-          <div class="modal-header"><h2>Upload File</h2><button class="modal-close" (click)="showUploadModal = false">&times;</button></div>
+          <div class="modal-header">
+            <div>
+              <h2>Upload File</h2>
+              <p *ngIf="uploadSlotLabel" style="font-size:.8125rem;color:var(--accent-blue);margin:.2rem 0 0;font-weight:500">→ {{ uploadSlotLabel }}</p>
+            </div>
+            <button class="modal-close" (click)="closeUploadModal()">&times;</button>
+          </div>
           <div class="modal-body">
+            <div class="placement-summary" *ngIf="uploadPlacementPath">
+              <span>Placement</span>
+              <strong>{{ uploadPlacementPath }}</strong>
+            </div>
             <div class="form-group"><label class="form-label">File Name</label><input type="text" class="form-input" [(ngModel)]="uploadFileName" placeholder="your-file.epub" /></div>
+            <div class="form-group">
+              <label class="form-label">Attach File</label>
+              <div class="attach-file-row">
+                <input
+                  #uploadInput
+                  type="file"
+                  class="visually-hidden"
+                  accept=".epub,.pdf,.docx,.mp3,.wav,.m4a,.aac,.flac,.psd,.ai,.png,.jpg,.jpeg"
+                  (change)="onUploadFileSelected($event)"
+                />
+                <button type="button" class="attach-file-btn" (click)="uploadInput.click()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05 12.25 20.24a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                  {{ selectedUploadFile ? 'Change file' : 'Attach file' }}
+                </button>
+                <div class="attached-file" *ngIf="selectedUploadFile">
+                  <span class="attached-file-name">{{ selectedUploadFile.name }}</span>
+                  <span class="attached-file-size">{{ formatSize(selectedUploadFile.size) }}</span>
+                </div>
+              </div>
+              <p class="attach-hint" *ngIf="!selectedUploadFile">Choose a file from your device or enter the file name manually.</p>
+            </div>
             <div class="form-row two-col">
-              <div class="form-group"><label class="form-label">Format</label><select class="form-input" [(ngModel)]="uploadFormat"><option value="epub">EPUB</option><option value="pdf">PDF</option><option value="audio">Audio</option><option value="psd">PSD</option><option value="ai">AI</option></select></div>
+              <div class="form-group"><label class="form-label">Format</label><select class="form-input" [(ngModel)]="uploadFormat"><option value="epub">EPUB</option><option value="pdf">PDF</option><option value="audio">Audio</option><option value="docx">DOCX</option><option value="psd">PSD</option><option value="ai">AI</option><option value="png">PNG</option><option value="jpg">JPG</option></select></div>
               <div class="form-group"><label class="form-label">Category</label><select class="form-input" [(ngModel)]="uploadCategory"><option value="ebook-master">Ebook Master</option><option value="paperback-interior">Paperback Interior</option><option value="hardcover-interior">Hardcover Interior</option><option value="audiobook">Audiobook</option><option value="cover-source">Cover Source</option></select></div>
             </div>
           </div>
-          <div class="modal-footer"><button class="btn-secondary" (click)="showUploadModal = false">Cancel</button><button class="btn-primary" (click)="uploadFile()">Upload</button></div>
+          <div class="modal-footer"><button class="btn-secondary" (click)="closeUploadModal()">Cancel</button><button class="btn-primary" (click)="uploadFile()">Upload</button></div>
         </div>
       </div>
 
@@ -502,6 +781,41 @@ type TabId = 'overview' | 'files' | 'metadata' | 'platforms' | 'marketing' | 'ai
     .history-date { color:var(--text-muted);margin-left:.5rem; }
 
     /* Files */
+    .core-flow-card { margin-bottom:1.25rem;padding:1rem; }
+    .core-flow-copy { display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;margin-bottom:.875rem; }
+    .core-flow-copy h3 { font-size:1rem;font-weight:700;color:var(--text-primary);margin:0 0 .2rem; }
+    .core-flow-copy p { font-size:.8125rem;color:var(--text-muted);margin:0;max-width:640px; }
+    .core-flow-grid { display:grid;grid-template-columns:1.1fr 1fr 1.6fr 1fr 1fr auto;gap:.75rem;align-items:end; }
+    .core-flow-grid .form-group { margin-bottom:0; }
+    .core-flow-go { align-self:end;height:42px;padding:0 1.125rem; }
+    .filter-sel-sm { padding:.4rem 1.75rem .4rem .75rem;border:1.5px solid var(--border-color);border-radius:8px;font-size:.8125rem;font-family:inherit;color:var(--text-primary);background:var(--surface);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right .5rem center;appearance:none;outline:none; }
+    .file-section { margin-bottom:2rem; }
+    .file-section-header { margin-bottom:.875rem; }
+    .file-section-title { font-size:1rem;font-weight:700;color:var(--text-primary);margin:0 0 .2rem; }
+    .file-section-desc { font-size:.8125rem;color:var(--text-muted); }
+    .file-slots-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:.75rem; }
+    .file-slot {
+      display:flex;align-items:center;gap:.875rem;padding:.875rem 1rem;
+      background:var(--surface);border:1.5px dashed var(--border-color);border-radius:12px;
+      cursor:pointer;transition:all .2s;
+    }
+    .file-slot:hover { border-color:var(--accent-blue);background:var(--primary-light); }
+    .slot-icon { font-size:1.375rem;flex-shrink:0; }
+    .slot-name { font-size:.875rem;font-weight:600;color:var(--text-primary);margin-bottom:.1rem; }
+    .slot-desc { font-size:.75rem;color:var(--text-muted); }
+    .slot-status { display:flex;align-items:center;gap:.3rem;font-size:.75rem;font-weight:500;margin-left:auto;flex-shrink:0;color:var(--text-muted); }
+    .slot-status.empty { color:var(--text-muted); }
+    .slot-status.filled { color:#10b981; }
+    .platform-file-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:.875rem; }
+    .platform-file-card { background:var(--surface);border:1px solid var(--border-light);border-radius:12px;overflow:hidden;box-shadow:var(--shadow-sm); }
+    .pf-header { padding:.625rem .875rem;background:var(--background);border-bottom:1px solid var(--border-light);display:flex;justify-content:space-between;align-items:center; }
+    .pf-platform { font-size:.8125rem;font-weight:700;color:var(--text-primary); }
+    .pf-spec { font-size:.6875rem;color:var(--text-muted); }
+    .pf-slots { padding:.5rem; }
+    .pf-slot { display:flex;align-items:center;justify-content:space-between;padding:.5rem .625rem;border-radius:7px;cursor:pointer;transition:background .15s; }
+    .pf-slot:hover { background:var(--primary-light); }
+    .pf-slot-label { font-size:.8125rem;color:var(--text-secondary); }
+    .pf-slot-upload { color:var(--text-muted);display:flex;align-items:center; }
     .drop-zone { border:2px dashed var(--border-color);border-radius:16px;padding:2.5rem;text-align:center;cursor:pointer;transition:all .3s;margin-bottom:1.5rem; }
     .drop-zone:hover { border-color:var(--accent-blue);background:rgba(59,130,246,.03); }
     .drop-icon { margin:0 auto .75rem;color:var(--text-muted); }
@@ -614,6 +928,22 @@ type TabId = 'overview' | 'files' | 'metadata' | 'platforms' | 'marketing' | 'ai
     .modal-close { background:none;border:none;font-size:1.5rem;color:var(--text-muted);cursor:pointer; }
     .modal-body { padding:1.5rem; }
     .modal-footer { padding:0 1.5rem 1.5rem;display:flex;justify-content:flex-end;gap:.75rem; }
+    .placement-summary { display:flex;flex-direction:column;gap:.2rem;padding:.75rem .875rem;background:var(--primary-light);border:1px solid var(--border-color);border-radius:10px;margin-bottom:1rem; }
+    .placement-summary span { font-size:.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--accent-blue); }
+    .placement-summary strong { font-size:.8125rem;color:var(--text-primary);line-height:1.35; }
+    .visually-hidden { position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0; }
+    .attach-file-row { display:flex;align-items:center;gap:.75rem;flex-wrap:wrap; }
+    .attach-file-btn {
+      display:inline-flex;align-items:center;gap:.5rem;padding:.625rem .875rem;
+      border:1.5px dashed var(--accent-blue);border-radius:10px;background:var(--primary-light);
+      color:var(--accent-blue);font-size:.875rem;font-weight:600;font-family:inherit;cursor:pointer;transition:all .2s;
+    }
+    .attach-file-btn:hover { background:rgba(59,130,246,.12);transform:translateY(-1px); }
+    .attach-file-btn svg { width:16px;height:16px; }
+    .attached-file { display:flex;align-items:center;gap:.5rem;min-width:0;flex:1;padding:.625rem .75rem;border:1px solid var(--border-light);border-radius:10px;background:var(--surface); }
+    .attached-file-name { min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.875rem;font-weight:600;color:var(--text-primary); }
+    .attached-file-size { flex-shrink:0;font-size:.75rem;color:var(--text-muted); }
+    .attach-hint { font-size:.75rem;color:var(--text-muted);margin:.5rem 0 0; }
 
     @keyframes fadeInUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
     @keyframes spin { to{transform:rotate(360deg)} }
@@ -625,6 +955,8 @@ type TabId = 'overview' | 'files' | 'metadata' | 'platforms' | 'marketing' | 'ai
       .summary-cards { grid-template-columns:repeat(2,1fr); }
       .ai-actions { grid-template-columns:1fr; }
       .form-row.two-col { grid-template-columns:1fr; }
+      .core-flow-grid { grid-template-columns:1fr; }
+      .core-flow-copy { flex-direction:column; }
     }
   `]
 })
@@ -641,11 +973,20 @@ export class BookDetailComponent implements OnInit {
   expandedPlatform = '';
   showUploadModal = false;
   showAssetModal = false;
+  uploadSlotKey = '';
+  uploadSlotLabel = '';
 
   // Upload form
   uploadFileName = '';
-  uploadFormat = 'epub';
-  uploadCategory = 'ebook-master';
+  uploadFormat: BookFile['format'] = 'epub';
+  uploadCategory: BookFile['category'] = 'ebook-master';
+  selectedUploadFile: File | null = null;
+  uploadPlacementPath = '';
+  uploadPlatformLabel = 'All Platforms';
+  coreTitleFilter = '';
+  coreTargetKey = 'fm-title-page';
+  coreFormatFilter: BookFile['format'] = 'epub';
+  corePlatformFilter = 'all';
 
   // Asset form
   newAssetTitle = '';
@@ -674,6 +1015,396 @@ export class BookDetailComponent implements OnInit {
     { key: 'cover-source', label: 'Cover Source Files' },
   ];
 
+  languageOptions = [
+    { code: 'en', label: 'English (Primary)' },
+    { code: 'es', label: 'Spanish' },
+    { code: 'fr', label: 'French' },
+    { code: 'de', label: 'German' },
+    { code: 'it', label: 'Italian' },
+    { code: 'pt', label: 'Portuguese' },
+  ];
+
+  formatOptions: { value: BookFile['format']; label: string }[] = [
+    { value: 'epub', label: 'EPUB' },
+    { value: 'pdf', label: 'PDF' },
+    { value: 'docx', label: 'DOCX' },
+    { value: 'audio', label: 'Audio' },
+    { value: 'psd', label: 'PSD' },
+    { value: 'ai', label: 'AI' },
+    { value: 'png', label: 'PNG' },
+    { value: 'jpg', label: 'JPG' },
+  ];
+
+  platformOptions = [
+    { value: 'all', label: 'All Platforms' },
+    { value: 'amazon-kdp', label: 'Amazon KDP' },
+    { value: 'apple-books', label: 'Apple Books' },
+    { value: 'kobo', label: 'Kobo' },
+    { value: 'barnes-noble', label: 'Barnes & Noble' },
+    { value: 'google-play', label: 'Google Play Books' },
+    { value: 'draft2digital', label: 'Draft2Digital' },
+    { value: 'ingramspark', label: 'IngramSpark' },
+    { value: 'bookfunnel', label: 'BookFunnel' },
+    { value: 'direct', label: 'Direct / Shopify' },
+    { value: 'audio-retailers', label: 'Audio Retailers' },
+  ];
+
+  // ── Language filter for files tab ──
+  filesLangFilter = 'en';
+
+  // ── Front Matter slots ──
+  frontMatterSlots = [
+    { key: 'fm-accolades', label: 'Accolades / Praise', desc: 'Praise quotes and reviews', icon: '⭐' },
+    { key: 'fm-half-title', label: 'Half Title Page', desc: 'Title only, no author', icon: '📄' },
+    { key: 'fm-frontispiece', label: 'Frontispiece', desc: 'Illustration or decorative page facing title', icon: '🖼' },
+    { key: 'fm-title-page', label: 'Full Title Page', desc: 'Title, author, imprint', icon: '📄' },
+    { key: 'fm-copyright', label: 'Copyright Page', desc: 'ISBN, copyright, legal notices', icon: '©' },
+    { key: 'fm-dedication', label: 'Dedication', desc: 'Dedication text', icon: '💌' },
+    { key: 'fm-epigraph', label: 'Epigraph', desc: 'Opening quote or poem', icon: '✍️' },
+    { key: 'fm-toc', label: 'Table of Contents', desc: 'Chapter list with page numbers', icon: '📋' },
+    { key: 'fm-foreword', label: 'Foreword', desc: 'Written by someone other than the author', icon: '📝' },
+    { key: 'fm-preface', label: 'Preface', desc: 'Author\'s introduction to the book', icon: '📝' },
+    { key: 'fm-acknowledgments-front', label: 'Acknowledgments (Front)', desc: 'If placed before the story', icon: '🙏' },
+  ];
+
+  // ── Body slots ──
+  bodySlots = [
+    { key: 'body-prologue', label: 'Prologue', desc: 'Sets the stage before Chapter 1', icon: '🎬' },
+    { key: 'body-introduction', label: 'Introduction', desc: 'Context for nonfiction or guided reading', icon: '🧭' },
+    { key: 'body-manuscript', label: 'Full Manuscript', desc: 'Complete formatted manuscript file', icon: '📖' },
+    { key: 'body-chapters', label: 'Chapter Files', desc: 'Individual chapter files (if split)', icon: '📑' },
+    { key: 'body-parts', label: 'Part Dividers', desc: 'Part I, Part II, etc.', icon: '🗂' },
+    { key: 'body-illustrations', label: 'Interior Images / Figures', desc: 'Illustrations, tables, maps, charts', icon: '🖼' },
+    { key: 'body-conclusion', label: 'Conclusion', desc: 'Wrap-up section for nonfiction', icon: '✅' },
+    { key: 'body-epilogue', label: 'Epilogue', desc: 'Story content after final chapter', icon: '🎭' },
+    { key: 'body-interlude', label: 'Interlude / Bonus Scene', desc: 'Bonus content within the story', icon: '✨' },
+  ];
+
+  // ── Back Matter slots ──
+  backMatterSlots = [
+    { key: 'bm-acknowledgments', label: 'Acknowledgments', desc: 'Thank-you section', icon: '🙏' },
+    { key: 'bm-author-bio', label: 'Author Bio', desc: 'About the author page', icon: '👤' },
+    { key: 'bm-author-note', label: 'Author\'s Note', desc: 'Notes on research, inspiration, etc.', icon: '📝' },
+    { key: 'bm-afterword', label: 'Afterword', desc: 'Reflection after the main text', icon: '🪶' },
+    { key: 'bm-postscript', label: 'Postscript', desc: 'Final note or update', icon: '✉️' },
+    { key: 'bm-next-book', label: 'Next Book Preview', desc: 'Chapter 1 of the next book', icon: '👀' },
+    { key: 'bm-series-list', label: 'Also By / Series List', desc: 'Other books by this author', icon: '📚' },
+    { key: 'bm-bonus-material', label: 'Bonus Material', desc: 'Extras, deleted scenes, preview content', icon: '🎁' },
+    { key: 'bm-newsletter-cta', label: 'Newsletter CTA', desc: 'Reader magnet / sign-up link', icon: '📧' },
+    { key: 'bm-glossary', label: 'Glossary', desc: 'Definitions of terms used', icon: '📖' },
+    { key: 'bm-endnotes', label: 'Endnotes', desc: 'Citations and supplemental notes', icon: '🔢' },
+    { key: 'bm-bibliography', label: 'Bibliography', desc: 'Sources and references', icon: '🔗' },
+    { key: 'bm-index', label: 'Index', desc: 'Alphabetical index (non-fiction)', icon: '🗃' },
+    { key: 'bm-discussion', label: 'Discussion Questions', desc: 'Book club / reader guide', icon: '💬' },
+    { key: 'bm-appendix', label: 'Appendix', desc: 'Supplementary material', icon: '📎' },
+    { key: 'bm-timeline', label: 'Chronology / Timeline', desc: 'Dates, events, continuity notes', icon: '🗓' },
+    { key: 'bm-permissions', label: 'Permissions / Credits', desc: 'Licensed text, images, lyrics, or art credits', icon: '🧾' },
+    { key: 'bm-colophon', label: 'Colophon', desc: 'Typeface and production notes', icon: '🖨' },
+  ];
+
+  metadataSlots = [
+    { key: 'meta-master', label: 'Master Metadata Sheet', desc: 'Canonical title, subtitle, author, identifiers, pricing, and territories', icon: '📋' },
+    { key: 'meta-keywords', label: 'Keywords & Categories', desc: 'BISAC, retailer categories, search keywords', icon: '🔎' },
+    { key: 'meta-retailer-copy', label: 'Retailer Description Copy', desc: 'Short and long descriptions by storefront', icon: '🛒' },
+    { key: 'meta-backmatter-rules', label: 'Back-Matter Rules', desc: 'Platform-specific links, CTAs, previews, and compliance notes', icon: '📌' },
+    { key: 'meta-isbn', label: 'ISBN / Identifier Records', desc: 'ISBN, ASIN, Apple ID, Kobo ID, Google Play ID, direct sales SKU', icon: '#️⃣' },
+    { key: 'meta-rights', label: 'Rights & Territory Notes', desc: 'Rights ownership, territories, distributor restrictions', icon: '⚖️' },
+  ];
+
+  // ── Ebook per-platform slots ──
+  ebookPlatformSlots = [
+    { platform: 'Amazon KDP', spec: 'EPUB 3 / MOBI', slots: [
+      { key: 'eb-kdp-epub', label: 'EPUB File', icon: '📱' },
+      { key: 'eb-kdp-cover', label: 'Cover (2560×1600)', icon: '🖼' },
+      { key: 'eb-kdp-metadata', label: 'Metadata File', icon: '📋' },
+      { key: 'eb-kdp-backmatter', label: 'KDP Back Matter', icon: '📚' },
+    ]},
+    { platform: 'Apple Books', spec: 'EPUB 3 required', slots: [
+      { key: 'eb-apple-epub', label: 'EPUB File', icon: '📱' },
+      { key: 'eb-apple-cover', label: 'Cover (1400×1873 min)', icon: '🖼' },
+      { key: 'eb-apple-metadata', label: 'Metadata File', icon: '📋' },
+      { key: 'eb-apple-backmatter', label: 'Apple Back Matter', icon: '📚' },
+    ]},
+    { platform: 'Kobo', spec: 'EPUB 2 or 3', slots: [
+      { key: 'eb-kobo-epub', label: 'EPUB File', icon: '📱' },
+      { key: 'eb-kobo-cover', label: 'Cover (1400×2100)', icon: '🖼' },
+      { key: 'eb-kobo-metadata', label: 'Metadata File', icon: '📋' },
+      { key: 'eb-kobo-backmatter', label: 'Kobo Back Matter', icon: '📚' },
+    ]},
+    { platform: 'Barnes & Noble', spec: 'EPUB', slots: [
+      { key: 'eb-bn-epub', label: 'EPUB File', icon: '📱' },
+      { key: 'eb-bn-cover', label: 'Cover (1400×2100)', icon: '🖼' },
+      { key: 'eb-bn-metadata', label: 'Metadata File', icon: '📋' },
+    ]},
+    { platform: 'Draft2Digital', spec: 'EPUB / DOCX', slots: [
+      { key: 'eb-d2d-epub', label: 'EPUB or DOCX', icon: '📱' },
+      { key: 'eb-d2d-cover', label: 'Cover (1600×2400)', icon: '🖼' },
+      { key: 'eb-d2d-metadata', label: 'Metadata File', icon: '📋' },
+      { key: 'eb-d2d-storelinks', label: 'Universal Link Back Matter', icon: '🔗' },
+    ]},
+    { platform: 'Direct / Shopify', spec: 'EPUB + PDF', slots: [
+      { key: 'eb-direct-epub', label: 'EPUB File', icon: '📱' },
+      { key: 'eb-direct-pdf', label: 'PDF File', icon: '📄' },
+      { key: 'eb-direct-cover', label: 'Cover Image', icon: '🖼' },
+      { key: 'eb-direct-bonus', label: 'Direct-Sale Bonus File', icon: '🎁' },
+    ]},
+    { platform: 'Google Play Books', spec: 'EPUB + PDF accepted', slots: [
+      { key: 'eb-google-epub', label: 'EPUB File', icon: '📱' },
+      { key: 'eb-google-pdf', label: 'PDF File', icon: '📄' },
+      { key: 'eb-google-cover', label: 'Cover (1600×2400)', icon: '🖼' },
+      { key: 'eb-google-metadata', label: 'Metadata File', icon: '📋' },
+    ]},
+    { platform: 'IngramSpark Ebook', spec: 'EPUB + ONIX', slots: [
+      { key: 'eb-ingram-epub', label: 'EPUB File', icon: '📱' },
+      { key: 'eb-ingram-cover', label: 'Cover Image', icon: '🖼' },
+      { key: 'eb-ingram-onix', label: 'ONIX / Metadata', icon: '📋' },
+    ]},
+    { platform: 'BookFunnel', spec: 'Reader delivery', slots: [
+      { key: 'eb-bookfunnel-epub', label: 'EPUB File', icon: '📱' },
+      { key: 'eb-bookfunnel-mobi', label: 'Legacy MOBI', icon: '📱' },
+      { key: 'eb-bookfunnel-cover', label: 'Cover Image', icon: '🖼' },
+    ]},
+  ];
+
+  // ── Paperback trim size slots ──
+  paperbackTrimSlots = [
+    { size: '4 × 6"', note: 'Pocket / small format', slots: [
+      { key: 'pb-4x6-interior', label: 'Interior PDF', icon: '📄' },
+      { key: 'pb-4x6-cover', label: 'Full Cover Wrap', icon: '🖼' },
+    ]},
+    { size: '4.25 × 7"', note: 'Pocket paperback', slots: [
+      { key: 'pb-425x7-interior', label: 'Interior PDF', icon: '📄' },
+      { key: 'pb-425x7-cover', label: 'Full Cover Wrap', icon: '🖼' },
+    ]},
+    { size: '5.06 × 7.81"', note: 'B-format paperback', slots: [
+      { key: 'pb-bformat-interior', label: 'Interior PDF', icon: '📄' },
+      { key: 'pb-bformat-cover', label: 'Full Cover Wrap', icon: '🖼' },
+    ]},
+    { size: '5.25 × 8"', note: 'Digest / novella', slots: [
+      { key: 'pb-525x8-interior', label: 'Interior PDF', icon: '📄' },
+      { key: 'pb-525x8-cover', label: 'Full Cover Wrap', icon: '🖼' },
+    ]},
+    { size: '5 × 8"', note: 'Smaller trade paperback', slots: [
+      { key: 'pb-5x8-interior', label: 'Interior PDF', icon: '📄' },
+      { key: 'pb-5x8-cover', label: 'Full Cover Wrap', icon: '🖼' },
+    ]},
+    { size: '5.5 × 8.5"', note: 'Most common trade paperback', slots: [
+      { key: 'pb-55x85-interior', label: 'Interior PDF', icon: '📄' },
+      { key: 'pb-55x85-cover', label: 'Full Cover Wrap', icon: '🖼' },
+      { key: 'pb-55x85-spine', label: 'Spine Text File', icon: '📏' },
+    ]},
+    { size: '6 × 9"', note: 'Standard trade paperback', slots: [
+      { key: 'pb-6x9-interior', label: 'Interior PDF', icon: '📄' },
+      { key: 'pb-6x9-cover', label: 'Full Cover Wrap', icon: '🖼' },
+      { key: 'pb-6x9-spine', label: 'Spine Text File', icon: '📏' },
+    ]},
+    { size: '6.14 × 9.21"', note: 'Royal paperback', slots: [
+      { key: 'pb-royal-interior', label: 'Interior PDF', icon: '📄' },
+      { key: 'pb-royal-cover', label: 'Full Cover Wrap', icon: '🖼' },
+    ]},
+    { size: '4.25 × 6.87"', note: 'Mass market paperback', slots: [
+      { key: 'pb-mm-interior', label: 'Interior PDF', icon: '📄' },
+      { key: 'pb-mm-cover', label: 'Full Cover Wrap', icon: '🖼' },
+    ]},
+    { size: '7 × 10"', note: 'Workbook / nonfiction', slots: [
+      { key: 'pb-7x10-interior', label: 'Interior PDF', icon: '📄' },
+      { key: 'pb-7x10-cover', label: 'Full Cover Wrap', icon: '🖼' },
+    ]},
+    { size: '7.44 × 9.69"', note: 'Crown quarto', slots: [
+      { key: 'pb-crownq-interior', label: 'Interior PDF', icon: '📄' },
+      { key: 'pb-crownq-cover', label: 'Full Cover Wrap', icon: '🖼' },
+    ]},
+    { size: '8 × 10"', note: 'Illustrated / children', slots: [
+      { key: 'pb-8x10-interior', label: 'Interior PDF', icon: '📄' },
+      { key: 'pb-8x10-cover', label: 'Full Cover Wrap', icon: '🖼' },
+    ]},
+    { size: '8.5 × 11"', note: 'Workbook / large format', slots: [
+      { key: 'pb-85x11-interior', label: 'Interior PDF', icon: '📄' },
+      { key: 'pb-85x11-cover', label: 'Full Cover Wrap', icon: '🖼' },
+    ]},
+    { size: 'Hardcover 6 × 9"', note: 'Case laminate hardcover', slots: [
+      { key: 'hc-6x9-interior', label: 'Interior PDF', icon: '📄' },
+      { key: 'hc-6x9-cover', label: 'Full Cover Wrap', icon: '🖼' },
+      { key: 'hc-6x9-dust', label: 'Dust Jacket (optional)', icon: '🎨' },
+    ]},
+    { size: 'Large Print 6 × 9"', note: '16pt font minimum', slots: [
+      { key: 'lp-interior', label: 'Interior PDF', icon: '📄' },
+      { key: 'lp-cover', label: 'Full Cover Wrap', icon: '🖼' },
+    ]},
+  ];
+
+  // ── Cover art per platform ──
+  coverArtSlots = [
+    { platform: 'Source Files', spec: 'Master files', slots: [
+      { key: 'cv-psd', label: 'PSD Master', icon: '🎨' },
+      { key: 'cv-ai', label: 'Illustrator (AI)', icon: '🎨' },
+      { key: 'cv-indd', label: 'InDesign (INDD)', icon: '🎨' },
+      { key: 'cv-fonts', label: 'Font Licenses', icon: '🔤' },
+      { key: 'cv-stock', label: 'Stock Licenses', icon: '🧾' },
+    ]},
+    { platform: 'Ebook Cover', spec: 'Front only', slots: [
+      { key: 'cv-ebook-2560', label: '2560×1600 (KDP)', icon: '🖼' },
+      { key: 'cv-ebook-1400', label: '1400×2100 (Wide)', icon: '🖼' },
+      { key: 'cv-ebook-1600', label: '1600×2400 (D2D/Google)', icon: '🖼' },
+      { key: 'cv-ebook-3000', label: '3000×4500 (High Res)', icon: '🖼' },
+      { key: 'cv-ebook-3d', label: '3D Mockup', icon: '📦' },
+    ]},
+    { platform: 'Print Covers', spec: 'Full wrap', slots: [
+      { key: 'cv-pb-5x8', label: 'PB 5×8 Wrap', icon: '🖼' },
+      { key: 'cv-pb-55x85', label: 'PB 5.5×8.5 Wrap', icon: '🖼' },
+      { key: 'cv-pb-6x9', label: 'PB 6×9 Wrap', icon: '🖼' },
+      { key: 'cv-pb-7x10', label: 'PB 7×10 Wrap', icon: '🖼' },
+      { key: 'cv-pb-85x11', label: 'PB 8.5×11 Wrap', icon: '🖼' },
+      { key: 'cv-hc-wrap', label: 'HC Full Wrap', icon: '🖼' },
+      { key: 'cv-hc-dust', label: 'Dust Jacket', icon: '🧥' },
+    ]},
+    { platform: 'Marketing', spec: 'Ad & social', slots: [
+      { key: 'cv-fb-ad', label: 'Facebook Ad (1200×628)', icon: '📢' },
+      { key: 'cv-ig-square', label: 'Instagram Square', icon: '📸' },
+      { key: 'cv-ig-story', label: 'Instagram Story', icon: '📱' },
+      { key: 'cv-tiktok', label: 'TikTok / Reels', icon: '🎬' },
+      { key: 'cv-bookbub', label: 'BookBub (300×250)', icon: '📢' },
+      { key: 'cv-newsletter', label: 'Newsletter Header', icon: '📧' },
+      { key: 'cv-amazon-a-plus', label: 'Amazon A+ Graphics', icon: '🛒' },
+    ]},
+  ];
+
+  // ── Audiobook slots ──
+  audiobookSlots = [
+    { key: 'audio-master', label: 'Production Master', desc: 'Full uncompressed master file', icon: '🎙' },
+    { key: 'audio-acx', label: 'ACX / Audible File', desc: 'MP3 192kbps, per ACX specs', icon: '🎧' },
+    { key: 'audio-findaway', label: 'Findaway Voices', desc: 'For wide audio distribution', icon: '🎧' },
+    { key: 'audio-cover', label: 'Audiobook Cover', desc: '3000×3000px square JPG', icon: '🖼' },
+    { key: 'audio-retail-sample', label: 'Retail Sample', desc: '5-min sample for store preview', icon: '▶️' },
+  ];
+
+  corePlacementTargets: CorePlacementTarget[] = [
+    ...this.toPlacementTargets('Front Matter', this.frontMatterSlots, 'ebook-master', 'docx'),
+    ...this.toPlacementTargets('Body', this.bodySlots, 'ebook-master', 'docx'),
+    ...this.toPlacementTargets('Back Matter', this.backMatterSlots, 'ebook-master', 'docx'),
+    ...this.toPlacementTargets('Metadata', this.metadataSlots, 'ebook-master', 'docx'),
+    ...this.ebookPlatformSlots.flatMap(platform =>
+      this.toPlacementTargets(`Ebook · ${platform.platform}`, platform.slots, 'ebook-master', 'epub', this.platformValueForLabel(platform.platform))
+    ),
+    ...this.paperbackTrimSlots.flatMap(trim =>
+      this.toPlacementTargets(`Paperback · ${trim.size}`, trim.slots, trim.size.startsWith('Hardcover') ? 'hardcover-interior' : 'paperback-interior', 'pdf', 'all')
+    ),
+    ...this.coverArtSlots.flatMap(cover =>
+      this.toPlacementTargets(`Cover Art · ${cover.platform}`, cover.slots, 'cover-source', 'png', this.platformValueForLabel(cover.platform))
+    ),
+    ...this.toPlacementTargets('Audiobook', this.audiobookSlots, 'audiobook', 'audio', 'audio-retailers'),
+  ];
+
+  openUploadModal() {
+    this.resetUploadForm();
+    this.uploadSlotKey = '';
+    this.uploadSlotLabel = '';
+    this.uploadPlacementPath = `${this.book()?.title || 'Book'} / ${this.getLanguageLabel(this.filesLangFilter)} / Manual Upload`;
+    this.uploadPlatformLabel = 'All Platforms';
+    this.showUploadModal = true;
+  }
+
+  openUploadForSlot(slot: { key: string; label: string; icon?: string; desc?: string }) {
+    this.resetUploadForm();
+    const target = this.corePlacementTargets.find(item => item.key === slot.key) || {
+      key: slot.key,
+      label: slot.label,
+      section: 'Core Files',
+      category: 'ebook-master' as BookFile['category'],
+      defaultFormat: this.uploadFormat,
+      defaultPlatform: this.corePlatformFilter,
+    };
+    this.applyUploadPlacement(target, target.defaultFormat, target.defaultPlatform);
+    this.showUploadModal = true;
+  }
+
+  onDropToSlot(event: DragEvent, slot: { key: string; label: string }) {
+    event.preventDefault();
+    this.resetUploadForm();
+    const target = this.corePlacementTargets.find(item => item.key === slot.key) || {
+      key: slot.key,
+      label: slot.label,
+      section: 'Core Files',
+      category: 'ebook-master' as BookFile['category'],
+      defaultFormat: this.uploadFormat,
+      defaultPlatform: this.corePlatformFilter,
+    };
+    this.applyUploadPlacement(target, target.defaultFormat, target.defaultPlatform);
+    const file = event.dataTransfer?.files?.[0];
+    if (file) this.applySelectedUploadFile(file);
+    this.showUploadModal = true;
+  }
+
+  openUploadFromCoreFlow() {
+    const target = this.corePlacementTargets.find(item => item.key === this.coreTargetKey);
+    if (!target) return;
+
+    this.resetUploadForm();
+    this.applyUploadPlacement(target, this.coreFormatFilter, this.corePlatformFilter);
+    this.showUploadModal = true;
+  }
+
+  getLanguageLabel(code: string): string {
+    return this.languageOptions.find(language => language.code === code)?.label || code.toUpperCase();
+  }
+
+  private getFormatLabel(format: BookFile['format']): string {
+    return this.formatOptions.find(item => item.value === format)?.label || format.toUpperCase();
+  }
+
+  private getPlatformLabelByValue(value: string): string {
+    return this.platformOptions.find(platform => platform.value === value)?.label || value;
+  }
+
+  private platformValueForLabel(label: string): string {
+    const normalized = label.toLowerCase();
+    if (normalized.includes('amazon') || normalized.includes('kdp')) return 'amazon-kdp';
+    if (normalized.includes('apple')) return 'apple-books';
+    if (normalized.includes('kobo')) return 'kobo';
+    if (normalized.includes('barnes')) return 'barnes-noble';
+    if (normalized.includes('google')) return 'google-play';
+    if (normalized.includes('draft2digital')) return 'draft2digital';
+    if (normalized.includes('ingram')) return 'ingramspark';
+    if (normalized.includes('bookfunnel')) return 'bookfunnel';
+    if (normalized.includes('direct') || normalized.includes('shopify')) return 'direct';
+    if (normalized.includes('marketing')) return 'all';
+    return 'all';
+  }
+
+  private toPlacementTargets(
+    section: string,
+    slots: { key: string; label: string }[],
+    category: BookFile['category'],
+    defaultFormat: BookFile['format'] = 'epub',
+    defaultPlatform = 'all'
+  ): CorePlacementTarget[] {
+    return slots.map(slot => ({
+      key: slot.key,
+      label: slot.label,
+      section,
+      category,
+      defaultFormat,
+      defaultPlatform,
+    }));
+  }
+
+  private applyUploadPlacement(target: CorePlacementTarget, format = target.defaultFormat || 'epub', platform = target.defaultPlatform || 'all') {
+    const platformLabel = this.getPlatformLabelByValue(platform);
+    this.uploadSlotKey = `${this.filesLangFilter}-${target.key}-${platform}-${format}`;
+    this.uploadSlotLabel = target.label;
+    this.uploadFormat = format;
+    this.uploadCategory = target.category;
+    this.uploadPlatformLabel = platformLabel;
+    this.uploadPlacementPath = [
+      this.book()?.title || 'Book',
+      this.getLanguageLabel(this.filesLangFilter),
+      target.section,
+      target.label,
+      this.getFormatLabel(format),
+      platformLabel,
+    ].join(' / ');
+  }
+
   aiActions = [
     { label: 'Generate Amazon Blurb', description: 'Create an optimized blurb for Amazon KDP listing', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>', mock: 'GENERATED AMAZON BLURB:\n\n★★★★★ "Absolutely riveting!" — Featured Amazon Editor\'s Pick\n\nIn this masterfully crafted story, readers will discover a world where every choice creates a new reality. With lyrical prose and unforgettable characters, this is a novel that will stay with you long after the last page.\n\n✦ A journey through infinite possibilities\n✦ Characters that feel like old friends\n✦ A thought-provoking exploration of regret and hope\n\nPerfect for fans of literary fiction that pushes boundaries.\n\n📖 Available in Kindle, Paperback, and Audiobook.\n\n"One of the best novels I\'ve read this year." — BookList\n"A triumph of imagination." — Publishers Weekly' },
     { label: 'Create Facebook Ads', description: 'Generate high-converting ad copy for Facebook campaigns', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h2l2-6 4 12 2-6h6"/></svg>', mock: 'FACEBOOK AD COPY (3 Variations):\n\n--- Ad 1: Curiosity Hook ---\nWhat if you could live every life you never chose?\n\nDiscover the book that 50,000+ readers can\'t stop talking about.\n📚 Available on Amazon, Kobo, Apple Books & more.\n\nCTA: Get Your Copy →\n\n--- Ad 2: Social Proof ---\n★★★★★ 2,500+ 5-star reviews\n"This book changed how I think about my life." — Reader Review\n\nJoin the movement. Read the book everyone is recommending.\n\nCTA: Read Free Sample →\n\n--- Ad 3: Urgency ---\n🔥 LIMITED TIME: 40% off the #1 bestseller in Literary Fiction.\n\nDon\'t miss out on the novel that\'s redefining the genre.\n\nCTA: Grab the Deal →' },
@@ -692,6 +1423,7 @@ export class BookDetailComponent implements OnInit {
     this.bookService.getBookById(id).subscribe(book => {
       if (!book) { this.notFound = true; return; }
       this.book.set(book);
+      this.coreTitleFilter = book.id;
       this.computeStats(book);
     });
   }
@@ -715,6 +1447,10 @@ export class BookDetailComponent implements OnInit {
 
   getFilesByCategory(category: string): BookFile[] {
     return this.book()?.files.filter(f => f.category === category) || [];
+  }
+
+  visibleFiles(): BookFile[] {
+    return this.book()?.files.filter(file => file.language === this.filesLangFilter) || [];
   }
 
   formatSize(bytes: number): string {
@@ -773,16 +1509,67 @@ export class BookDetailComponent implements OnInit {
 
   onDrop(event: DragEvent) {
     event.preventDefault();
-    this.showUploadModal = true;
+    this.openUploadModal();
+  }
+
+  closeUploadModal() {
+    this.showUploadModal = false;
+    this.resetUploadForm();
+  }
+
+  onUploadFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    this.applySelectedUploadFile(file);
+    input.value = '';
+  }
+
+  private applySelectedUploadFile(file: File) {
+    this.selectedUploadFile = file;
+    this.uploadFileName = file.name;
+    this.uploadFormat = this.inferUploadFormat(file);
+  }
+
+  private inferUploadFormat(file: File): BookFile['format'] {
+    const extension = file.name.split('.').pop()?.toLowerCase();
+    const supportedFormats: BookFile['format'][] = ['epub', 'pdf', 'docx', 'psd', 'ai', 'png', 'jpg'];
+    const audioExtensions = ['mp3', 'wav', 'm4a', 'aac', 'flac'];
+
+    if (extension === 'jpeg') return 'jpg';
+    if (extension && supportedFormats.includes(extension as BookFile['format'])) return extension as BookFile['format'];
+    if ((extension && audioExtensions.includes(extension)) || file.type.startsWith('audio/')) return 'audio';
+
+    return this.uploadFormat;
+  }
+
+  private resetUploadForm() {
+    this.uploadFileName = '';
+    this.uploadFormat = 'epub';
+    this.uploadCategory = 'ebook-master';
+    this.selectedUploadFile = null;
+    this.uploadPlacementPath = '';
+    this.uploadPlatformLabel = 'All Platforms';
   }
 
   uploadFile() {
     if (!this.book() || !this.uploadFileName.trim()) return;
     this.bookService.uploadFile(this.book()!.id, {
-      name: this.uploadFileName, format: this.uploadFormat as any, category: this.uploadCategory as any, size: Math.floor(Math.random() * 10000000)
+      name: this.uploadFileName,
+      type: this.selectedUploadFile?.type || 'application/octet-stream',
+      format: this.uploadFormat,
+      category: this.uploadCategory,
+      size: this.selectedUploadFile?.size ?? Math.floor(Math.random() * 10000000),
+      language: this.filesLangFilter,
+      tags: [
+        this.uploadSlotLabel ? `Slot: ${this.uploadSlotLabel}` : 'Manual upload',
+        `Language: ${this.getLanguageLabel(this.filesLangFilter)}`,
+        `Platform: ${this.uploadPlatformLabel}`,
+        `Path: ${this.uploadPlacementPath || 'Manual upload'}`
+      ]
     }).subscribe(() => {
       this.showUploadModal = false;
-      this.uploadFileName = '';
+      this.resetUploadForm();
       this.bookService.getBookById(this.book()!.id).subscribe(b => { if (b) { this.book.set(b); this.computeStats(b); } });
       this.toast.show('File uploaded!', 'success');
     });

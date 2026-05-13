@@ -16,6 +16,13 @@ const ALL_LANGUAGES = [
   'Uzbek','Vietnamese','Welsh','Yoruba','Zulu'
 ];
 
+interface BookEdition {
+  bookTitle: string;
+  seriesName: string;
+  penName: string;
+  branch: LanguageBranch;
+}
+
 @Component({
   selector: 'app-vault-languages-page',
   standalone: true,
@@ -23,17 +30,24 @@ const ALL_LANGUAGES = [
   styleUrls: ['../company-vault/company-vault.component.css'],
   template: `
     <div class="page">
+
+      <!-- ── STEP 1: Language selector ── -->
       <div class="page-header">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem">
           <div>
-            <h1 class="page-title">🌐 Language Editions</h1>
-            <p class="page-subtitle">Filter by language to see all books published in that language</p>
+            <h1 class="page-title">🌐 Languages</h1>
+            <p class="page-subtitle">
+              @if (!selectedLanguage) { Select a language to see all titles published in that language }
+              @if (selectedLanguage && !selectedEdition) { Showing all <strong>{{ selectedLanguage }}</strong> titles — click a title to view its book file }
+              @if (selectedEdition) { {{ selectedEdition.bookTitle }} · {{ selectedLanguage }} edition }
+            </p>
           </div>
           <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap">
+            <!-- Language selector always visible -->
             <select [(ngModel)]="selectedLanguage" (change)="onLanguageChange()" class="lang-select">
-              <option value="">All Languages</option>
+              <option value="">— Select Language —</option>
               @for (lang of availableLanguages; track lang) {
-                <option [value]="lang">{{ lang }}</option>
+                <option [value]="lang">{{ lang }} ({{ countByLanguage(lang) }})</option>
               }
             </select>
             <button class="add-lang-btn" (click)="showAddLang = !showAddLang">+ Add Language</button>
@@ -45,7 +59,7 @@ const ALL_LANGUAGES = [
       @if (showAddLang) {
         <div class="card" style="margin-bottom:1.25rem">
           <h3 class="section-title">Add a Language Edition</h3>
-          <p class="section-subtitle">AI translation makes it easy to publish in almost any language. Select from the full list below.</p>
+          <p class="section-subtitle">AI translation makes it easy to publish in almost any language. Each translation requires its own ISBN per format.</p>
           <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap">
             <select [(ngModel)]="newLanguage" style="padding:.6rem 1rem;border:1.5px solid var(--border-color);border-radius:9px;font-size:.875rem;font-family:inherit;color:var(--text-primary);background:var(--surface);outline:none;min-width:220px">
               <option value="">Select a language...</option>
@@ -56,78 +70,84 @@ const ALL_LANGUAGES = [
             <button (click)="addLanguage()" style="padding:.6rem 1.25rem;background:var(--accent-blue);color:#fff;border:none;border-radius:9px;font-size:.875rem;font-weight:600;cursor:pointer;font-family:inherit" [disabled]="!newLanguage">Add Language</button>
             <button (click)="showAddLang=false" style="padding:.6rem 1rem;background:var(--surface);border:1.5px solid var(--border-color);border-radius:9px;font-size:.875rem;cursor:pointer;font-family:inherit;color:var(--text-secondary)">Cancel</button>
           </div>
-          <p style="font-size:.75rem;color:var(--text-muted);margin-top:.75rem">
-            Note: Each translation is a separate format and requires its own ISBN per format type (e.g., a Spanish Paperback 6x9 gets its own ISBN separate from the English Paperback 6x9).
-          </p>
         </div>
       }
 
-      <!-- Stats -->
-      <div class="stats-row">
-        <div class="stat-card"><div class="stat-value">{{ filteredBranches().length }}</div><div class="stat-label">{{ selectedLanguage || 'All' }} Editions</div></div>
-        <div class="stat-card"><div class="stat-value">{{ primaryCount }}</div><div class="stat-label">Primary (English)</div></div>
-        <div class="stat-card"><div class="stat-value">{{ translationCount }}</div><div class="stat-label">Translations</div></div>
-        <div class="stat-card"><div class="stat-value">{{ totalFormats }}</div><div class="stat-label">Total Formats</div></div>
-      </div>
-
-      <!-- Language summary chips (when no filter) -->
+      <!-- ── No language selected: show language chips ── -->
       @if (!selectedLanguage) {
-        <div class="card" style="margin-bottom:1.25rem">
-          <h3 class="section-title">Languages Published</h3>
+        <div class="stats-row">
+          <div class="stat-card"><div class="stat-value">{{ availableLanguages.length }}</div><div class="stat-label">Languages</div></div>
+          <div class="stat-card"><div class="stat-value">{{ primaryCount }}</div><div class="stat-label">English (Primary)</div></div>
+          <div class="stat-card"><div class="stat-value">{{ translationCount }}</div><div class="stat-label">Translations</div></div>
+          <div class="stat-card"><div class="stat-value">{{ totalFormats }}</div><div class="stat-label">Total Formats</div></div>
+        </div>
+        <div class="card">
+          <h3 class="section-title">Published Languages</h3>
+          <p class="section-subtitle">Click a language to browse titles</p>
           <div class="lang-chips">
             @for (lang of availableLanguages; track lang) {
-              <button class="lang-chip" [class.active]="selectedLanguage === lang" (click)="selectedLanguage = lang">
-                {{ lang }} <span class="lang-chip-count">{{ countByLanguage(lang) }}</span>
+              <button class="lang-chip" (click)="selectedLanguage = lang">
+                {{ lang }}
+                <span class="lang-chip-count">{{ countByLanguage(lang) }} title{{ countByLanguage(lang) !== 1 ? 's' : '' }}</span>
               </button>
             }
           </div>
         </div>
       }
 
-      <!-- Edition list -->
-      @if (!selected()) {
+      <!-- ── STEP 2: Title list for selected language ── -->
+      @if (selectedLanguage && !selectedEdition) {
+        <div class="breadcrumb-bar">
+          <span class="bc-link" (click)="selectedLanguage = ''">All Languages</span>
+          <span class="bc-sep">›</span>
+          <span class="bc-current">{{ selectedLanguage }}</span>
+        </div>
+
+        <div class="stats-row">
+          <div class="stat-card"><div class="stat-value">{{ titlesForLanguage().length }}</div><div class="stat-label">Titles in {{ selectedLanguage }}</div></div>
+          <div class="stat-card"><div class="stat-value">{{ publishedInLanguage() }}</div><div class="stat-label">Published</div></div>
+          <div class="stat-card"><div class="stat-value">{{ inProgressInLanguage() }}</div><div class="stat-label">In Progress</div></div>
+          <div class="stat-card"><div class="stat-value">{{ formatsInLanguage() }}</div><div class="stat-label">Formats</div></div>
+        </div>
+
         <div class="card">
-          <h3 class="section-title">
-            {{ selectedLanguage ? selectedLanguage + ' Editions' : 'All Editions' }}
-            @if (selectedLanguage) {
-              <button (click)="selectedLanguage=''" style="margin-left:.75rem;font-size:.75rem;color:var(--accent-blue);background:none;border:none;cursor:pointer;font-family:inherit">Clear filter</button>
-            }
-          </h3>
+          <h3 class="section-title">{{ selectedLanguage }} Titles</h3>
+          <p class="section-subtitle">Click any title to view its full book file in {{ selectedLanguage }}</p>
           <table class="data-table">
             <thead>
-              <tr><th>Edition</th><th>Language</th><th>Type</th><th>Status</th><th>Formats</th><th>Words</th><th>ISBNs</th></tr>
+              <tr><th>Title</th><th>Series</th><th>Pen Name</th><th>Status</th><th>Formats</th><th>ISBNs</th><th>Words</th></tr>
             </thead>
             <tbody>
-              @for (lb of filteredBranches(); track lb.id) {
-                <tr class="clickable-row" (click)="selectItem(lb)">
-                  <td class="td-primary">{{ lb.edition.editionName }}</td>
-                  <td>
-                    <span class="lang-badge">{{ lb.edition.language }}</span>
-                    @if (lb.edition.isPrimaryLanguage) { <span class="tag" style="margin-left:.35rem">Default</span> }
+              @for (be of titlesForLanguage(); track be.branch.id) {
+                <tr class="clickable-row" (click)="selectEdition(be)">
+                  <td class="td-primary">{{ be.bookTitle }}</td>
+                  <td class="td-muted">{{ be.seriesName }}</td>
+                  <td class="td-muted">{{ be.penName }}</td>
+                  <td><span class="status" [ngClass]="be.branch.edition.publicationStatus==='Published'?'status-green':be.branch.edition.publicationStatus==='In Progress'?'status-amber':'status-default'">{{ be.branch.edition.publicationStatus }}</span></td>
+                  <td>{{ be.branch.formats.length }}</td>
+                  <td style="font-size:.75rem;color:var(--text-muted)">
+                    {{ be.branch.identifiers.isbnEbook ? '✓ Ebook' : '' }}{{ be.branch.identifiers.isbnPaperback ? ' ✓ PB' : '' }}{{ be.branch.identifiers.isbnAudiobook ? ' ✓ Audio' : '' }}
                   </td>
-                  <td>{{ lb.edition.editionType }}</td>
-                  <td><span class="status" [ngClass]="lb.edition.publicationStatus==='Published'?'status-green':lb.edition.publicationStatus==='In Progress'?'status-amber':'status-default'">{{ lb.edition.publicationStatus }}</span></td>
-                  <td>{{ lb.formats.length }}</td>
-                  <td>{{ lb.edition.wordCount | number }}</td>
-                  <td>
-                    <span style="font-size:.75rem;color:var(--text-muted)">
-                      {{ lb.identifiers.isbnEbook ? '✓ Ebook' : '' }}
-                      {{ lb.identifiers.isbnPaperback ? ' ✓ PB' : '' }}
-                    </span>
-                  </td>
+                  <td>{{ be.branch.edition.wordCount | number }}</td>
                 </tr>
               }
-              @if (filteredBranches().length === 0) {
-                <tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:2rem">No editions found for this language.</td></tr>
+              @if (titlesForLanguage().length === 0) {
+                <tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:2rem">No titles in {{ selectedLanguage }} yet.</td></tr>
               }
             </tbody>
           </table>
         </div>
       }
 
-      <!-- Selected edition detail -->
-      @if (selected(); as lb) {
-        <button class="back-btn" (click)="selected.set(null); detailTab.set('edition')">← Back to Editions</button>
+      <!-- ── STEP 3: Individual book file in selected language ── -->
+      @if (selectedEdition; as be) {
+        <div class="breadcrumb-bar">
+          <span class="bc-link" (click)="selectedLanguage = ''; selectedEdition = null">All Languages</span>
+          <span class="bc-sep">›</span>
+          <span class="bc-link" (click)="selectedEdition = null">{{ selectedLanguage }}</span>
+          <span class="bc-sep">›</span>
+          <span class="bc-current">{{ be.bookTitle }}</span>
+        </div>
 
         <div class="vault-layout" style="margin-top:1rem">
           <nav class="vault-nav">
@@ -139,19 +159,21 @@ const ALL_LANGUAGES = [
 
             @if (detailTab() === 'edition') {
               <div class="card">
-                <h3 class="section-title">{{ lb.edition.editionName }}</h3>
+                <h3 class="section-title">{{ be.bookTitle }} — {{ be.branch.edition.language }} Edition</h3>
                 <div class="form-grid">
-                  <div class="form-group"><span class="form-label">Edition Name</span><div class="form-value">{{ lb.edition.editionName }}</div></div>
-                  <div class="form-group"><span class="form-label">Edition Type</span><div class="form-value">{{ lb.edition.editionType }}</div></div>
-                  <div class="form-group"><span class="form-label">Language</span><div class="form-value">{{ lb.edition.language }}</div></div>
-                  <div class="form-group"><span class="form-label">Language Code</span><div class="form-value">{{ lb.edition.languageCode }}</div></div>
-                  <div class="form-group"><span class="form-label">Locale Variant</span><div class="form-value">{{ lb.edition.localeVariant }}</div></div>
-                  <div class="form-group"><span class="form-label">Primary Language</span><div class="form-value">{{ lb.edition.isPrimaryLanguage ? 'Yes (Default)' : 'No (Translation)' }}</div></div>
-                  <div class="form-group"><span class="form-label">Publication Status</span><div class="form-value">{{ lb.edition.publicationStatus }}</div></div>
-                  <div class="form-group"><span class="form-label">Release Date</span><div class="form-value">{{ lb.edition.releaseDate || '—' }}</div></div>
-                  <div class="form-group"><span class="form-label">Word Count</span><div class="form-value">{{ lb.edition.wordCount | number }}</div></div>
-                  <div class="form-group"><span class="form-label">Page Count</span><div class="form-value">{{ lb.edition.pageCount }}</div></div>
-                  <div class="form-group"><span class="form-label">Chapter Count</span><div class="form-value">{{ lb.edition.chapterCount }}</div></div>
+                  <div class="form-group"><span class="form-label">Edition Name</span><div class="form-value">{{ be.branch.edition.editionName }}</div></div>
+                  <div class="form-group"><span class="form-label">Edition Type</span><div class="form-value">{{ be.branch.edition.editionType }}</div></div>
+                  <div class="form-group"><span class="form-label">Language</span><div class="form-value">{{ be.branch.edition.language }}</div></div>
+                  <div class="form-group"><span class="form-label">Language Code</span><div class="form-value">{{ be.branch.edition.languageCode }}</div></div>
+                  <div class="form-group"><span class="form-label">Locale Variant</span><div class="form-value">{{ be.branch.edition.localeVariant }}</div></div>
+                  <div class="form-group"><span class="form-label">Primary Language</span><div class="form-value">{{ be.branch.edition.isPrimaryLanguage ? 'Yes (Default)' : 'No (Translation)' }}</div></div>
+                  <div class="form-group"><span class="form-label">Publication Status</span><div class="form-value">{{ be.branch.edition.publicationStatus }}</div></div>
+                  <div class="form-group"><span class="form-label">Release Date</span><div class="form-value">{{ be.branch.edition.releaseDate || '—' }}</div></div>
+                  <div class="form-group"><span class="form-label">Word Count</span><div class="form-value">{{ be.branch.edition.wordCount | number }}</div></div>
+                  <div class="form-group"><span class="form-label">Page Count</span><div class="form-value">{{ be.branch.edition.pageCount }}</div></div>
+                  <div class="form-group"><span class="form-label">Chapter Count</span><div class="form-value">{{ be.branch.edition.chapterCount }}</div></div>
+                  <div class="form-group"><span class="form-label">Series</span><div class="form-value">{{ be.seriesName }}</div></div>
+                  <div class="form-group"><span class="form-label">Pen Name</span><div class="form-value">{{ be.penName }}</div></div>
                 </div>
               </div>
             }
@@ -160,62 +182,80 @@ const ALL_LANGUAGES = [
               <div class="card">
                 <h3 class="section-title">Localized Metadata</h3>
                 <div class="form-grid">
-                  <div class="form-group"><span class="form-label">Localized Title</span><div class="form-value">{{ lb.localizedMetadata.localizedTitle || '—' }}</div></div>
-                  <div class="form-group"><span class="form-label">Localized Subtitle</span><div class="form-value">{{ lb.localizedMetadata.localizedSubtitle || '—' }}</div></div>
-                  <div class="form-group"><span class="form-label">Localized Series Name</span><div class="form-value">{{ lb.localizedMetadata.localizedSeriesName || '—' }}</div></div>
-                  <div class="form-group full"><span class="form-label">Localized Hook</span><div class="form-value">{{ lb.localizedMetadata.localizedHook || '—' }}</div></div>
-                  <div class="form-group full"><span class="form-label">Short Description</span><div class="form-value">{{ lb.localizedMetadata.localizedShortDescription || '—' }}</div></div>
-                  <div class="form-group full"><span class="form-label">Long Description</span><div class="form-value">{{ lb.localizedMetadata.localizedLongDescription || '—' }}</div></div>
-                  <div class="form-group full"><span class="form-label">Author Bio (Localized)</span><div class="form-value">{{ lb.localizedMetadata.localizedAuthorBio || '—' }}</div></div>
-                  <div class="form-group full"><span class="form-label">Translator Credit</span><div class="form-value">{{ lb.localizedMetadata.translatorCreditLine || '—' }}</div></div>
-                  <div class="form-group full"><span class="form-label">Content Warnings</span><div class="form-value">{{ lb.localizedMetadata.localizedContentWarnings || '—' }}</div></div>
+                  <div class="form-group"><span class="form-label">Localized Title</span><div class="form-value">{{ be.branch.localizedMetadata.localizedTitle || '—' }}</div></div>
+                  <div class="form-group"><span class="form-label">Localized Subtitle</span><div class="form-value">{{ be.branch.localizedMetadata.localizedSubtitle || '—' }}</div></div>
+                  <div class="form-group"><span class="form-label">Localized Series Name</span><div class="form-value">{{ be.branch.localizedMetadata.localizedSeriesName || '—' }}</div></div>
+                  <div class="form-group full"><span class="form-label">Localized Hook</span><div class="form-value">{{ be.branch.localizedMetadata.localizedHook || '—' }}</div></div>
+                  <div class="form-group full"><span class="form-label">Short Description</span><div class="form-value">{{ be.branch.localizedMetadata.localizedShortDescription || '—' }}</div></div>
+                  <div class="form-group full"><span class="form-label">Long Description</span><div class="form-value">{{ be.branch.localizedMetadata.localizedLongDescription || '—' }}</div></div>
+                  <div class="form-group full"><span class="form-label">Author Bio (Localized)</span><div class="form-value">{{ be.branch.localizedMetadata.localizedAuthorBio || '—' }}</div></div>
+                  <div class="form-group full"><span class="form-label">Translator Credit</span><div class="form-value">{{ be.branch.localizedMetadata.translatorCreditLine || '—' }}</div></div>
+                  <div class="form-group full"><span class="form-label">Content Warnings</span><div class="form-value">{{ be.branch.localizedMetadata.localizedContentWarnings || '—' }}</div></div>
                 </div>
               </div>
             }
 
             @if (detailTab() === 'identifiers') {
               <div class="card">
-                <h3 class="section-title">ISBNs for this Edition</h3>
-                <p class="section-subtitle">Each format requires its own ISBN — including translations</p>
+                <h3 class="section-title">ISBNs — {{ be.branch.edition.language }} Edition</h3>
+                <p class="section-subtitle">Each format requires its own ISBN. Translations get separate ISBNs from the English edition.</p>
                 <div class="form-grid">
-                  <div class="form-group"><span class="form-label">Ebook ISBN</span><div class="form-value" style="font-family:monospace">{{ lb.identifiers.isbnEbook || '—' }}</div></div>
-                  <div class="form-group"><span class="form-label">Paperback ISBN</span><div class="form-value" style="font-family:monospace">{{ lb.identifiers.isbnPaperback || '—' }}</div></div>
-                  <div class="form-group"><span class="form-label">Hardcover ISBN</span><div class="form-value" style="font-family:monospace">{{ lb.identifiers.isbnHardcover || '—' }}</div></div>
-                  <div class="form-group"><span class="form-label">Large Print ISBN</span><div class="form-value" style="font-family:monospace">{{ lb.identifiers.isbnLargePrint || '—' }}</div></div>
-                  <div class="form-group"><span class="form-label">Audiobook ISBN</span><div class="form-value" style="font-family:monospace">{{ lb.identifiers.isbnAudiobook || '—' }}</div></div>
-                  <div class="form-group"><span class="form-label">Assigned Date</span><div class="form-value">{{ lb.identifiers.isbnAssignedDate || '—' }}</div></div>
-                  <div class="form-group"><span class="form-label">ISBN Status</span><div class="form-value">{{ lb.identifiers.isbnStatus }}</div></div>
+                  <div class="form-group"><span class="form-label">Ebook ISBN</span><div class="form-value" style="font-family:monospace">{{ be.branch.identifiers.isbnEbook || '—' }}</div></div>
+                  <div class="form-group"><span class="form-label">Paperback ISBN</span><div class="form-value" style="font-family:monospace">{{ be.branch.identifiers.isbnPaperback || '—' }}</div></div>
+                  <div class="form-group"><span class="form-label">Hardcover ISBN</span><div class="form-value" style="font-family:monospace">{{ be.branch.identifiers.isbnHardcover || '—' }}</div></div>
+                  <div class="form-group"><span class="form-label">Large Print ISBN</span><div class="form-value" style="font-family:monospace">{{ be.branch.identifiers.isbnLargePrint || '—' }}</div></div>
+                  <div class="form-group"><span class="form-label">Audiobook ISBN</span><div class="form-value" style="font-family:monospace">{{ be.branch.identifiers.isbnAudiobook || '—' }}</div></div>
+                  <div class="form-group"><span class="form-label">Assigned Date</span><div class="form-value">{{ be.branch.identifiers.isbnAssignedDate || '—' }}</div></div>
+                  <div class="form-group"><span class="form-label">ISBN Status</span><div class="form-value">{{ be.branch.identifiers.isbnStatus }}</div></div>
                 </div>
               </div>
             }
 
             @if (detailTab() === 'formats') {
               <div class="card">
-                <h3 class="section-title">Formats in this Edition</h3>
-                <div class="entity-list">
-                  @for (f of lb.formats; track f.id) {
-                    <div class="entity-card">
-                      <div class="entity-card-header">
-                        <h3 class="entity-name">📄 {{ f.specs.formatType }}</h3>
-                        <span class="status" [ngClass]="f.specs.status==='Live'?'status-green':'status-amber'">{{ f.specs.status }}</span>
-                      </div>
-                      <div class="entity-stats">
-                        <span class="entity-stat">v{{ f.specs.versionNumber }}</span>
-                        <span class="entity-stat">{{ f.specs.fileSize || '—' }}</span>
-                        <span class="entity-stat"><strong>{{ f.platformVariants.length }}</strong> Platforms</span>
-                      </div>
+                <h3 class="section-title">Formats — {{ be.branch.edition.language }} Edition</h3>
+                <p class="section-subtitle">Each format below is a separate file for a specific platform. Ebooks vary by platform metadata; paperbacks vary by trim size.</p>
+                @if (!be.branch.formats.length) {
+                  <div class="empty-state"><div class="empty-icon">📄</div><p>No formats yet for this edition</p></div>
+                }
+                @for (f of be.branch.formats; track f.id) {
+                  <div class="record-card" style="margin-bottom:.75rem">
+                    <div class="record-header">
+                      <h3 class="record-title">{{ f.specs.formatType }}</h3>
+                      <span class="status" [ngClass]="f.specs.status==='Live'?'status-green':f.specs.status==='Ready'?'status-blue':'status-amber'">{{ f.specs.status }}</span>
                     </div>
-                  }
-                  @if (!lb.formats.length) {
-                    <div class="empty-state"><div class="empty-icon">📄</div><p>No formats yet for this edition</p></div>
-                  }
-                </div>
+                    <div class="record-grid">
+                      <div class="record-field"><span class="label">Version</span><span class="value">v{{ f.specs.versionNumber }}</span></div>
+                      <div class="record-field"><span class="label">File Size</span><span class="value">{{ f.specs.fileSize || '—' }}</span></div>
+                      <div class="record-field"><span class="label">Pages</span><span class="value">{{ f.specs.pageCount }}</span></div>
+                      @if (f.specs.trimSize) { <div class="record-field"><span class="label">Trim Size</span><span class="value">{{ f.specs.trimSize }}</span></div> }
+                      @if (f.specs.printFinish) { <div class="record-field"><span class="label">Finish</span><span class="value">{{ f.specs.printFinish }}</span></div> }
+                      @if (f.specs.audioRuntime) { <div class="record-field"><span class="label">Runtime</span><span class="value">{{ f.specs.audioRuntime }}</span></div> }
+                      <div class="record-field"><span class="label">Platforms</span><span class="value">{{ f.platformVariants.length }}</span></div>
+                      <div class="record-field"><span class="label">DRM</span><span class="value">{{ f.specs.drmPreference || '—' }}</span></div>
+                    </div>
+                    @if (f.platformVariants.length) {
+                      <div style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--border-light)">
+                        <div style="font-size:.6875rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:.5rem">Platform Variants</div>
+                        <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+                          @for (pv of f.platformVariants; track pv.id) {
+                            <span style="font-size:.75rem;padding:2px 8px;background:var(--primary-light);border:1px solid var(--border-color);border-radius:5px;color:var(--text-secondary)">
+                              {{ pv.platformName }} · {{ pv.platformPrice }}
+                              <span class="status" style="margin-left:.25rem;font-size:.6rem" [ngClass]="pv.uploadStatus==='Live'?'status-green':'status-amber'">{{ pv.uploadStatus }}</span>
+                            </span>
+                          }
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
               </div>
             }
 
           </div>
         </div>
       }
+
     </div>
   `,
   styles: [`
@@ -223,39 +263,53 @@ const ALL_LANGUAGES = [
       padding: .6rem 2rem .6rem 1rem; border: 1.5px solid var(--border-color); border-radius: 9px;
       font-size: .875rem; font-family: inherit; color: var(--text-primary); background: var(--surface);
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-      background-repeat: no-repeat; background-position: right .6rem center; appearance: none; outline: none; min-width: 180px;
+      background-repeat: no-repeat; background-position: right .6rem center; appearance: none; outline: none; min-width: 200px;
     }
     .add-lang-btn {
       padding: .6rem 1.25rem; background: var(--primary); color: #fff; border: none;
       border-radius: 9px; font-size: .875rem; font-weight: 600; cursor: pointer; font-family: inherit;
     }
-    .lang-chips { display: flex; gap: .5rem; flex-wrap: wrap; }
+    .lang-chips { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .5rem; }
     .lang-chip {
-      padding: .35rem .875rem; border: 1.5px solid var(--border-color); border-radius: 100px;
+      padding: .4rem 1rem; border: 1.5px solid var(--border-color); border-radius: 100px;
       background: var(--surface); font-size: .8125rem; font-weight: 500; color: var(--text-secondary);
-      cursor: pointer; transition: all .15s; display: flex; align-items: center; gap: .4rem;
+      cursor: pointer; transition: all .15s; display: flex; align-items: center; gap: .5rem;
     }
-    .lang-chip:hover, .lang-chip.active { border-color: var(--accent-blue); color: var(--accent-blue); background: var(--primary-light); }
-    .lang-chip-count { font-size: .6875rem; background: var(--border-color); border-radius: 100px; padding: 1px 6px; }
-    .lang-badge { font-size: .8125rem; font-weight: 600; color: var(--text-primary); }
+    .lang-chip:hover { border-color: var(--accent-blue); color: var(--accent-blue); background: var(--primary-light); }
+    .lang-chip-count { font-size: .6875rem; background: var(--border-color); border-radius: 100px; padding: 1px 7px; color: var(--text-muted); }
+    .breadcrumb-bar {
+      display: flex; align-items: center; gap: .4rem; font-size: .8125rem;
+      margin-bottom: 1.25rem; flex-wrap: wrap;
+    }
+    .bc-link { color: var(--accent-blue); cursor: pointer; font-weight: 500; }
+    .bc-link:hover { text-decoration: underline; }
+    .bc-sep { color: var(--text-muted); }
+    .bc-current { color: var(--text-primary); font-weight: 600; }
+    .td-muted { color: var(--text-muted); font-size: .8125rem; }
   `]
 })
 export class VaultLanguagesPageComponent {
   private vs = inject(AuthorVaultService);
   readonly ALL_LANGUAGES = ALL_LANGUAGES;
 
-  allBranches = computed(() => {
-    const bs: LanguageBranch[] = [];
+  allEditions = computed((): BookEdition[] => {
+    const result: BookEdition[] = [];
     for (const i of this.vs.company().imprints)
       for (const p of i.penNames)
         for (const s of p.series)
           for (const bk of s.books)
-            bs.push(...bk.languageBranches);
-    return bs;
+            for (const lb of bk.languageBranches)
+              result.push({
+                bookTitle: bk.coreWork.masterTitle,
+                seriesName: s.identity.name,
+                penName: p.identity.displayName,
+                branch: lb
+              });
+    return result;
   });
 
   selectedLanguage = 'English'; // default English
-  selected = signal<LanguageBranch | null>(null);
+  selectedEdition: BookEdition | null = null;
   detailTab = signal('edition');
   showAddLang = false;
   newLanguage = '';
@@ -268,31 +322,42 @@ export class VaultLanguagesPageComponent {
   ];
 
   get availableLanguages(): string[] {
-    const langs = new Set(this.allBranches().map(b => b.edition.language));
+    const langs = new Set(this.allEditions().map(e => e.branch.edition.language));
     return Array.from(langs).sort();
   }
 
-  filteredBranches(): LanguageBranch[] {
-    if (!this.selectedLanguage) return this.allBranches();
-    return this.allBranches().filter(b => b.edition.language === this.selectedLanguage);
+  titlesForLanguage(): BookEdition[] {
+    if (!this.selectedLanguage) return this.allEditions();
+    return this.allEditions().filter(e => e.branch.edition.language === this.selectedLanguage);
   }
 
   countByLanguage(lang: string): number {
-    return this.allBranches().filter(b => b.edition.language === lang).length;
+    return this.allEditions().filter(e => e.branch.edition.language === lang).length;
   }
 
-  get primaryCount() { return this.allBranches().filter(b => b.edition.isPrimaryLanguage).length; }
-  get translationCount() { return this.allBranches().filter(b => !b.edition.isPrimaryLanguage).length; }
-  get totalFormats() { return this.allBranches().reduce((a, b) => a + b.formats.length, 0); }
+  publishedInLanguage(): number {
+    return this.titlesForLanguage().filter(e => e.branch.edition.publicationStatus === 'Published').length;
+  }
+  inProgressInLanguage(): number {
+    return this.titlesForLanguage().filter(e => e.branch.edition.publicationStatus === 'In Progress').length;
+  }
+  formatsInLanguage(): number {
+    return this.titlesForLanguage().reduce((a, e) => a + e.branch.formats.length, 0);
+  }
 
-  onLanguageChange() { this.selected.set(null); }
-  selectItem(lb: LanguageBranch) { this.selected.set(lb); this.detailTab.set('edition'); }
+  get primaryCount() { return this.allEditions().filter(e => e.branch.edition.isPrimaryLanguage).length; }
+  get translationCount() { return this.allEditions().filter(e => !e.branch.edition.isPrimaryLanguage).length; }
+  get totalFormats() { return this.allEditions().reduce((a, e) => a + e.branch.formats.length, 0); }
+
+  onLanguageChange() { this.selectedEdition = null; this.detailTab.set('edition'); }
+  selectEdition(be: BookEdition) { this.selectedEdition = be; this.detailTab.set('edition'); }
 
   addLanguage() {
     if (this.newLanguage) {
       this.selectedLanguage = this.newLanguage;
       this.newLanguage = '';
       this.showAddLang = false;
+      this.selectedEdition = null;
     }
   }
 }

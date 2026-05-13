@@ -30,42 +30,26 @@ import { ThemeService } from '../../../services/theme.service';
 
         <!-- Settings Content -->
         <div class="settings-content">
-          <!-- Account -->
-          <div class="settings-section" *ngIf="activeSection === 'account'">
+          <!-- Workspace -->
+          <div class="settings-section" *ngIf="activeSection === 'workspace'">
             <div class="card">
-              <h2 class="section-title">Account Information</h2>
-              <div class="form-group">
-                <label class="form-label">Display Name</label>
-                <input type="text" class="form-input" [(ngModel)]="accountName">
-              </div>
-              <div class="form-group">
-                <label class="form-label">Email Address</label>
-                <input type="email" class="form-input" [(ngModel)]="accountEmail">
-              </div>
+              <h2 class="section-title">AuthorVAULT Defaults</h2>
+              <p class="section-desc">Account, security, and payment settings are managed by the OS. Keep only AuthorVAULT-specific defaults here.</p>
               <div class="form-group">
                 <label class="form-label">Author/Brand Name</label>
                 <input type="text" class="form-input" [(ngModel)]="authorName">
               </div>
+              <div class="form-group">
+                <label class="form-label">Default Landing Page</label>
+                <select class="form-input" [(ngModel)]="defaultPage">
+                  <option value="dashboard">Dashboard</option>
+                  <option value="books">Books</option>
+                  <option value="vault">AuthorVAULT</option>
+                </select>
+              </div>
               <button class="btn-primary" style="margin-top: 0.75rem;" (click)="saveSettings()" [disabled]="saving">
                 {{ saving ? 'Saving...' : 'Save Changes' }}
               </button>
-            </div>
-
-            <div class="card">
-              <h2 class="section-title">Security</h2>
-              <div class="form-group">
-                <label class="form-label">Current Password</label>
-                <input type="password" class="form-input" [(ngModel)]="currentPassword" placeholder="Enter current password">
-              </div>
-              <div class="form-group">
-                <label class="form-label">New Password</label>
-                <input type="password" class="form-input" [(ngModel)]="newPassword" placeholder="Enter new password">
-              </div>
-              <div class="form-group">
-                <label class="form-label">Confirm New Password</label>
-                <input type="password" class="form-input" [(ngModel)]="confirmPassword" placeholder="Confirm new password">
-              </div>
-              <button class="btn-secondary" style="margin-top: 0.75rem;" (click)="changePassword()">Change Password</button>
             </div>
           </div>
 
@@ -125,15 +109,7 @@ import { ThemeService } from '../../../services/theme.service';
 
             <div class="card">
               <h2 class="section-title">Dashboard Preferences</h2>
-              <p class="section-desc">Set your default page and layout</p>
-              <div class="form-group">
-                <label class="form-label">Default Landing Page</label>
-                <select class="form-input" [(ngModel)]="defaultPage">
-                  <option value="dashboard">Dashboard</option>
-                  <option value="analytics">Analytics</option>
-                  <option value="create">Create Book</option>
-                </select>
-              </div>
+              <p class="section-desc">Set layout preferences for the app shell</p>
               <div class="setting-item">
                 <div class="setting-info">
                   <span class="setting-label">Compact Sidebar</span>
@@ -147,42 +123,6 @@ import { ThemeService } from '../../../services/theme.service';
             </div>
           </div>
 
-          <!-- Billing -->
-          <div class="settings-section" *ngIf="activeSection === 'billing'">
-            <div class="card plan-card">
-              <div class="plan-header">
-                <div>
-                  <h2 class="plan-name">{{ billingPlan?.name || 'Pro Plan' }}</h2>
-                  <p class="plan-price">{{ billingPlan?.pricePerMonth || '$29/month' }}</p>
-                </div>
-                <span class="plan-badge">Current Plan</span>
-              </div>
-              <ul class="plan-features">
-                <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Unlimited Books</li>
-                <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> AI Content Tools</li>
-                <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Multi-Platform Publishing</li>
-                <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Marketing Asset Manager</li>
-              </ul>
-            </div>
-
-            <div class="card">
-              <h2 class="section-title">Billing History</h2>
-              <div class="billing-table">
-                <div class="billing-row header">
-                  <span>Date</span>
-                  <span>Description</span>
-                  <span>Amount</span>
-                  <span>Status</span>
-                </div>
-                <div class="billing-row" *ngFor="let inv of invoices">
-                  <span>{{ inv.date }}</span>
-                  <span>{{ inv.description }}</span>
-                  <span class="billing-amount">{{ inv.amount }}</span>
-                  <span class="billing-status paid">{{ inv.status }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -346,71 +286,6 @@ import { ThemeService } from '../../../services/theme.service';
     .theme-preview.auto .preview-content { background: linear-gradient(135deg, #f5f7fa 50%, #0f172a 50%); }
     .theme-label { font-size: 0.8125rem; font-weight: 500; color: var(--text-primary); }
 
-    .plan-card {
-      background: linear-gradient(135deg, rgb(28, 46, 74) 0%, rgb(45, 75, 120) 100%);
-      border: none;
-      color: white;
-    }
-
-    .plan-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 1.5rem;
-    }
-
-    .plan-name { font-size: 1.5rem; font-weight: 700; margin: 0 0 0.25rem 0; }
-    .plan-price { font-size: 1rem; color: rgba(255,255,255,0.7); margin: 0; }
-
-    .plan-badge {
-      padding: 0.375rem 1rem;
-      background: rgba(255,255,255,0.2);
-      border-radius: 100px;
-      font-size: 0.75rem;
-      font-weight: 600;
-    }
-
-    .plan-features {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 0.75rem;
-    }
-
-    .plan-features li {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-size: 0.875rem;
-    }
-
-    .plan-features svg { width: 18px; height: 18px; color: #6ee7b7; flex-shrink: 0; }
-
-    .billing-table { margin-top: 0.75rem; }
-
-    .billing-row {
-      display: grid;
-      grid-template-columns: 1fr 2fr 1fr 1fr;
-      gap: 1rem;
-      padding: 0.75rem 0;
-      border-bottom: 1px solid var(--border-light);
-      font-size: 0.875rem;
-    }
-
-    .billing-row.header {
-      font-size: 0.6875rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--text-muted);
-    }
-
-    .billing-row:last-child { border-bottom: none; }
-    .billing-amount { font-weight: 600; }
-    .billing-status.paid { color: var(--success); font-weight: 500; text-transform: capitalize; }
-
     .toast {
       position: fixed;
       bottom: 2rem;
@@ -436,7 +311,6 @@ import { ThemeService } from '../../../services/theme.service';
     @media (max-width: 768px) {
       .settings-layout { grid-template-columns: 1fr; }
       .settings-nav { flex-direction: row; overflow-x: auto; position: static; }
-      .plan-features { grid-template-columns: 1fr; }
       .theme-options { flex-direction: column; }
     }
 
@@ -447,7 +321,7 @@ import { ThemeService } from '../../../services/theme.service';
   `]
 })
 export class SettingsComponent implements OnInit {
-  activeSection = 'account';
+  activeSection = 'workspace';
   accountName = '';
   accountEmail = '';
   authorName = '';
@@ -456,10 +330,6 @@ export class SettingsComponent implements OnInit {
   compactSidebar = false;
   showToast = false;
   toastMessage = '';
-  currentPassword = '';
-  newPassword = '';
-  confirmPassword = '';
-  billingPlan: { name: string; pricePerMonth: string } | null = null;
   saving = false;
 
   constructor(
@@ -500,19 +370,6 @@ export class SettingsComponent implements OnInit {
         }
       }
     });
-    this.loadBilling();
-  }
-
-  loadBilling() {
-    this.settingsService.getBilling().subscribe({
-      next: (b) => {
-        this.billingPlan = b.plan;
-        this.invoices = b.invoices;
-      },
-      error: () => {
-        this.billingPlan = { name: 'Pro Plan', pricePerMonth: '$29/month' };
-      }
-    });
   }
 
   saveSettings() {
@@ -546,30 +403,6 @@ export class SettingsComponent implements OnInit {
     });
   }
 
-  changePassword() {
-    if (!this.currentPassword || !this.newPassword || !this.confirmPassword) {
-      this.showToastMsg('Please fill all password fields.');
-      return;
-    }
-    if (this.newPassword !== this.confirmPassword) {
-      this.showToastMsg('New password and confirm do not match.');
-      return;
-    }
-    if (this.newPassword.length < 6) {
-      this.showToastMsg('New password must be at least 6 characters.');
-      return;
-    }
-    this.authService.changePassword(this.currentPassword, this.newPassword).subscribe({
-      next: () => {
-        this.currentPassword = '';
-        this.newPassword = '';
-        this.confirmPassword = '';
-        this.showToastMsg('Password changed successfully.');
-      },
-      error: (err) => this.showToastMsg(err?.message || 'Failed to change password.')
-    });
-  }
-
   private showToastMsg(msg: string) {
     this.toastMessage = msg;
     this.showToast = true;
@@ -577,10 +410,9 @@ export class SettingsComponent implements OnInit {
   }
 
   sections = [
-    { id: 'account', label: 'Account', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>' },
+    { id: 'workspace', label: 'Workspace', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><path d="M9 9h1"/><path d="M9 13h1"/><path d="M9 17h1"/></svg>' },
     { id: 'notifications', label: 'Notifications', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>' },
-    { id: 'appearance', label: 'Appearance', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>' },
-    { id: 'billing', label: 'Billing', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>' }
+    { id: 'appearance', label: 'Appearance', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>' }
   ];
 
   emailNotifications = [
@@ -590,9 +422,4 @@ export class SettingsComponent implements OnInit {
     { title: 'Product Updates', description: 'News about AuthorVault features', enabled: false }
   ];
 
-  invoices: { date: string; description: string; amount: string; status: string }[] = [
-    { date: 'Apr 1, 2026', description: 'Pro Plan — Monthly', amount: '$29.00', status: 'paid' },
-    { date: 'Mar 1, 2026', description: 'Pro Plan — Monthly', amount: '$29.00', status: 'paid' },
-    { date: 'Feb 1, 2026', description: 'Pro Plan — Monthly', amount: '$29.00', status: 'paid' }
-  ];
 }

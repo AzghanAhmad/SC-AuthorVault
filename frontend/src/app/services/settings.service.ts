@@ -46,14 +46,4 @@ export class SettingsService {
     return of(this.settings).pipe(delay(500));
   }
 
-  getBilling(): Observable<{ plan: { name: string; pricePerMonth: string }; invoices: { date: string; description: string; amount: string; status: string }[] }> {
-    return of({
-      plan: { name: 'Pro Plan', pricePerMonth: '$29/month' },
-      invoices: [
-        { date: 'Apr 1, 2026', description: 'Pro Plan — Monthly', amount: '$29.00', status: 'paid' },
-        { date: 'Mar 1, 2026', description: 'Pro Plan — Monthly', amount: '$29.00', status: 'paid' },
-        { date: 'Feb 1, 2026', description: 'Pro Plan — Monthly', amount: '$29.00', status: 'paid' },
-      ]
-    }).pipe(delay(400));
-  }
 }
