@@ -18,25 +18,14 @@ interface NavGroup {
   template: `
     <aside class="sidebar" [class.collapsed]="collapsed()">
       <div class="sidebar-logo" *ngIf="!collapsed()">
-        <svg viewBox="0 0 36 36" fill="none" class="logo-icon">
-          <defs><linearGradient id="slg" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#60a5fa"/><stop offset="100%" stop-color="#a78bfa"/>
-          </linearGradient></defs>
-          <rect width="36" height="36" rx="10" fill="url(#slg)" opacity="0.2"/>
-          <path d="M10 26V12l8-6 8 6v14H10z" stroke="url(#slg)" stroke-width="1.8" stroke-linejoin="round" fill="none"/>
-          <path d="M15 26v-6h6v6" stroke="url(#slg)" stroke-width="1.8" stroke-linejoin="round" fill="none"/>
-        </svg>
-        <span class="logo-text">AuthorVault</span>
+        <img src="favicon_new.png" alt="ScribeCount" class="logo-icon" />
+        <div class="logo-text-wrap">
+          <span class="logo-text">ScribeCount</span>
+          <span class="logo-sub">AUTHORVAULT</span>
+        </div>
       </div>
       <div class="sidebar-logo-collapsed" *ngIf="collapsed()">
-        <svg viewBox="0 0 36 36" fill="none" class="logo-icon-sm">
-          <defs><linearGradient id="slg2" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#60a5fa"/><stop offset="100%" stop-color="#a78bfa"/>
-          </linearGradient></defs>
-          <rect width="36" height="36" rx="10" fill="url(#slg2)" opacity="0.2"/>
-          <path d="M10 26V12l8-6 8 6v14H10z" stroke="url(#slg2)" stroke-width="1.8" stroke-linejoin="round" fill="none"/>
-          <path d="M15 26v-6h6v6" stroke="url(#slg2)" stroke-width="1.8" stroke-linejoin="round" fill="none"/>
-        </svg>
+        <img src="favicon_new.png" alt="SC" class="logo-icon-sm" />
       </div>
 
       <nav class="sidebar-nav">
@@ -169,10 +158,12 @@ interface NavGroup {
       padding: 4px 8px 16px; border-bottom: 1px solid rgba(255,255,255,0.08);
       margin-bottom: 12px;
     }
-    .logo-icon { width: 32px; height: 32px; flex-shrink: 0; }
-    .logo-text { font-size: 1rem; font-weight: 700; color: #fff; letter-spacing: .01em; }
+    .logo-icon { width: 36px; height: 36px; flex-shrink: 0; border-radius: 8px; object-fit: contain; }
+    .logo-text-wrap { display: flex; flex-direction: column; gap: 0; }
+    .logo-text { font-size: 1.05rem; font-weight: 700; color: #fff; letter-spacing: .01em; line-height: 1.2; }
+    .logo-sub { font-size: 0.6rem; font-weight: 700; color: #38bdf8; letter-spacing: .14em; text-transform: uppercase; line-height: 1.2; }
     .sidebar-logo-collapsed { display: flex; justify-content: center; padding-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 12px; }
-    .logo-icon-sm { width: 32px; height: 32px; }
+    .logo-icon-sm { width: 32px; height: 32px; border-radius: 8px; }
 
     /* Nav */
     .sidebar-nav { flex: 1; display: flex; flex-direction: column; gap: 2px; }
