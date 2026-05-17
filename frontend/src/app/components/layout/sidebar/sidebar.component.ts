@@ -18,14 +18,18 @@ interface NavGroup {
   template: `
     <aside class="sidebar" [class.collapsed]="collapsed()">
       <div class="sidebar-logo" *ngIf="!collapsed()">
-        <img src="favicon_new.png" alt="ScribeCount" class="logo-icon" />
+        <span class="logo-mark">
+          <img src="assets/logo.png" alt="ScribeCount" class="logo-icon" />
+        </span>
         <div class="logo-text-wrap">
           <span class="logo-text">ScribeCount</span>
           <span class="logo-sub">AUTHORVAULT</span>
         </div>
       </div>
       <div class="sidebar-logo-collapsed" *ngIf="collapsed()">
-        <img src="favicon_new.png" alt="SC" class="logo-icon-sm" />
+        <span class="logo-mark">
+          <img src="assets/logo.png" alt="SC" class="logo-icon-sm" />
+        </span>
       </div>
 
       <nav class="sidebar-nav">
@@ -158,12 +162,19 @@ interface NavGroup {
       padding: 4px 8px 16px; border-bottom: 1px solid rgba(255,255,255,0.08);
       margin-bottom: 12px;
     }
-    .logo-icon { width: 36px; height: 36px; flex-shrink: 0; border-radius: 8px; object-fit: contain; }
+    .logo-mark {
+      width: 36px; height: 36px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: #fff; border-radius: 10px; padding: 4px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    }
+    .logo-icon { width: 100%; height: 100%; object-fit: contain; display: block; }
     .logo-text-wrap { display: flex; flex-direction: column; gap: 0; }
     .logo-text { font-size: 1.05rem; font-weight: 700; color: #fff; letter-spacing: .01em; line-height: 1.2; }
     .logo-sub { font-size: 0.6rem; font-weight: 700; color: #38bdf8; letter-spacing: .14em; text-transform: uppercase; line-height: 1.2; }
     .sidebar-logo-collapsed { display: flex; justify-content: center; padding-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 12px; }
-    .logo-icon-sm { width: 32px; height: 32px; border-radius: 8px; }
+    .sidebar-logo-collapsed .logo-mark { width: 32px; height: 32px; border-radius: 8px; padding: 3px; }
+    .logo-icon-sm { width: 100%; height: 100%; object-fit: contain; display: block; }
 
     /* Nav */
     .sidebar-nav { flex: 1; display: flex; flex-direction: column; gap: 2px; }
