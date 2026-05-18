@@ -1,6 +1,7 @@
-import { Component, signal, Output, EventEmitter, inject } from '@angular/core';
+import { Component, signal, Output, EventEmitter, inject, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, RouterModule, RouterLinkActive } from '@angular/router';
+import { Router, RouterModule, RouterLinkActive, NavigationEnd } from '@angular/router';
+import { filter, Subscription } from 'rxjs';
 import { AuthService } from '../../../services/auth.service';
 
 interface NavGroup {
@@ -17,19 +18,27 @@ interface NavGroup {
   imports: [CommonModule, RouterModule],
   template: `
     <aside class="sidebar" [class.collapsed]="collapsed()">
-      <div class="sidebar-logo" *ngIf="!collapsed()">
-        <span class="logo-mark">
-          <img src="assets/logo.png" alt="ScribeCount" class="logo-icon" />
-        </span>
-        <div class="logo-text-wrap">
-          <span class="logo-text">ScribeCount</span>
-          <span class="logo-sub">AUTHORVAULT</span>
+      <div class="sidebar-top-row">
+        <div class="sidebar-logo" *ngIf="!collapsed()">
+          <span class="logo-mark">
+            <img src="assets/logo.png" alt="ScribeCount" class="logo-icon" />
+          </span>
+          <div class="logo-text-wrap">
+            <span class="logo-text">ScribeCount</span>
+            <span class="logo-sub">AUTHORVAULT</span>
+          </div>
         </div>
-      </div>
-      <div class="sidebar-logo-collapsed" *ngIf="collapsed()">
-        <span class="logo-mark">
-          <img src="assets/logo.png" alt="SC" class="logo-icon-sm" />
-        </span>
+        <div class="sidebar-logo-collapsed" *ngIf="collapsed()">
+          <span class="logo-mark">
+            <img src="assets/logo.png" alt="SC" class="logo-icon-sm" />
+          </span>
+        </div>
+        <button class="collapse-btn" (click)="toggleCollapse()" [attr.aria-label]="collapsed() ? 'Expand sidebar' : 'Collapse sidebar'">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+            <polyline *ngIf="!collapsed()" points="15 18 9 12 15 6"/>
+            <polyline *ngIf="collapsed()" points="9 18 15 12 9 6"/>
+          </svg>
+        </button>
       </div>
 
       <nav class="sidebar-nav">
@@ -75,8 +84,8 @@ interface NavGroup {
             <a class="nav-child" routerLink="/company/isbns" routerLinkActive="child-active">
               <span class="child-dot"></span>ISBNs
             </a>
-            <a class="nav-child" routerLink="/company/calendar" routerLinkActive="child-active">
-              <span class="child-dot"></span>Calendar
+            <a class="nav-child" routerLink="/company/calendar" routerLinkActive="child-active" (click)="openGroup.set('company')">
+              <span class="child-dot"></span>Important Dates
             </a>
           </div>
         </div>
@@ -135,12 +144,7 @@ interface NavGroup {
         Logout
       </button>
 
-      <button class="collapse-btn" (click)="toggleCollapse()" [attr.aria-label]="collapsed() ? 'Expand sidebar' : 'Collapse sidebar'">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-          <polyline *ngIf="!collapsed()" points="15 18 9 12 15 6"/>
-          <polyline *ngIf="collapsed()" points="9 18 15 12 9 6"/>
-        </svg>
-      </button>
+
     </aside>
   `,
   styles: [`
@@ -156,11 +160,14 @@ interface NavGroup {
     }
     .sidebar.collapsed { width: 72px; min-width: 72px; }
 
-    /* Logo */
+    /* Top Row */
+    .sidebar-top-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.08);
+      margin-bottom: 12px;
+    }
     .sidebar-logo {
       display: flex; align-items: center; gap: 10px;
-      padding: 4px 8px 16px; border-bottom: 1px solid rgba(255,255,255,0.08);
-      margin-bottom: 12px;
     }
     .logo-mark {
       width: 36px; height: 36px; flex-shrink: 0;
@@ -294,12 +301,44 @@ interface NavGroup {
     }
   `]
 })
-export class SidebarComponent {
+export class SidebarComponent implements OnInit, OnDestroy {
   collapsed = signal(false);
-  openGroup = signal<string | null>('library'); // default open
+  openGroup = signal<string | null>('library');
   @Output() collapsedChange = new EventEmitter<boolean>();
   readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private navSub?: Subscription;
+
+  ngOnInit(): void {
+    this.syncOpenGroup();
+    this.navSub = this.router.events
+      .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
+      .subscribe(() => this.syncOpenGroup());
+  }
+
+  ngOnDestroy(): void {
+    this.navSub?.unsubscribe();
+  }
+
+  /** Keep the submenu expanded for the section that matches the current route. */
+  private syncOpenGroup(): void {
+    const url = this.router.url;
+    if (
+      url.startsWith('/vault/company') ||
+      url.startsWith('/vault/imprints') ||
+      url.startsWith('/company/')
+    ) {
+      this.openGroup.set('company');
+    } else if (
+      url.startsWith('/books') ||
+      url.startsWith('/vault/pen-names') ||
+      url.startsWith('/vault/series') ||
+      url.startsWith('/vault/languages') ||
+      url.startsWith('/vault/formats')
+    ) {
+      this.openGroup.set('library');
+    }
+  }
 
   toggleCollapse() {
     this.collapsed.update(v => !v);

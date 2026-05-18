@@ -88,14 +88,24 @@ import { PenName } from '../../../models/author-vault.model';
                 <div class="form-grid">
                   <div class="form-group"><span class="form-label">Display Name</span><div class="form-value">{{ pn.identity.displayName }}</div></div>
                   <div class="form-group"><span class="form-label">Legal Name Linked</span><div class="form-value">{{ pn.identity.legalNameLinked }}</div></div>
-                  <div class="form-group"><span class="form-label">Genre</span><div class="form-value">{{ pn.identity.genre }}</div></div>
+                  <div class="form-group"><span class="form-label">Primary Genre</span><div class="form-value">{{ pn.identity.genre }}</div></div>
                   <div class="form-group"><span class="form-label">Subgenre</span><div class="form-value">{{ pn.identity.subgenre || '—' }}</div></div>
+                  <div class="form-group full"><span class="form-label">Genres & Sub-genres</span>
+                    <div class="tag-row">
+                      <span class="tag">{{ pn.identity.genre }}</span>
+                      @if(pn.identity.subgenre) { <span class="tag">{{ pn.identity.subgenre }}</span> }
+                      <span class="tag" style="border-style:dashed;cursor:pointer;color:var(--text-muted);">+ Add Genre</span>
+                    </div>
+                  </div>
                   <div class="form-group"><span class="form-label">Pen Name Type</span><div class="form-value">{{ pn.identity.penNameType }}</div></div>
                   <div class="form-group"><span class="form-label">Privacy Level</span><div class="form-value">{{ pn.identity.privacyLevel }}</div></div>
                   <div class="form-group"><span class="form-label">Publicly Disclosed</span><div class="form-value">{{ pn.identity.publiclyDisclosed ? 'Yes' : 'No' }}</div></div>
                   <div class="form-group"><span class="form-label">Status</span><div class="form-value"><span class="status status-green">{{ pn.identity.status }}</span></div></div>
                   <div class="form-group"><span class="form-label">Date Created</span><div class="form-value">{{ pn.identity.dateCreated }}</div></div>
                   <div class="form-group full"><span class="form-label">Reason / Purpose</span><div class="form-value">{{ pn.identity.reason }}</div></div>
+                  <div class="form-group full"><span class="form-label">Notes</span>
+                    <div class="form-value" style="min-height:60px;padding:.5rem .75rem;background:var(--primary-light);border-radius:8px;font-style:italic;color:var(--text-muted);">Add private notes about this pen name...</div>
+                  </div>
                 </div>
               </div>
             }

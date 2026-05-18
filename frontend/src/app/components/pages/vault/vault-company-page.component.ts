@@ -1,11 +1,11 @@
-﻿import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { AuthorVaultService } from '../../../services/author-vault.service';
 
 // ─── Mock data interfaces ───────────────────────────────────────────────────
-interface Platform { name: string; owner: string; email: string; phone: string; payout: string; taxProfile: string; username: string; password: string; notes: string; showUser: boolean; showPass: boolean; }
+interface Platform { name: string; owner: string; email: string; phone: string; payout: string; taxProfile: string; username: string; password: string; notes: string; showUser: boolean; showPass: boolean; accountRep: string; repEmail: string; accountId: string; }
 interface IsbnRecord { isbn: string; format: string; title: string; imprint: string; pubDate: string; series: string; trimSize: string; edition: string; asin: string; status: 'used'|'unused'|'reserved'; }
 interface ContractRecord { name: string; counterparty: string; date: string; type: string; status: string; file: string; }
 interface TeamMember { name: string; role: string; company: string; email: string; phone: string; contractDate: string; rate: string; notes: string; }
@@ -258,7 +258,8 @@ interface SecurityEntry { resource: string; owner: string; accessLevel: string; 
             <div class="form-group"><span class="form-label">EIN / Tax ID</span>
               <div style="display:flex;align-items:center;gap:.5rem;">
                 <div class="form-value" style="flex:1">{{ showEin ? company().identity.einTaxId : '**-*******' }}</div>
-                <button (click)="showEin=!showEin" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:.875rem;">{{ showEin ? '🙈' : '👁' }}</button>
+                <button (click)="revealEin()" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:.875rem;">{{ showEin ? '🙈 Hide' : '👁 Reveal' }}</button>
+                @if(einTimer > 0) { <span style="font-size:.7rem;color:var(--text-muted);">auto-hides in {{einTimer}}s</span> }
               </div>
             </div>
             <div class="form-group"><span class="form-label">Registered Agent</span><div class="form-value">{{ company().identity.registeredAgent }}</div></div>
@@ -289,8 +290,18 @@ interface SecurityEntry { resource: string; owner: string; accessLevel: string; 
             <div class="form-group"><span class="form-label">Attorney Name</span><div class="form-value">{{ company().contractsLegal.attorneyName }}</div></div>
             <div class="form-group"><span class="form-label">Attorney Contact</span><div class="form-value">{{ company().contractsLegal.attorneyContact }}</div></div>
           </div>
-          <div style="margin-top:1rem;padding:.75rem;background:var(--primary-light);border-radius:8px;font-size:.8125rem;color:var(--text-secondary);">
-            �� Copyright Office: <a href="https://www.copyright.gov" target="_blank" style="color:var(--accent-blue)">https://www.copyright.gov</a>
+          <div style="margin-top:1rem;padding:.75rem;background:var(--primary-light);border-radius:8px;font-size:.8125rem;color:var(--text-secondary);display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;">
+            <span>📄 Copyright Office:</span>
+            <select [(ngModel)]="copyrightCountry" style="padding:.3rem .5rem;border:1px solid var(--border-color);border-radius:6px;background:var(--background);color:var(--text-secondary);font-size:.8125rem;font-family:inherit;">
+              <option value="US">United States</option>
+              <option value="UK">United Kingdom</option>
+              <option value="CA">Canada</option>
+              <option value="AU">Australia</option>
+              <option value="DE">Germany</option>
+              <option value="FR">France</option>
+              <option value="IN">India</option>
+            </select>
+            <a [href]="copyrightLinks[copyrightCountry]" target="_blank" style="color:var(--accent-blue)">{{ copyrightLinks[copyrightCountry] }}</a>
           </div>
         </div>
       }
@@ -405,10 +416,11 @@ interface SecurityEntry { resource: string; owner: string; accessLevel: string; 
               </div>
               <div class="record-grid" style="grid-template-columns:1fr 1fr 1fr;gap:.5rem .85rem;">
                 <div class="record-field"><span class="label">Account Owner</span><span class="value">{{ p.owner }}</span></div>
-                <div class="record-field"><span class="label">Account Email</span><span class="value">{{ p.email }}</span></div>
+                <div class="record-field"><span class="label">Account Email</span><span class="value"><a [href]="'mailto:'+p.email" style="color:var(--accent-blue)">{{ p.email }}</a></span></div>
                 <div class="record-field"><span class="label">Recovery Phone</span><span class="value">{{ p.phone || '—' }}</span></div>
                 <div class="record-field"><span class="label">Payout Method</span><span class="value">{{ p.payout }}</span></div>
                 <div class="record-field"><span class="label">Tax Profile Name</span><span class="value">{{ p.taxProfile }}</span></div>
+                <div class="record-field"><span class="label">Account ID</span><span class="value" style="font-family:monospace;">{{ p.accountId || '—' }}</span></div>
                 <div class="record-field">
                   <span class="label">Username</span>
                   <span class="value" style="display:flex;align-items:center;gap:.35rem;">
@@ -423,8 +435,14 @@ interface SecurityEntry { resource: string; owner: string; accessLevel: string; 
                     <button (click)="p.showPass=!p.showPass" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:.75rem;">{{ p.showPass ? '🙈' : '👁' }}</button>
                   </span>
                 </div>
-                <div class="record-field" style="grid-column:1/-1"><span class="label">Notes</span><span class="value">{{ p.notes }}</span></div>
               </div>
+              <div style="margin-top:.5rem;padding:.5rem .75rem;background:var(--primary-light);border-radius:6px;">
+                <div style="display:flex;gap:1.5rem;flex-wrap:wrap;font-size:.8125rem;">
+                  <div><span style="color:var(--text-muted);">Account Rep:</span> <strong style="color:var(--text-primary);">{{ p.accountRep || 'Customer Service' }}</strong></div>
+                  <div><span style="color:var(--text-muted);">Rep Email:</span> @if(p.repEmail) { <a [href]="'mailto:'+p.repEmail" style="color:var(--accent-blue);">{{ p.repEmail }}</a> } @else { <span style="color:var(--text-secondary)">—</span> }</div>
+                </div>
+              </div>
+              <div class="record-field" style="margin-top:.35rem;"><span class="label">Notes</span><span class="value">{{ p.notes }}</span></div>
             </div>
           }
         </div>
@@ -733,11 +751,14 @@ interface SecurityEntry { resource: string; owner: string; accessLevel: string; 
       <!-- ── SOPs ── -->
       @if (activeTab() === 'sops') {
         <div class="card">
-          <h3 class="section-title">Standard Operating Procedures</h3>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+            <h3 class="section-title" style="margin:0">Standard Operating Procedures</h3>
+            <input type="text" [(ngModel)]="sopFilter" placeholder="Search SOPs..." style="padding:.4rem .75rem;border:1px solid var(--border-color);border-radius:8px;background:var(--background);color:var(--text-primary);font-size:.8125rem;font-family:inherit;width:220px;">
+          </div>
           <table class="data-table">
             <thead><tr><th>Document Name</th><th>Description</th><th>Last Updated</th><th>Actions</th></tr></thead>
             <tbody>
-              @for(s of sopTemplates; track s.name) {
+              @for(s of filteredSops; track s.name) {
                 <tr>
                   <td class="td-primary">{{ s.name }}</td>
                   <td>{{ s.description }}</td>
@@ -776,6 +797,21 @@ export class VaultCompanyPageComponent implements OnInit {
   pinChangeError = '';
   pinChangeSuccess = false;
   showEin = false;
+  einTimer = 0;
+  private einTimerRef: any;
+  copyrightCountry = 'US';
+  copyrightLinks: Record<string,string> = {
+    US: 'https://www.copyright.gov',
+    UK: 'https://www.gov.uk/copyright',
+    CA: 'https://ised-isde.canada.ca/site/canadian-intellectual-property-office',
+    AU: 'https://www.ipaustralia.gov.au',
+    DE: 'https://www.dpma.de/english/',
+    FR: 'https://www.inpi.fr/en',
+    IN: 'https://copyright.gov.in'
+  };
+  sopFilter = '';
+  private pinTimeoutRef: any;
+  private readonly PIN_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
 
   private readonly PIN_KEY = 'av_company_unlocked';
   private readonly STORED_PIN_KEY = 'av_company_pin';
@@ -809,6 +845,11 @@ export class VaultCompanyPageComponent implements OnInit {
   get isbnUsed(): number { return this.isbnRecords.filter(r => r.status === 'used').length; }
   get isbnAvailable(): number { return this.isbnRecords.filter(r => r.status === 'unused').length; }
   get isbnReserved(): number { return this.isbnRecords.filter(r => r.status === 'reserved').length; }
+  get filteredSops(): SopTemplate[] {
+    if (!this.sopFilter.trim()) return this.sopTemplates;
+    const q = this.sopFilter.toLowerCase();
+    return this.sopTemplates.filter(s => s.name.toLowerCase().includes(q) || s.description.toLowerCase().includes(q));
+  }
 
   // ── ISBN filter ──
   isbnFilterStatus = '';
@@ -831,9 +872,9 @@ export class VaultCompanyPageComponent implements OnInit {
   ];
 
   paymentPlatforms: Platform[] = [
-    { name: 'Stripe', owner: 'Eleanor Vance', email: 'admin@authorvaultpress.com', phone: '+1 (212) 555-0147', payout: 'Bank Transfer', taxProfile: 'Vance Publishing LLC', username: 'admin@authorvaultpress.com', password: 'Str!pe2024#Vault', notes: 'Primary payment processor for direct sales', showUser: false, showPass: false },
-    { name: 'PayPal Business', owner: 'Eleanor Vance', email: 'paypal@authorvaultpress.com', phone: '+1 (212) 555-0147', payout: 'Bank Transfer', taxProfile: 'Vance Publishing LLC', username: 'paypal@authorvaultpress.com', password: 'P@yP@l2024!Vault', notes: 'Used for contractor payments', showUser: false, showPass: false },
-    { name: 'Wise', owner: 'Eleanor Vance', email: 'wise@authorvaultpress.com', phone: '+1 (212) 555-0147', payout: 'Bank Transfer', taxProfile: 'Vance Publishing LLC', username: 'wise@authorvaultpress.com', password: 'W!se2024#Secure', notes: 'International contractor payments', showUser: false, showPass: false },
+    { name: 'Stripe', owner: 'Eleanor Vance', email: 'admin@authorvaultpress.com', phone: '+1 (212) 555-0147', payout: 'Bank Transfer', taxProfile: 'Vance Publishing LLC', username: 'admin@authorvaultpress.com', password: 'Str!pe2024#Vault', notes: 'Primary payment processor for direct sales', showUser: false, showPass: false, accountRep: '', repEmail: '', accountId: 'acct_1ABC' },
+    { name: 'PayPal Business', owner: 'Eleanor Vance', email: 'paypal@authorvaultpress.com', phone: '+1 (212) 555-0147', payout: 'Bank Transfer', taxProfile: 'Vance Publishing LLC', username: 'paypal@authorvaultpress.com', password: 'P@yP@l2024!Vault', notes: 'Used for contractor payments', showUser: false, showPass: false, accountRep: '', repEmail: '', accountId: '' },
+    { name: 'Wise', owner: 'Eleanor Vance', email: 'wise@authorvaultpress.com', phone: '+1 (212) 555-0147', payout: 'Bank Transfer', taxProfile: 'Vance Publishing LLC', username: 'wise@authorvaultpress.com', password: 'W!se2024#Secure', notes: 'International contractor payments', showUser: false, showPass: false, accountRep: '', repEmail: '', accountId: '' },
   ];
 
   taxDocs: TaxDoc[] = [
@@ -852,15 +893,15 @@ export class VaultCompanyPageComponent implements OnInit {
   ];
 
   publishingPlatforms: Platform[] = [
-    { name: 'Amazon KDP', owner: 'Eleanor Vance', email: 'kdp@authorvaultpress.com', phone: '+1 (212) 555-0147', payout: 'Bank Transfer', taxProfile: 'Vance Publishing LLC', username: 'kdp@authorvaultpress.com', password: 'KDP!2024#Vault', notes: '7 titles live. KDP Select enrolled for 3 titles.', showUser: false, showPass: false },
-    { name: 'Draft2Digital', owner: 'Eleanor Vance', email: 'd2d@authorvaultpress.com', phone: '', payout: 'PayPal', taxProfile: 'Vance Publishing LLC', username: 'd2d@authorvaultpress.com', password: 'D2D!2024#Wide', notes: 'Wide distribution. Apple, Kobo, B&N, libraries.', showUser: false, showPass: false },
-    { name: 'IngramSpark', owner: 'Eleanor Vance', email: 'ingram@authorvaultpress.com', phone: '', payout: 'Bank Transfer', taxProfile: 'Vance Publishing LLC', username: 'ingram@authorvaultpress.com', password: 'Ingr@m2024!', notes: 'Print distribution. 60% discount set.', showUser: false, showPass: false },
-    { name: 'Kobo Writing Life', owner: 'Eleanor Vance', email: 'kobo@authorvaultpress.com', phone: '', payout: 'PayPal', taxProfile: 'Vance Publishing LLC', username: 'kobo@authorvaultpress.com', password: 'K0bo!2024#WL', notes: 'Direct Kobo uploads for select titles.', showUser: false, showPass: false },
-    { name: 'Shopify (Direct Store)', owner: 'Eleanor Vance', email: 'admin@authorvaultpress.com', phone: '', payout: 'Stripe', taxProfile: 'Vance Publishing LLC', username: 'admin@authorvaultpress.com', password: 'Sh0p!fy2024#', notes: 'authorvaultpress.com/shop. BookFunnel delivery.', showUser: false, showPass: false },
-    { name: 'BookFunnel', owner: 'Eleanor Vance', email: 'bf@authorvaultpress.com', phone: '', payout: 'N/A', taxProfile: 'N/A', username: 'bf@authorvaultpress.com', password: 'B00kF!2024#', notes: 'ARC delivery + direct sales delivery.', showUser: false, showPass: false },
-    { name: 'MailerLite (Email)', owner: 'Eleanor Vance', email: 'ml@authorvaultpress.com', phone: '', payout: 'N/A', taxProfile: 'N/A', username: 'ml@authorvaultpress.com', password: 'M@ilerL2024!', notes: '12,400 subscribers. 42% open rate.', showUser: false, showPass: false },
-    { name: 'Amazon Ads', owner: 'Eleanor Vance', email: 'ads@authorvaultpress.com', phone: '', payout: 'N/A', taxProfile: 'Vance Publishing LLC', username: 'ads@authorvaultpress.com', password: 'AmzAds!2024#', notes: 'Linked to KDP account. $800/mo budget.', showUser: false, showPass: false },
-    { name: 'Facebook Ads', owner: 'Eleanor Vance', email: 'fb@authorvaultpress.com', phone: '+1 (212) 555-0147', payout: 'N/A', taxProfile: 'Vance Publishing LLC', username: 'fb@authorvaultpress.com', password: 'FbAds!2024#', notes: 'Business Manager ID: 123456789.', showUser: false, showPass: false },
+    { name: 'Amazon KDP', owner: 'Eleanor Vance', email: 'kdp@authorvaultpress.com', phone: '+1 (212) 555-0147', payout: 'Bank Transfer', taxProfile: 'Vance Publishing LLC', username: 'kdp@authorvaultpress.com', password: 'KDP!2024#Vault', notes: '7 titles live. KDP Select enrolled for 3 titles.', showUser: false, showPass: false, accountRep: '', repEmail: '', accountId: '' },
+    { name: 'Draft2Digital', owner: 'Eleanor Vance', email: 'd2d@authorvaultpress.com', phone: '', payout: 'PayPal', taxProfile: 'Vance Publishing LLC', username: 'd2d@authorvaultpress.com', password: 'D2D!2024#Wide', notes: 'Wide distribution. Apple, Kobo, B&N, libraries.', showUser: false, showPass: false, accountRep: '', repEmail: '', accountId: '' },
+    { name: 'IngramSpark', owner: 'Eleanor Vance', email: 'ingram@authorvaultpress.com', phone: '', payout: 'Bank Transfer', taxProfile: 'Vance Publishing LLC', username: 'ingram@authorvaultpress.com', password: 'Ingr@m2024!', notes: 'Print distribution. 60% discount set.', showUser: false, showPass: false, accountRep: 'John Baker', repEmail: 'jbaker@ingramspark.com', accountId: 'IS-92847' },
+    { name: 'Kobo Writing Life', owner: 'Eleanor Vance', email: 'kobo@authorvaultpress.com', phone: '', payout: 'PayPal', taxProfile: 'Vance Publishing LLC', username: 'kobo@authorvaultpress.com', password: 'K0bo!2024#WL', notes: 'Direct Kobo uploads for select titles.', showUser: false, showPass: false, accountRep: '', repEmail: '', accountId: '' },
+    { name: 'Shopify (Direct Store)', owner: 'Eleanor Vance', email: 'admin@authorvaultpress.com', phone: '', payout: 'Stripe', taxProfile: 'Vance Publishing LLC', username: 'admin@authorvaultpress.com', password: 'Sh0p!fy2024#', notes: 'authorvaultpress.com/shop. BookFunnel delivery.', showUser: false, showPass: false, accountRep: '', repEmail: '', accountId: '' },
+    { name: 'BookFunnel', owner: 'Eleanor Vance', email: 'bf@authorvaultpress.com', phone: '', payout: 'N/A', taxProfile: 'N/A', username: 'bf@authorvaultpress.com', password: 'B00kF!2024#', notes: 'ARC delivery + direct sales delivery.', showUser: false, showPass: false, accountRep: '', repEmail: '', accountId: '' },
+    { name: 'MailerLite (Email)', owner: 'Eleanor Vance', email: 'ml@authorvaultpress.com', phone: '', payout: 'N/A', taxProfile: 'N/A', username: 'ml@authorvaultpress.com', password: 'M@ilerL2024!', notes: '12,400 subscribers. 42% open rate.', showUser: false, showPass: false, accountRep: '', repEmail: '', accountId: '' },
+    { name: 'Amazon Ads', owner: 'Eleanor Vance', email: 'ads@authorvaultpress.com', phone: '', payout: 'N/A', taxProfile: 'Vance Publishing LLC', username: 'ads@authorvaultpress.com', password: 'AmzAds!2024#', notes: 'Linked to KDP account. $800/mo budget.', showUser: false, showPass: false, accountRep: '', repEmail: '', accountId: '' },
+    { name: 'Facebook Ads', owner: 'Eleanor Vance', email: 'fb@authorvaultpress.com', phone: '+1 (212) 555-0147', payout: 'N/A', taxProfile: 'Vance Publishing LLC', username: 'fb@authorvaultpress.com', password: 'FbAds!2024#', notes: 'Business Manager ID: 123456789.', showUser: false, showPass: false, accountRep: '', repEmail: '', accountId: 'BM-123456789' },
   ];
 
   isbnRecords: IsbnRecord[] = [
@@ -962,8 +1003,26 @@ export class VaultCompanyPageComponent implements OnInit {
   ngOnInit(): void {
     const stored = localStorage.getItem(this.PIN_KEY);
     this.unlocked = stored === 'true';
-    // First time: no PIN has ever been set
     this.isFirstTime = !localStorage.getItem(this.STORED_PIN_KEY);
+    if (this.unlocked) this.resetPinTimeout();
+  }
+
+  /** Reset PIN auto-lock timer (10 minutes) */
+  private resetPinTimeout(): void {
+    clearTimeout(this.pinTimeoutRef);
+    this.pinTimeoutRef = setTimeout(() => this.lockVault(), this.PIN_TIMEOUT_MS);
+  }
+
+  /** Reveal EIN with auto-hide after 60 seconds */
+  revealEin(): void {
+    if (this.showEin) { this.showEin = false; this.einTimer = 0; clearInterval(this.einTimerRef); return; }
+    this.showEin = true;
+    this.einTimer = 60;
+    clearInterval(this.einTimerRef);
+    this.einTimerRef = setInterval(() => {
+      this.einTimer--;
+      if (this.einTimer <= 0) { this.showEin = false; clearInterval(this.einTimerRef); }
+    }, 1000);
   }
 
   onPinInput(event: Event, index: number): void {
@@ -1002,6 +1061,7 @@ export class VaultCompanyPageComponent implements OnInit {
         this.unlocked = true;
         this.pinError = false;
         localStorage.setItem(this.PIN_KEY, 'true');
+        this.resetPinTimeout();
       } else {
         this.pinError = true;
         this.pinDigits = ['', '', '', ''];
@@ -1038,6 +1098,10 @@ export class VaultCompanyPageComponent implements OnInit {
     this.unlocked = false;
     this.pinDigits = ['', '', '', ''];
     this.pinError = false;
+    this.showEin = false;
+    this.einTimer = 0;
+    clearInterval(this.einTimerRef);
+    clearTimeout(this.pinTimeoutRef);
     localStorage.removeItem(this.PIN_KEY);
   }
 

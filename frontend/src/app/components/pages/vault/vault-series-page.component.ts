@@ -130,7 +130,9 @@ import { Series } from '../../../models/author-vault.model';
               <div class="card">
                 <h3 class="section-title">Box Sets</h3>
                 @if (!sr.boxSets.length) {
-                  <div class="empty-state"><div class="empty-icon">📦</div><p>No box sets for this series yet</p></div>
+                  <div class="empty-state"><div class="empty-icon">📦</div><p>No box sets for this series yet</p>
+                    <button style="margin-top:.75rem;padding:.5rem 1.25rem;background:var(--accent-blue);color:#fff;border:none;border-radius:8px;font-size:.8125rem;font-weight:600;cursor:pointer;font-family:inherit;">+ Create Box Set</button>
+                  </div>
                 }
                 @for (bs of sr.boxSets; track bs.id) {
                   <div class="record-card">
@@ -139,6 +141,15 @@ import { Series } from '../../../models/author-vault.model';
                       <div class="record-field"><span class="label">Type</span><span class="value">{{ bs.type }}</span></div>
                       <div class="record-field"><span class="label">Titles Included</span><span class="value">{{ bs.constituentTitles.length }}</span></div>
                       <div class="record-field"><span class="label">Exclusive Content</span><span class="value">{{ bs.exclusiveContent ? 'Yes' : 'No' }}</span></div>
+                    </div>
+                    <div style="margin-top:.5rem;padding:.5rem .75rem;background:var(--primary-light);border-radius:6px;font-size:.8125rem;color:var(--text-secondary);">
+                      <p style="margin:0 0 .25rem;font-weight:600;color:var(--text-primary);">Box Set Details</p>
+                      <div style="display:flex;gap:1rem;flex-wrap:wrap;">
+                        <span>📘 Needs own ISBN</span>
+                        <span>📝 Needs own blurb & metadata</span>
+                        <span>🎨 Needs own cover</span>
+                        <span>💰 Separate pricing</span>
+                      </div>
                     </div>
                   </div>
                 }
@@ -161,7 +172,7 @@ export class VaultSeriesPageComponent {
   selected = signal<Series | null>(null);
   tab = signal('identity');
   tabs = [
-    { id: 'identity', label: '📖 Identity' },
+    { id: 'identity', label: '📖 Series Name' },
     { id: 'books',    label: '📚 Books' },
     { id: 'world',    label: '🌍 World' },
     { id: 'branding', label: '🎨 Branding' },
