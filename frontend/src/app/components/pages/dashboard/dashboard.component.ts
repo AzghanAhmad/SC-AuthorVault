@@ -21,13 +21,14 @@ import { BookService } from '../../../services/book.service';
       <div class="tier tier-1">
         <div class="tier-label">Company</div>
         <div class="company-card">
-          <div class="company-logo">
-            <svg viewBox="0 0 48 48" fill="none">
-              <rect width="48" height="48" rx="14" fill="rgba(59,130,246,0.12)"/>
-              <path d="M12 40V20l12-10 12 10v20H12z" stroke="#3b82f6" stroke-width="2" stroke-linejoin="round"/>
-              <path d="M20 40V30h8v10" stroke="#3b82f6" stroke-width="2" stroke-linejoin="round"/>
-            </svg>
-          </div>
+          <label class="entity-avatar-upload company-avatar-lg">
+            @if (vs.company().identity.avatarUrl) {
+              <img [src]="vs.company().identity.avatarUrl" alt="" class="entity-avatar-img" />
+            } @else {
+              <span class="entity-avatar-fallback">{{ companyInitials }}</span>
+            }
+            <input type="file" accept="image/*" hidden (change)="onCompanyAvatar($event)" />
+          </label>
           <div class="company-info">
             <h2 class="company-name">{{ vs.company().identity.legalName }}</h2>
             <div class="company-meta">
@@ -48,13 +49,14 @@ import { BookService } from '../../../services/book.service';
         <div class="tier-label">Imprints</div>
         <div class="imprint-row">
           <div class="imprint-card" *ngFor="let imp of vs.company().imprints">
-            <div class="imprint-logo">
-              <svg viewBox="0 0 36 36" fill="none">
-                <rect width="36" height="36" rx="10" fill="rgba(139,92,246,0.12)"/>
-                <path d="M8 28V14l10-8 10 8v14H8z" stroke="#8b5cf6" stroke-width="1.8" stroke-linejoin="round"/>
-                <path d="M15 28v-6h6v6" stroke="#8b5cf6" stroke-width="1.8" stroke-linejoin="round"/>
-              </svg>
-            </div>
+            <label class="entity-avatar-upload">
+              @if (imp.identity.avatarUrl) {
+                <img [src]="imp.identity.avatarUrl" alt="" class="entity-avatar-img" />
+              } @else {
+                <span class="entity-avatar-fallback">{{ initials(imp.identity.name) }}</span>
+              }
+              <input type="file" accept="image/*" hidden (change)="onImprintAvatar($event, imp.id)" />
+            </label>
             <div class="imprint-info">
               <div class="imprint-name">{{ imp.identity.name }}</div>
               <div class="imprint-focus">{{ imp.identity.purposeGenreFocus }}</div>
@@ -207,7 +209,19 @@ import { BookService } from '../../../services/book.service';
       padding: 1.75rem 2rem;
       box-shadow: var(--shadow-sm);
     }
-    .company-logo svg { width: 60px; height: 60px; flex-shrink: 0; }
+    .company-avatar-lg .entity-avatar-img, .company-avatar-lg .entity-avatar-fallback {
+      width: 60px; height: 60px; border-radius: 16px;
+    }
+    .entity-avatar-upload { cursor: pointer; display: inline-flex; flex-shrink: 0; }
+    .entity-avatar-img, .entity-avatar-fallback {
+      width: 42px; height: 42px; border-radius: 12px; object-fit: cover;
+      border: 2px solid #fff; box-shadow: var(--shadow-sm);
+    }
+    .entity-avatar-fallback {
+      display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, var(--scribe-blue), var(--scribe-blue-dark));
+      color: #fff; font-weight: 700; font-size: 0.85rem;
+    }
     .company-name { font-size: 1.375rem; font-weight: 700; color: var(--text-primary); margin: 0 0 .5rem; }
     .company-meta { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: .4rem; }
     .meta-chip {
@@ -350,5 +364,25 @@ export class DashboardComponent implements OnInit {
 
   countBooks(pn: any): number {
     return pn.series.reduce((a: number, s: any) => a + s.books.length, 0);
+  }
+
+  get companyInitials(): string {
+    return this.initials(this.vs.company().identity.legalName);
+  }
+
+  onCompanyAvatar(event: Event): void {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => this.vs.setCompanyAvatar(reader.result as string);
+    reader.readAsDataURL(file);
+  }
+
+  onImprintAvatar(event: Event, imprintId: string): void {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => this.vs.setImprintAvatar(imprintId, reader.result as string);
+    reader.readAsDataURL(file);
   }
 }

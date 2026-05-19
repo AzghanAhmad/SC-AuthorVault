@@ -64,9 +64,16 @@ interface NavGroup {
                   (click)="toggleGroup('company')">
             <span class="nav-icon">
               <svg viewBox="0 0 24 24" aria-hidden="true">
-                <rect x="4" y="2" width="16" height="20" rx="2"/>
-                <path d="M9 22V12h6v10"/><path d="M8 6h.01"/><path d="M16 6h.01"/>
-                <path d="M8 10h.01"/><path d="M16 10h.01"/>
+                <path d="M2.5 21h19"/>
+                <path d="M4.5 21V11.5h3.5V21"/>
+                <path d="M6.25 13.5v5"/>
+                <path d="M8.5 21V6h7V21"/>
+                <path d="M12 6V2.75"/>
+                <path d="M9.75 8h4.5"/><path d="M9.75 9.75h4.5"/><path d="M9.75 11.5h4.5"/>
+                <path d="M9.75 13.25h4.5"/><path d="M9.75 15h4.5"/><path d="M9.75 16.75h4.5"/>
+                <path d="M9.75 18.5h4.5"/>
+                <path d="M16 21V11.5h3.5V21"/>
+                <path d="M17.75 13.5v5"/>
               </svg>
             </span>
             <span class="nav-label" *ngIf="!collapsed()">Company</span>

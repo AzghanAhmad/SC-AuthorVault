@@ -1,28 +1,17 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { AuthorVaultService } from '../../../services/author-vault.service';
-
-// ─── Mock data interfaces ───────────────────────────────────────────────────
-interface Platform { name: string; owner: string; email: string; phone: string; payout: string; taxProfile: string; username: string; password: string; notes: string; showUser: boolean; showPass: boolean; accountRep: string; repEmail: string; accountId: string; }
-interface IsbnRecord { isbn: string; format: string; title: string; imprint: string; pubDate: string; series: string; trimSize: string; edition: string; asin: string; status: 'used'|'unused'|'reserved'; }
-interface ContractRecord { name: string; counterparty: string; date: string; type: string; status: string; file: string; }
-interface TeamMember { name: string; role: string; company: string; email: string; phone: string; contractDate: string; rate: string; notes: string; }
-interface DomainRecord { domain: string; registrar: string; renewal: string; host: string; dns: string; ssl: string; cms: string; contact: string; }
-interface SopTemplate { name: string; description: string; updated: string; }
-interface Logo { name: string; format: string; dimensions: string; fileType: string; uploaded: string; bg: string; }
-interface BankAccount { bank: string; nickname: string; account: string; routing: string; wire: string; swift: string; showAccount: boolean; showRouting: boolean; }
-interface TaxDoc { name: string; type: string; year: string; status: string; }
-interface OwnerProfile { name: string; role: string; ownershipPct: string; email: string; phone: string; canSign: boolean; canManageFinances: boolean; showNda: boolean; }
-interface FinancialRecord { month: string; revenue: string; expenses: string; net: string; }
-interface InventoryItem { sku: string; title: string; format: string; stock: number; reorderPoint: number; printer: string; }
-interface SecurityEntry { resource: string; owner: string; accessLevel: string; twoFa: string; recoveryEmail: string; notes: string; }
+import { CompanyIdentity } from '../../../models/author-vault.model';
+import { ExcelImportService } from '../../../services/excel-import.service';
+import { VaultCompanyStoreService } from '../../../services/vault-company-store.service';
+import { EditableFieldComponent } from '../../shared/editable-field/editable-field.component';
 
 @Component({
   selector: 'app-vault-company-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule, EditableFieldComponent],
   styleUrls: ['../company-vault/company-vault.component.css'],
   template: `
 <!-- ═══ PIN LOCK OVERLAY ═══ -->
@@ -128,12 +117,30 @@ interface SecurityEntry { resource: string; owner: string; accessLevel: string; 
 <div class="page">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.25rem;">
     <div>
-      <h1 class="page-title">🏢 {{ company().identity.legalName }}</h1>
+      <label class="entity-avatar-upload" title="Upload company avatar" style="margin-right:.5rem;">
+        @if (company().identity.avatarUrl) {
+          <img [src]="company().identity.avatarUrl" alt="" class="entity-avatar-img" />
+        } @else {
+          <span class="entity-avatar-fallback">{{ companyInitials }}</span>
+        }
+        <input type="file" accept="image/*" hidden (change)="onCompanyAvatar($event)" />
+      </label>
+      <h1 class="page-title" style="display:inline">{{ company().identity.legalName }}</h1>
       <p class="page-subtitle">{{ company().identity.entityType }} · {{ company().identity.stateOfIncorporation }} · <span class="status status-green">{{ company().identity.companyStatus }}</span></p>
     </div>
     <button (click)="lockVault()" style="display:inline-flex;align-items:center;gap:.4rem;padding:.4rem .85rem;background:var(--surface);border:1.5px solid var(--border-color);border-radius:8px;font-size:.8125rem;font-weight:500;color:var(--text-secondary);cursor:pointer;font-family:inherit;">
       🔒 Lock Vault
     </button>
+  </div>
+
+  <div class="card excel-import-card" style="margin-bottom:1.25rem;">
+    <h3 class="section-title">Import company details from Excel</h3>
+    <p class="section-subtitle">Columns: Field (or Field Name) and Value (or Entry).</p>
+    <label class="btn-primary" style="cursor:pointer;display:inline-flex;">
+      Choose file (.xlsx, .xls, .csv)
+      <input type="file" accept=".xlsx,.xls,.csv" hidden (change)="onExcelImport($event)" />
+    </label>
+    @if (importMessage) { <p [style.color]="importError ? '#ef4444' : '#10b981'" style="margin:.75rem 0 0;font-size:.875rem;">{{ importMessage }}</p> }
   </div>
 
   <div class="stats-row">
@@ -157,14 +164,14 @@ interface SecurityEntry { resource: string; owner: string; accessLevel: string; 
         <div class="card">
           <h3 class="section-title">Company Overview</h3>
           <div class="form-grid">
-            <div class="form-group"><span class="form-label">Legal Name</span><div class="form-value">{{ company().identity.legalName }}</div></div>
-            <div class="form-group"><span class="form-label">DBA Names</span><div class="form-value">{{ company().identity.dbaNames }}</div></div>
-            <div class="form-group"><span class="form-label">Entity Type</span><div class="form-value">{{ company().identity.entityType }}</div></div>
-            <div class="form-group"><span class="form-label">State of Incorporation</span><div class="form-value">{{ company().identity.stateOfIncorporation }}</div></div>
-            <div class="form-group"><span class="form-label">Date of Formation</span><div class="form-value">{{ company().identity.dateOfFormation }}</div></div>
-            <div class="form-group"><span class="form-label">Fiscal Year End</span><div class="form-value">{{ company().identity.fiscalYearEnd }}</div></div>
+            <app-editable-field label="Legal Name" [value]="company().identity.legalName" (valueChange)="vs.patchIdentity({ legalName: $event })"  />
+            <app-editable-field label="DBA Names" [value]="company().identity.dbaNames" (valueChange)="vs.patchIdentity({ dbaNames: $event })"  />
+            <app-editable-field label="Entity Type" [value]="company().identity.entityType" (valueChange)="vs.patchIdentity({ entityType: $event })"  />
+            <app-editable-field label="State of Incorporation" [value]="company().identity.stateOfIncorporation" (valueChange)="vs.patchIdentity({ stateOfIncorporation: $event })"  />
+            <app-editable-field label="Date of Formation" [value]="company().identity.dateOfFormation" (valueChange)="vs.patchIdentity({ dateOfFormation: $event })"  />
+            <app-editable-field label="Fiscal Year End" [value]="company().identity.fiscalYearEnd" (valueChange)="vs.patchIdentity({ fiscalYearEnd: $event })"  />
             <div class="form-group"><span class="form-label">Status</span><div class="form-value"><span class="status status-green">{{ company().identity.companyStatus }}</span></div></div>
-            <div class="form-group"><span class="form-label">Website</span><div class="form-value"><a [href]="company().identity.website" target="_blank" style="color:var(--accent-blue)">{{ company().identity.website }}</a></div></div>
+            <app-editable-field label="Website" type="url" [value]="company().identity.website" (valueChange)="vs.patchIdentity({ website: $event })" />
           </div>
         </div>
         <div class="card">
@@ -183,20 +190,20 @@ interface SecurityEntry { resource: string; owner: string; accessLevel: string; 
         <div class="card">
           <h3 class="section-title">Business Identity</h3>
           <div class="form-grid">
-            <div class="form-group"><span class="form-label">Legal Name</span><div class="form-value">{{ company().identity.legalName }}</div></div>
-            <div class="form-group"><span class="form-label">DBA / Trade Names</span><div class="form-value">{{ company().identity.dbaNames }}</div></div>
-            <div class="form-group"><span class="form-label">Business Structure</span><div class="form-value">{{ company().identity.entityType }}</div></div>
-            <div class="form-group"><span class="form-label">State of Registration</span><div class="form-value">{{ company().identity.stateOfIncorporation }}</div></div>
-            <div class="form-group"><span class="form-label">Country</span><div class="form-value">United States</div></div>
-            <div class="form-group"><span class="form-label">Date of Formation</span><div class="form-value">{{ company().identity.dateOfFormation }}</div></div>
-            <div class="form-group full"><span class="form-label">Business Address</span><div class="form-value">{{ company().identity.primaryAddress }}</div></div>
-            <div class="form-group full"><span class="form-label">Mailing Address</span><div class="form-value">{{ company().identity.mailingAddress || company().identity.primaryAddress }}</div></div>
-            <div class="form-group"><span class="form-label">Website</span><div class="form-value"><a [href]="company().identity.website" target="_blank" style="color:var(--accent-blue)">{{ company().identity.website }}</a></div></div>
-            <div class="form-group"><span class="form-label">Main Business Email</span><div class="form-value">{{ company().identity.primaryEmail }}</div></div>
-            <div class="form-group"><span class="form-label">Business Phone</span><div class="form-value">{{ company().identity.phone }}</div></div>
-            <div class="form-group"><span class="form-label">Registered Agent</span><div class="form-value">{{ company().identity.registeredAgent }}</div></div>
-            <div class="form-group"><span class="form-label">Fiscal Year End</span><div class="form-value">{{ company().identity.fiscalYearEnd }}</div></div>
-            <div class="form-group"><span class="form-label">Company Status</span><div class="form-value"><span class="status status-green">{{ company().identity.companyStatus }}</span></div></div>
+            <app-editable-field label="Legal Name" [value]="company().identity.legalName" (valueChange)="vs.patchIdentity({ legalName: $event })"  />
+            <app-editable-field label="DBA / Trade Names" [value]="company().identity.dbaNames" (valueChange)="vs.patchIdentity({ dbaNames: $event })"  />
+            <app-editable-field label="Business Structure" [value]="company().identity.entityType" (valueChange)="vs.patchIdentity({ entityType: $event })"  />
+            <app-editable-field label="State of Registration" [value]="company().identity.stateOfIncorporation" (valueChange)="vs.patchIdentity({ stateOfIncorporation: $event })"  />
+            <app-editable-field label="Country" [value]="company().identity.country || 'United States'" (valueChange)="vs.patchIdentity({ country: $event })" />
+            <app-editable-field label="Date of Formation" [value]="company().identity.dateOfFormation" (valueChange)="vs.patchIdentity({ dateOfFormation: $event })"  />
+            <app-editable-field label="Business Address" [value]="company().identity.primaryAddress" (valueChange)="vs.patchIdentity({ primaryAddress: $event })" [full]="true" />
+            <app-editable-field label="Mailing Address" [value]="company().identity.mailingAddress || company().identity.primaryAddress" (valueChange)="vs.patchIdentity({ mailingAddress: $event })" [full]="true" />
+            <app-editable-field label="Website" type="url" [value]="company().identity.website" (valueChange)="vs.patchIdentity({ website: $event })" />
+            <app-editable-field label="Main Business Email" [value]="company().identity.primaryEmail" (valueChange)="vs.patchIdentity({ primaryEmail: $event })" type="email" />
+            <app-editable-field label="Business Phone" [value]="company().identity.phone" (valueChange)="vs.patchIdentity({ phone: $event })" type="tel" />
+            <app-editable-field label="Registered Agent" [value]="company().identity.registeredAgent" (valueChange)="vs.patchIdentity({ registeredAgent: $event })"  />
+            <app-editable-field label="Fiscal Year End" [value]="company().identity.fiscalYearEnd" (valueChange)="vs.patchIdentity({ fiscalYearEnd: $event })"  />
+            <app-editable-field label="Company Status" [value]="company().identity.companyStatus" (valueChange)="onCompanyStatus($event)" />
           </div>
         </div>
       }
@@ -206,16 +213,25 @@ interface SecurityEntry { resource: string; owner: string; accessLevel: string; 
         <div class="card">
           <h3 class="section-title">Owners & Officers</h3>
           <table class="data-table">
-            <thead><tr><th>Name</th><th>Role / Title</th><th>Ownership %</th><th>Can Sign</th><th>Manage Finances</th><th>NDA</th></tr></thead>
+            <thead><tr><th>Name</th><th>Role</th><th>Ownership %</th><th>Email</th><th>Phone</th><th>Can Sign</th><th>Manage Finances</th></tr></thead>
             <tbody>
-              @for(o of ownerProfiles; track o.name) {
+              @for(o of ownerProfiles; track $index; let i = $index) {
                 <tr>
-                  <td class="td-primary">{{ o.name }}</td>
-                  <td>{{ o.role }}</td>
-                  <td>{{ o.ownershipPct }}</td>
-                  <td><span [class]="o.canSign ? 'status status-green' : 'status status-default'">{{ o.canSign ? 'Yes' : 'No' }}</span></td>
-                  <td><span [class]="o.canManageFinances ? 'status status-green' : 'status status-default'">{{ o.canManageFinances ? 'Yes' : 'No' }}</span></td>
-                  <td><span [class]="o.showNda ? 'status status-green' : 'status status-amber'">{{ o.showNda ? 'Signed' : 'Pending' }}</span></td>
+                  <td><input class="form-input" [ngModel]="o.name" (ngModelChange)="patchOwner(i, 'name', $event)" /></td>
+                  <td><input class="form-input" [ngModel]="o.role" (ngModelChange)="patchOwner(i, 'role', $event)" /></td>
+                  <td><input class="form-input" [ngModel]="o.ownershipPct" (ngModelChange)="patchOwner(i, 'ownershipPct', $event)" /></td>
+                  <td><input class="form-input" [ngModel]="o.email" (ngModelChange)="patchOwner(i, 'email', $event)" /></td>
+                  <td><input class="form-input" [ngModel]="o.phone" (ngModelChange)="patchOwner(i, 'phone', $event)" /></td>
+                  <td>
+                    <select class="form-input" [ngModel]="o.canSign" (ngModelChange)="patchOwner(i, 'canSign', $event)">
+                      <option [ngValue]="true">Yes</option><option [ngValue]="false">No</option>
+                    </select>
+                  </td>
+                  <td>
+                    <select class="form-input" [ngModel]="o.canManageFinances" (ngModelChange)="patchOwner(i, 'canManageFinances', $event)">
+                      <option [ngValue]="true">Yes</option><option [ngValue]="false">No</option>
+                    </select>
+                  </td>
                 </tr>
               }
             </tbody>
@@ -244,8 +260,8 @@ interface SecurityEntry { resource: string; owner: string; accessLevel: string; 
         <div class="card">
           <h3 class="section-title">Operating Agreement</h3>
           <div class="form-grid">
-            <div class="form-group"><span class="form-label">Operating Agreement File</span><div class="form-value">{{ company().ownership.operatingAgreementFile }}</div></div>
-            <div class="form-group"><span class="form-label">S-Corp Election File</span><div class="form-value">{{ company().ownership.sCorpElectionFile || '—' }}</div></div>
+            <app-editable-field label="Operating Agreement File" [value]="company().ownership.operatingAgreementFile" (valueChange)="vs.patchOwnership({ operatingAgreementFile: $event })" />
+            <app-editable-field label="S-Corp Election File" [value]="company().ownership.sCorpElectionFile || ''" (valueChange)="vs.patchOwnership({ sCorpElectionFile: $event })" />
           </div>
         </div>
       }
@@ -262,7 +278,7 @@ interface SecurityEntry { resource: string; owner: string; accessLevel: string; 
                 @if(einTimer > 0) { <span style="font-size:.7rem;color:var(--text-muted);">auto-hides in {{einTimer}}s</span> }
               </div>
             </div>
-            <div class="form-group"><span class="form-label">Registered Agent</span><div class="form-value">{{ company().identity.registeredAgent }}</div></div>
+            <app-editable-field label="Registered Agent" [value]="company().identity.registeredAgent" (valueChange)="vs.patchIdentity({ registeredAgent: $event })"  />
           </div>
         </div>
         <div class="card">
@@ -270,25 +286,24 @@ interface SecurityEntry { resource: string; owner: string; accessLevel: string; 
           <table class="data-table">
             <thead><tr><th>Document</th><th>File / Reference</th><th>Status</th></tr></thead>
             <tbody>
-              <tr><td class="td-primary">Operating Agreement</td><td>{{ company().contractsLegal.operatingAgreement }}</td><td><span class="status status-green">On File</span></td></tr>
-              <tr><td class="td-primary">Articles of Incorporation</td><td>articles-of-incorporation.pdf</td><td><span class="status status-green">On File</span></td></tr>
-              <tr><td class="td-primary">Bylaws</td><td>company-bylaws.pdf</td><td><span class="status status-green">On File</span></td></tr>
-              <tr><td class="td-primary">State Registration Docs</td><td>de-state-registration.pdf</td><td><span class="status status-green">On File</span></td></tr>
-              <tr><td class="td-primary">Annual Report Filing 2024</td><td>annual-report-2024.pdf</td><td><span class="status status-green">Filed</span></td></tr>
-              <tr><td class="td-primary">Annual Report Filing 2023</td><td>annual-report-2023.pdf</td><td><span class="status status-green">Filed</span></td></tr>
-              <tr><td class="td-primary">Business License</td><td>business-license-ny.pdf</td><td><span class="status status-green">Active</span></td></tr>
-              <tr><td class="td-primary">Shareholder Agreement</td><td>{{ company().contractsLegal.shareholderAgreement || 'N/A — Single Member' }}</td><td><span class="status status-default">N/A</span></td></tr>
+              @for(doc of corporateDocs; track $index; let i = $index) {
+                <tr>
+                  <td><input class="form-input" [ngModel]="doc.document" (ngModelChange)="patchCorpDoc(i, 'document', $event)" /></td>
+                  <td><input class="form-input" [ngModel]="doc.fileRef" (ngModelChange)="patchCorpDoc(i, 'fileRef', $event)" /></td>
+                  <td><input class="form-input" [ngModel]="doc.status" (ngModelChange)="patchCorpDoc(i, 'status', $event)" /></td>
+                </tr>
+              }
             </tbody>
           </table>
         </div>
         <div class="card">
           <h3 class="section-title">Trademarks, Copyrights & Insurance</h3>
           <div class="form-grid">
-            <div class="form-group"><span class="form-label">Trademark Registrations</span><div class="form-value">{{ company().contractsLegal.trademarkRegistrations }}</div></div>
-            <div class="form-group"><span class="form-label">Copyright Assignments</span><div class="form-value">{{ company().contractsLegal.copyrightAssignments }}</div></div>
-            <div class="form-group"><span class="form-label">Insurance Policies</span><div class="form-value">{{ company().contractsLegal.insurancePolicies }}</div></div>
-            <div class="form-group"><span class="form-label">Attorney Name</span><div class="form-value">{{ company().contractsLegal.attorneyName }}</div></div>
-            <div class="form-group"><span class="form-label">Attorney Contact</span><div class="form-value">{{ company().contractsLegal.attorneyContact }}</div></div>
+            <app-editable-field label="Trademark Registrations" [value]="company().contractsLegal.trademarkRegistrations" (valueChange)="vs.patchContractsLegal({ trademarkRegistrations: $event })" />
+            <app-editable-field label="Copyright Assignments" [value]="company().contractsLegal.copyrightAssignments" (valueChange)="vs.patchContractsLegal({ copyrightAssignments: $event })" />
+            <app-editable-field label="Insurance Policies" [value]="company().contractsLegal.insurancePolicies" (valueChange)="vs.patchContractsLegal({ insurancePolicies: $event })" />
+            <app-editable-field label="Attorney Name" [value]="company().contractsLegal.attorneyName" (valueChange)="vs.patchContractsLegal({ attorneyName: $event })" />
+            <app-editable-field label="Attorney Contact" [value]="company().contractsLegal.attorneyContact" (valueChange)="vs.patchContractsLegal({ attorneyContact: $event })" type="email" />
           </div>
           <div style="margin-top:1rem;padding:.75rem;background:var(--primary-light);border-radius:8px;font-size:.8125rem;color:var(--text-secondary);display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;">
             <span>📄 Copyright Office:</span>
@@ -313,10 +328,10 @@ interface SecurityEntry { resource: string; owner: string; accessLevel: string; 
           <table class="data-table">
             <thead><tr><th>Bank</th><th>Nickname</th><th>Account #</th><th>Routing #</th><th>Wire #</th><th>SWIFT</th></tr></thead>
             <tbody>
-              @for(b of bankAccounts; track b.nickname) {
+              @for(b of bankAccounts; track $index; let i = $index) {
                 <tr>
-                  <td class="td-primary">{{ b.bank }}</td>
-                  <td>{{ b.nickname }}</td>
+                  <td><input class="form-input" [ngModel]="b.bank" (ngModelChange)="patchBank(i, 'bank', $event)" /></td>
+                  <td><input class="form-input" [ngModel]="b.nickname" (ngModelChange)="patchBank(i, 'nickname', $event)" /></td>
                   <td>
                     <span style="font-family:monospace">{{ b.showAccount ? b.account : '****' + b.account.slice(-4) }}</span>
                     <button (click)="b.showAccount=!b.showAccount" style="background:none;border:none;cursor:pointer;color:var(--text-muted);margin-left:.35rem;">{{ b.showAccount ? '🙈' : '👁' }}</button>
@@ -335,12 +350,12 @@ interface SecurityEntry { resource: string; owner: string; accessLevel: string; 
         <div class="card">
           <h3 class="section-title">Payment Processors & Payout Destinations</h3>
           <div class="form-grid">
-            <div class="form-group"><span class="form-label">Payment Processors</span><div class="form-value">{{ company().financial.paymentProcessors }}</div></div>
-            <div class="form-group"><span class="form-label">Accounting Software</span><div class="form-value">{{ company().financial.accountingSoftware }}</div></div>
-            <div class="form-group"><span class="form-label">CPA Name</span><div class="form-value">{{ company().financial.cpaName }}</div></div>
-            <div class="form-group"><span class="form-label">CPA Contact</span><div class="form-value">{{ company().financial.cpaContact }}</div></div>
-            <div class="form-group"><span class="form-label">Tax Schedule</span><div class="form-value">{{ company().financial.quarterlyTaxSchedule }}</div></div>
-            <div class="form-group"><span class="form-label">State Tax Registrations</span><div class="form-value">{{ company().financial.stateTaxRegistrations }}</div></div>
+            <app-editable-field label="Payment Processors" [value]="company().financial.paymentProcessors" (valueChange)="vs.patchFinancial({ paymentProcessors: $event })" />
+            <app-editable-field label="Accounting Software" [value]="company().financial.accountingSoftware" (valueChange)="vs.patchFinancial({ accountingSoftware: $event })" />
+            <app-editable-field label="CPA Name" [value]="company().financial.cpaName" (valueChange)="vs.patchFinancial({ cpaName: $event })" />
+            <app-editable-field label="CPA Contact" [value]="company().financial.cpaContact" (valueChange)="vs.patchFinancial({ cpaContact: $event })" type="email" />
+            <app-editable-field label="Tax Schedule" [value]="company().financial.quarterlyTaxSchedule" (valueChange)="vs.patchFinancial({ quarterlyTaxSchedule: $event })" />
+            <app-editable-field label="State Tax Registrations" [value]="company().financial.stateTaxRegistrations" (valueChange)="vs.patchFinancial({ stateTaxRegistrations: $event })" />
           </div>
         </div>
         <div class="card">
@@ -376,12 +391,12 @@ interface SecurityEntry { resource: string; owner: string; accessLevel: string; 
           <table class="data-table">
             <thead><tr><th>Document</th><th>Type</th><th>Year</th><th>Status</th></tr></thead>
             <tbody>
-              @for(d of taxDocs; track d.name) {
+              @for(d of taxDocs; track $index; let i = $index) {
                 <tr>
-                  <td class="td-primary">{{ d.name }}</td>
-                  <td>{{ d.type }}</td>
-                  <td>{{ d.year }}</td>
-                  <td><span [class]="d.status === 'Filed' ? 'status status-green' : d.status === 'Pending' ? 'status status-amber' : 'status status-default'">{{ d.status }}</span></td>
+                  <td><input class="form-input" [ngModel]="d.name" (ngModelChange)="patchTaxDoc(i, 'name', $event)" /></td>
+                  <td><input class="form-input" [ngModel]="d.type" (ngModelChange)="patchTaxDoc(i, 'type', $event)" /></td>
+                  <td><input class="form-input" [ngModel]="d.year" (ngModelChange)="patchTaxDoc(i, 'year', $event)" /></td>
+                  <td><input class="form-input" [ngModel]="d.status" (ngModelChange)="patchTaxDoc(i, 'status', $event)" /></td>
                 </tr>
               }
             </tbody>
@@ -408,19 +423,19 @@ interface SecurityEntry { resource: string; owner: string; accessLevel: string; 
         <div class="card">
           <h3 class="section-title">Publishing Platform Accounts</h3>
           <p class="section-subtitle">All platform credentials — usernames and passwords are masked by default</p>
-          @for(p of publishingPlatforms; track p.name) {
+          @for(p of publishingPlatforms; track $index; let i = $index) {
             <div class="record-card" style="margin-bottom:.75rem;">
               <div class="record-header">
                 <h4 class="record-title">{{ p.name }}</h4>
                 <span class="status status-green">Active</span>
               </div>
               <div class="record-grid" style="grid-template-columns:1fr 1fr 1fr;gap:.5rem .85rem;">
-                <div class="record-field"><span class="label">Account Owner</span><span class="value">{{ p.owner }}</span></div>
-                <div class="record-field"><span class="label">Account Email</span><span class="value"><a [href]="'mailto:'+p.email" style="color:var(--accent-blue)">{{ p.email }}</a></span></div>
-                <div class="record-field"><span class="label">Recovery Phone</span><span class="value">{{ p.phone || '—' }}</span></div>
-                <div class="record-field"><span class="label">Payout Method</span><span class="value">{{ p.payout }}</span></div>
-                <div class="record-field"><span class="label">Tax Profile Name</span><span class="value">{{ p.taxProfile }}</span></div>
-                <div class="record-field"><span class="label">Account ID</span><span class="value" style="font-family:monospace;">{{ p.accountId || '—' }}</span></div>
+                <app-editable-field label="Account Owner" [value]="p.owner" (valueChange)="patchPlatform('publishing', i, 'owner', $event)" />
+                <app-editable-field label="Account Email" type="email" [value]="p.email" (valueChange)="patchPlatform('publishing', i, 'email', $event)" />
+                <app-editable-field label="Recovery Phone" type="tel" [value]="p.phone" (valueChange)="patchPlatform('publishing', i, 'phone', $event)" />
+                <app-editable-field label="Payout Method" [value]="p.payout" (valueChange)="patchPlatform('publishing', i, 'payout', $event)" />
+                <app-editable-field label="Tax Profile Name" [value]="p.taxProfile" (valueChange)="patchPlatform('publishing', i, 'taxProfile', $event)" />
+                <app-editable-field label="Account ID" [value]="p.accountId" (valueChange)="patchPlatform('publishing', i, 'accountId', $event)" />
                 <div class="record-field">
                   <span class="label">Username</span>
                   <span class="value" style="display:flex;align-items:center;gap:.35rem;">
@@ -442,7 +457,7 @@ interface SecurityEntry { resource: string; owner: string; accessLevel: string; 
                   <div><span style="color:var(--text-muted);">Rep Email:</span> @if(p.repEmail) { <a [href]="'mailto:'+p.repEmail" style="color:var(--accent-blue);">{{ p.repEmail }}</a> } @else { <span style="color:var(--text-secondary)">—</span> }</div>
                 </div>
               </div>
-              <div class="record-field" style="margin-top:.35rem;"><span class="label">Notes</span><span class="value">{{ p.notes }}</span></div>
+              <app-editable-field label="Notes" [value]="p.notes" (valueChange)="patchPlatform('publishing', i, 'notes', $event)" [full]="true" />
             </div>
           }
         </div>
@@ -480,15 +495,19 @@ interface SecurityEntry { resource: string; owner: string; accessLevel: string; 
           <table class="data-table">
             <thead><tr><th>ISBN</th><th>Format</th><th>Book Title</th><th>Imprint</th><th>Series</th><th>Assigned Date</th><th>Status</th></tr></thead>
             <tbody>
-              @for(r of filteredIsbns; track r.isbn) {
+              @for(r of filteredIsbns; track $index; let i = $index) {
                 <tr>
-                  <td class="td-primary" style="font-family:monospace">{{ r.isbn }}</td>
-                  <td>{{ r.format }}</td>
-                  <td>{{ r.title || '—' }}</td>
-                  <td>{{ r.imprint || '—' }}</td>
-                  <td>{{ r.series || '—' }}</td>
-                  <td>{{ r.pubDate || '—' }}</td>
-                  <td><span [class]="r.status === 'used' ? 'status status-blue' : r.status === 'reserved' ? 'status status-amber' : 'status status-green'">{{ r.status === 'used' ? 'Used' : r.status === 'reserved' ? 'Reserved' : 'Available' }}</span></td>
+                  <td><input class="form-input" style="font-family:monospace" [ngModel]="r.isbn" (ngModelChange)="patchIsbn(i, 'isbn', $event)" /></td>
+                  <td><input class="form-input" [ngModel]="r.format" (ngModelChange)="patchIsbn(i, 'format', $event)" /></td>
+                  <td><input class="form-input" [ngModel]="r.title" (ngModelChange)="patchIsbn(i, 'title', $event)" /></td>
+                  <td><input class="form-input" [ngModel]="r.imprint" (ngModelChange)="patchIsbn(i, 'imprint', $event)" /></td>
+                  <td><input class="form-input" [ngModel]="r.series" (ngModelChange)="patchIsbn(i, 'series', $event)" /></td>
+                  <td><input class="form-input" [ngModel]="r.pubDate" (ngModelChange)="patchIsbn(i, 'pubDate', $event)" /></td>
+                  <td>
+                    <select class="form-input" [ngModel]="r.status" (ngModelChange)="patchIsbn(i, 'status', $event)">
+                      <option value="used">Used</option><option value="unused">Available</option><option value="reserved">Reserved</option>
+                    </select>
+                  </td>
                 </tr>
               }
             </tbody>
@@ -518,13 +537,13 @@ interface SecurityEntry { resource: string; owner: string; accessLevel: string; 
           <table class="data-table">
             <thead><tr><th>Contract Name</th><th>Counterparty</th><th>Type</th><th>Date</th><th>Status</th></tr></thead>
             <tbody>
-              @for(c of contractRecords; track c.name) {
+              @for(c of contractRecords; track $index; let i = $index) {
                 <tr>
-                  <td class="td-primary">{{ c.name }}</td>
-                  <td>{{ c.counterparty }}</td>
-                  <td>{{ c.type }}</td>
-                  <td>{{ c.date }}</td>
-                  <td><span [class]="c.status === 'Active' ? 'status status-green' : c.status === 'Pending' ? 'status status-amber' : 'status status-default'">{{ c.status }}</span></td>
+                  <td><input class="form-input" [ngModel]="c.name" (ngModelChange)="patchContract(i, 'name', $event)" /></td>
+                  <td><input class="form-input" [ngModel]="c.counterparty" (ngModelChange)="patchContract(i, 'counterparty', $event)" /></td>
+                  <td><input class="form-input" [ngModel]="c.type" (ngModelChange)="patchContract(i, 'type', $event)" /></td>
+                  <td><input class="form-input" [ngModel]="c.date" (ngModelChange)="patchContract(i, 'date', $event)" /></td>
+                  <td><input class="form-input" [ngModel]="c.status" (ngModelChange)="patchContract(i, 'status', $event)" /></td>
                 </tr>
               }
             </tbody>
@@ -549,12 +568,12 @@ interface SecurityEntry { resource: string; owner: string; accessLevel: string; 
           <table class="data-table">
             <thead><tr><th>Month</th><th>Revenue</th><th>Expenses</th><th>Net</th></tr></thead>
             <tbody>
-              @for(r of financialRecords; track r.month) {
+              @for(r of financialRecords; track $index; let i = $index) {
                 <tr>
-                  <td class="td-primary">{{ r.month }}</td>
-                  <td style="color:#10b981;font-weight:600">{{ r.revenue }}</td>
-                  <td style="color:#ef4444">{{ r.expenses }}</td>
-                  <td style="font-weight:700;color:var(--text-primary)">{{ r.net }}</td>
+                  <td><input class="form-input" [ngModel]="r.month" (ngModelChange)="patchFinancial(i, 'month', $event)" /></td>
+                  <td><input class="form-input" [ngModel]="r.revenue" (ngModelChange)="patchFinancial(i, 'revenue', $event)" /></td>
+                  <td><input class="form-input" [ngModel]="r.expenses" (ngModelChange)="patchFinancial(i, 'expenses', $event)" /></td>
+                  <td><input class="form-input" [ngModel]="r.net" (ngModelChange)="patchFinancial(i, 'net', $event)" /></td>
                 </tr>
               }
             </tbody>
@@ -577,15 +596,15 @@ interface SecurityEntry { resource: string; owner: string; accessLevel: string; 
           <table class="data-table">
             <thead><tr><th>Name</th><th>Role</th><th>Company</th><th>Email</th><th>Phone</th><th>Contract Date</th><th>Rate</th></tr></thead>
             <tbody>
-              @for(m of teamMembers; track m.name) {
+              @for(m of teamMembers; track $index; let i = $index) {
                 <tr>
-                  <td class="td-primary">{{ m.name }}</td>
-                  <td>{{ m.role }}</td>
-                  <td>{{ m.company }}</td>
-                  <td>{{ m.email }}</td>
-                  <td>{{ m.phone || '—' }}</td>
-                  <td>{{ m.contractDate }}</td>
-                  <td>{{ m.rate }}</td>
+                  <td><input class="form-input" [ngModel]="m.name" (ngModelChange)="patchTeam(i, 'name', $event)" /></td>
+                  <td><input class="form-input" [ngModel]="m.role" (ngModelChange)="patchTeam(i, 'role', $event)" /></td>
+                  <td><input class="form-input" [ngModel]="m.company" (ngModelChange)="patchTeam(i, 'company', $event)" /></td>
+                  <td><input class="form-input" [ngModel]="m.email" (ngModelChange)="patchTeam(i, 'email', $event)" /></td>
+                  <td><input class="form-input" [ngModel]="m.phone" (ngModelChange)="patchTeam(i, 'phone', $event)" /></td>
+                  <td><input class="form-input" [ngModel]="m.contractDate" (ngModelChange)="patchTeam(i, 'contractDate', $event)" /></td>
+                  <td><input class="form-input" [ngModel]="m.rate" (ngModelChange)="patchTeam(i, 'rate', $event)" /></td>
                 </tr>
               }
             </tbody>
@@ -609,15 +628,15 @@ interface SecurityEntry { resource: string; owner: string; accessLevel: string; 
           <table class="data-table">
             <thead><tr><th>Domain</th><th>Registrar</th><th>Renewal Date</th><th>Host</th><th>SSL Renewal</th><th>CMS</th><th>Contact</th></tr></thead>
             <tbody>
-              @for(d of domainRecords; track d.domain) {
+              @for(d of domainRecords; track $index; let i = $index) {
                 <tr>
-                  <td class="td-primary"><a [href]="'https://'+d.domain" target="_blank" style="color:var(--accent-blue)">{{ d.domain }}</a></td>
-                  <td>{{ d.registrar }}</td>
-                  <td>{{ d.renewal }}</td>
-                  <td>{{ d.host }}</td>
-                  <td>{{ d.ssl }}</td>
-                  <td>{{ d.cms }}</td>
-                  <td>{{ d.contact }}</td>
+                  <td><input class="form-input" [ngModel]="d.domain" (ngModelChange)="patchDomain(i, 'domain', $event)" /></td>
+                  <td><input class="form-input" [ngModel]="d.registrar" (ngModelChange)="patchDomain(i, 'registrar', $event)" /></td>
+                  <td><input class="form-input" [ngModel]="d.renewal" (ngModelChange)="patchDomain(i, 'renewal', $event)" /></td>
+                  <td><input class="form-input" [ngModel]="d.host" (ngModelChange)="patchDomain(i, 'host', $event)" /></td>
+                  <td><input class="form-input" [ngModel]="d.ssl" (ngModelChange)="patchDomain(i, 'ssl', $event)" /></td>
+                  <td><input class="form-input" [ngModel]="d.cms" (ngModelChange)="patchDomain(i, 'cms', $event)" /></td>
+                  <td><input class="form-input" [ngModel]="d.contact" (ngModelChange)="patchDomain(i, 'contact', $event)" /></td>
                 </tr>
               }
             </tbody>
@@ -625,10 +644,10 @@ interface SecurityEntry { resource: string; owner: string; accessLevel: string; 
         </div>
         <div class="card">
           <h3 class="section-title">DNS & Technical Notes</h3>
-          @for(d of domainRecords; track d.domain) {
+          @for(d of domainRecords; track $index; let i = $index) {
             <div class="record-card">
               <div class="record-header"><h4 class="record-title">{{ d.domain }}</h4></div>
-              <div class="record-field"><span class="label">DNS Notes</span><span class="value">{{ d.dns }}</span></div>
+              <app-editable-field label="DNS Notes" [value]="d.dns" (valueChange)="patchDomain(i, 'dns', $event)" [full]="true" />
             </div>
           }
         </div>
@@ -639,15 +658,15 @@ interface SecurityEntry { resource: string; owner: string; accessLevel: string; 
         <div class="card">
           <h3 class="section-title">Email & Communications Setup</h3>
           <div class="form-grid">
-            <div class="form-group"><span class="form-label">Sender Domain</span><div class="form-value">authorvaultpress.com</div></div>
-            <div class="form-group"><span class="form-label">Email Platform</span><div class="form-value">MailerLite</div></div>
-            <div class="form-group"><span class="form-label">SPF Record</span><div class="form-value" style="font-family:monospace;font-size:.75rem;">v=spf1 include:_spf.mlsend.com ~all</div></div>
-            <div class="form-group"><span class="form-label">DKIM</span><div class="form-value"><span class="status status-green">Configured</span></div></div>
-            <div class="form-group"><span class="form-label">DMARC</span><div class="form-value"><span class="status status-green">Configured</span></div></div>
-            <div class="form-group"><span class="form-label">Newsletter List Size</span><div class="form-value">12,400 subscribers</div></div>
-            <div class="form-group"><span class="form-label">Support Inbox</span><div class="form-value">support@authorvaultpress.com</div></div>
-            <div class="form-group"><span class="form-label">Business Phone</span><div class="form-value">{{ company().identity.phone }}</div></div>
-            <div class="form-group"><span class="form-label">PO Box</span><div class="form-value">PO Box 1234, New York, NY 10001</div></div>
+            <app-editable-field label="Sender Domain" [value]="communications.senderDomain" (valueChange)="patchComms('senderDomain', $event)" />
+            <app-editable-field label="Email Platform" [value]="communications.emailPlatform" (valueChange)="patchComms('emailPlatform', $event)" />
+            <app-editable-field label="SPF Record" [value]="communications.spfRecord" (valueChange)="patchComms('spfRecord', $event)" />
+            <app-editable-field label="DKIM" [value]="communications.dkimStatus" (valueChange)="patchComms('dkimStatus', $event)" />
+            <app-editable-field label="DMARC" [value]="communications.dmarcStatus" (valueChange)="patchComms('dmarcStatus', $event)" />
+            <app-editable-field label="Newsletter List Size" [value]="communications.newsletterListSize" (valueChange)="patchComms('newsletterListSize', $event)" />
+            <app-editable-field label="Support Inbox" [value]="communications.supportInbox" (valueChange)="patchComms('supportInbox', $event)" type="email" />
+            <app-editable-field label="Business Phone" [value]="company().identity.phone" (valueChange)="vs.patchIdentity({ phone: $event })" type="tel" />
+            <app-editable-field label="PO Box" [value]="communications.poBox" (valueChange)="patchComms('poBox', $event)" />
           </div>
         </div>
         <div class="card">
@@ -667,14 +686,14 @@ interface SecurityEntry { resource: string; owner: string; accessLevel: string; 
           <table class="data-table">
             <thead><tr><th>SKU</th><th>Title</th><th>Format</th><th>Stock</th><th>Reorder Point</th><th>Printer</th></tr></thead>
             <tbody>
-              @for(item of inventoryItems; track item.sku) {
+              @for(item of inventoryItems; track $index; let i = $index) {
                 <tr>
-                  <td class="td-primary" style="font-family:monospace">{{ item.sku }}</td>
-                  <td>{{ item.title }}</td>
-                  <td>{{ item.format }}</td>
-                  <td><span [class]="item.stock <= item.reorderPoint ? 'status status-red' : 'status status-green'">{{ item.stock }}</span></td>
-                  <td>{{ item.reorderPoint }}</td>
-                  <td>{{ item.printer }}</td>
+                  <td><input class="form-input" style="font-family:monospace" [ngModel]="item.sku" (ngModelChange)="patchInventory(i, 'sku', $event)" /></td>
+                  <td><input class="form-input" [ngModel]="item.title" (ngModelChange)="patchInventory(i, 'title', $event)" /></td>
+                  <td><input class="form-input" [ngModel]="item.format" (ngModelChange)="patchInventory(i, 'format', $event)" /></td>
+                  <td><input class="form-input" type="number" [ngModel]="item.stock" (ngModelChange)="patchInventory(i, 'stock', +$event)" /></td>
+                  <td><input class="form-input" type="number" [ngModel]="item.reorderPoint" (ngModelChange)="patchInventory(i, 'reorderPoint', +$event)" /></td>
+                  <td><input class="form-input" [ngModel]="item.printer" (ngModelChange)="patchInventory(i, 'printer', $event)" /></td>
                 </tr>
               }
             </tbody>
@@ -683,11 +702,11 @@ interface SecurityEntry { resource: string; owner: string; accessLevel: string; 
         <div class="card">
           <h3 class="section-title">Fulfillment Details</h3>
           <div class="form-grid">
-            <div class="form-group"><span class="form-label">Fulfillment Partner</span><div class="form-value">BookVault / IngramSpark</div></div>
-            <div class="form-group"><span class="form-label">Shipping Account</span><div class="form-value">UPS Business Account #****4821</div></div>
-            <div class="form-group"><span class="form-label">Packaging Vendor</span><div class="form-value">Uline</div></div>
-            <div class="form-group"><span class="form-label">Return Address</span><div class="form-value">{{ company().identity.primaryAddress }}</div></div>
-            <div class="form-group full"><span class="form-label">Delivery Policy</span><div class="form-value">Standard 5-7 business days. Expedited available. Digital delivery via BookFunnel within 5 minutes.</div></div>
+            <app-editable-field label="Fulfillment Partner" [value]="inventoryFulfillment.fulfillmentPartner" (valueChange)="patchFulfillment('fulfillmentPartner', $event)" />
+            <app-editable-field label="Shipping Account" [value]="inventoryFulfillment.shippingAccount" (valueChange)="patchFulfillment('shippingAccount', $event)" />
+            <app-editable-field label="Packaging Vendor" [value]="inventoryFulfillment.packagingVendor" (valueChange)="patchFulfillment('packagingVendor', $event)" />
+            <app-editable-field label="Return Address" [value]="company().identity.primaryAddress" (valueChange)="vs.patchIdentity({ primaryAddress: $event })" />
+            <app-editable-field label="Delivery Policy" type="textarea" [rows]="3" [value]="inventoryFulfillment.deliveryPolicy" (valueChange)="patchFulfillment('deliveryPolicy', $event)" [full]="true" />
           </div>
         </div>
       }
@@ -699,14 +718,14 @@ interface SecurityEntry { resource: string; owner: string; accessLevel: string; 
           <table class="data-table">
             <thead><tr><th>Resource</th><th>Owner</th><th>Access Level</th><th>2FA Device</th><th>Recovery Email</th><th>Notes</th></tr></thead>
             <tbody>
-              @for(s of securityEntries; track s.resource) {
+              @for(s of securityEntries; track $index; let i = $index) {
                 <tr>
-                  <td class="td-primary">{{ s.resource }}</td>
-                  <td>{{ s.owner }}</td>
-                  <td><span class="status status-blue">{{ s.accessLevel }}</span></td>
-                  <td>{{ s.twoFa }}</td>
-                  <td>{{ s.recoveryEmail }}</td>
-                  <td>{{ s.notes }}</td>
+                  <td><input class="form-input" [ngModel]="s.resource" (ngModelChange)="patchSecurity(i, 'resource', $event)" /></td>
+                  <td><input class="form-input" [ngModel]="s.owner" (ngModelChange)="patchSecurity(i, 'owner', $event)" /></td>
+                  <td><input class="form-input" [ngModel]="s.accessLevel" (ngModelChange)="patchSecurity(i, 'accessLevel', $event)" /></td>
+                  <td><input class="form-input" [ngModel]="s.twoFa" (ngModelChange)="patchSecurity(i, 'twoFa', $event)" /></td>
+                  <td><input class="form-input" [ngModel]="s.recoveryEmail" (ngModelChange)="patchSecurity(i, 'recoveryEmail', $event)" /></td>
+                  <td><input class="form-input" [ngModel]="s.notes" (ngModelChange)="patchSecurity(i, 'notes', $event)" /></td>
                 </tr>
               }
             </tbody>
@@ -715,8 +734,8 @@ interface SecurityEntry { resource: string; owner: string; accessLevel: string; 
         <div class="card">
           <h3 class="section-title">Emergency Access & Offboarding</h3>
           <div class="form-grid">
-            <div class="form-group full"><span class="form-label">Emergency Access Instructions</span><div class="form-value">In case of emergency, contact attorney James Chen at jchen@publishinglaw.com. Master password vault is stored in 1Password under "Emergency Kit". Backup codes are in the fireproof safe at primary address.</div></div>
-            <div class="form-group full"><span class="form-label">Contractor Offboarding Steps</span><div class="form-value">1. Revoke platform access within 24 hours. 2. Change shared passwords. 3. Remove from team communication channels. 4. Archive all work files. 5. Issue final payment. 6. Send NDA reminder.</div></div>
+            <app-editable-field label="Emergency Access Instructions" type="textarea" [rows]="4" [value]="securityNotes.emergencyAccess" (valueChange)="patchSecurityNotes('emergencyAccess', $event)" [full]="true" />
+            <app-editable-field label="Contractor Offboarding Steps" type="textarea" [rows]="4" [value]="securityNotes.offboardingSteps" (valueChange)="patchSecurityNotes('offboardingSteps', $event)" [full]="true" />
           </div>
         </div>
       }
@@ -727,12 +746,13 @@ interface SecurityEntry { resource: string; owner: string; accessLevel: string; 
           <h3 class="section-title">Company Logos</h3>
           <p class="section-subtitle">All logo variants — upload files and tag by format</p>
           <div class="entity-list">
-            @for(logo of logos; track logo.name) {
+            @for(logo of logos; track $index; let i = $index) {
               <div class="entity-card">
                 <div style="width:100%;height:80px;background:{{ logo.bg }};border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:.75rem;font-size:2rem;">🏢</div>
-                <div class="entity-name">{{ logo.name }}</div>
-                <div class="entity-meta">{{ logo.format }} · {{ logo.dimensions }} · {{ logo.fileType }}</div>
-                <div class="entity-meta" style="margin-top:.25rem;">Uploaded: {{ logo.uploaded }}</div>
+                <input class="form-input" style="margin-bottom:.35rem;font-weight:600" [ngModel]="logo.name" (ngModelChange)="patchLogo(i, 'name', $event)" />
+                <input class="form-input" style="margin-bottom:.25rem;font-size:.75rem" [ngModel]="logo.format" (ngModelChange)="patchLogo(i, 'format', $event)" />
+                <input class="form-input" style="margin-bottom:.25rem;font-size:.75rem" [ngModel]="logo.dimensions" (ngModelChange)="patchLogo(i, 'dimensions', $event)" />
+                <input class="form-input" style="font-size:.75rem" [ngModel]="logo.uploaded" (ngModelChange)="patchLogo(i, 'uploaded', $event)" />
                 <div class="tag-row" style="margin-top:.5rem;">
                   <span class="tag">{{ logo.format }}</span>
                   <span class="tag">{{ logo.fileType }}</span>
@@ -758,11 +778,11 @@ interface SecurityEntry { resource: string; owner: string; accessLevel: string; 
           <table class="data-table">
             <thead><tr><th>Document Name</th><th>Description</th><th>Last Updated</th><th>Actions</th></tr></thead>
             <tbody>
-              @for(s of filteredSops; track s.name) {
+              @for(s of filteredSops; track $index; let i = $index) {
                 <tr>
-                  <td class="td-primary">{{ s.name }}</td>
-                  <td>{{ s.description }}</td>
-                  <td>{{ s.updated }}</td>
+                  <td><input class="form-input" [ngModel]="s.name" (ngModelChange)="patchSop(i, 'name', $event)" /></td>
+                  <td><input class="form-input" [ngModel]="s.description" (ngModelChange)="patchSop(i, 'description', $event)" /></td>
+                  <td><input class="form-input" [ngModel]="s.updated" (ngModelChange)="patchSop(i, 'updated', $event)" /></td>
                   <td>
                     <button style="background:none;border:none;color:var(--accent-blue);cursor:pointer;font-size:.8125rem;font-family:inherit;">View</button>
                     <button style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:.8125rem;font-family:inherit;margin-left:.5rem;">Edit</button>
@@ -780,8 +800,122 @@ interface SecurityEntry { resource: string; owner: string; accessLevel: string; 
 `
 })
 export class VaultCompanyPageComponent implements OnInit {
-  private vaultService = inject(AuthorVaultService);
-  readonly company = this.vaultService.company;
+  readonly vs = inject(AuthorVaultService);
+  private excelImport = inject(ExcelImportService);
+  private companyStore = inject(VaultCompanyStoreService);
+  readonly company = this.vs.company;
+
+  importMessage = '';
+  importError = false;
+
+  get companyInitials(): string {
+    const n = this.company().identity.legalName || 'AV';
+    return n.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  }
+
+  get ownerProfiles() { return this.companyStore.ownerProfiles(); }
+  get publishingPlatforms() { return this.companyStore.publishingPlatforms(); }
+  get teamMembers() { return this.companyStore.teamMembers(); }
+  get bankAccounts() { return this.companyStore.bankAccounts(); }
+  get paymentPlatforms() { return this.companyStore.paymentPlatforms(); }
+  get taxDocs() { return this.companyStore.taxDocs(); }
+  get isbnRecords() { return this.companyStore.isbnRecords(); }
+  get contractRecords() { return this.companyStore.contractRecords(); }
+  get financialRecords() { return this.companyStore.financialRecords(); }
+  get domainRecords() { return this.companyStore.domainRecords(); }
+  get inventoryItems() { return this.companyStore.inventoryItems(); }
+  get securityEntries() { return this.companyStore.securityEntries(); }
+  get logos() { return this.companyStore.logos(); }
+  get sopTemplates() { return this.companyStore.sopTemplates(); }
+  get corporateDocs() { return this.companyStore.corporateDocs(); }
+  get communications() { return this.companyStore.communications(); }
+  get inventoryFulfillment() { return this.companyStore.inventoryFulfillment(); }
+  get securityNotes() { return this.companyStore.securityNotes(); }
+  get taxRegistrations() { return this.companyStore.taxRegistrations(); }
+
+  patchOwner(i: number, key: string, val: string | boolean): void {
+    const list = [...this.ownerProfiles];
+    list[i] = { ...list[i], [key]: val };
+    this.companyStore.updateOwners(list);
+  }
+  patchTeam(i: number, key: string, val: string): void {
+    const list = [...this.teamMembers];
+    list[i] = { ...list[i], [key]: val };
+    this.companyStore.updateTeam(list);
+  }
+  patchBank(i: number, key: string, val: string): void {
+    const list = [...this.bankAccounts];
+    list[i] = { ...list[i], [key]: val };
+    this.companyStore.updateBankAccounts(list);
+  }
+  patchTaxDoc(i: number, key: string, val: string): void {
+    const list = [...this.taxDocs];
+    list[i] = { ...list[i], [key]: val };
+    this.companyStore.updateTaxDocs(list);
+  }
+  patchIsbn(i: number, key: string, val: string): void {
+    const list = [...this.isbnRecords];
+    list[i] = { ...list[i], [key]: val };
+    this.companyStore.updateIsbnRecords(list);
+  }
+  patchContract(i: number, key: string, val: string): void {
+    const list = [...this.contractRecords];
+    list[i] = { ...list[i], [key]: val };
+    this.companyStore.updateContracts(list);
+  }
+  patchFinancial(i: number, key: string, val: string): void {
+    const list = [...this.financialRecords];
+    list[i] = { ...list[i], [key]: val };
+    this.companyStore.updateFinancialRecords(list);
+  }
+  patchDomain(i: number, key: string, val: string): void {
+    const list = [...this.domainRecords];
+    list[i] = { ...list[i], [key]: val };
+    this.companyStore.updateDomains(list);
+  }
+  patchInventory(i: number, key: string, val: string | number): void {
+    const list = [...this.inventoryItems];
+    list[i] = { ...list[i], [key]: val };
+    this.companyStore.updateInventory(list);
+  }
+  patchSecurity(i: number, key: string, val: string): void {
+    const list = [...this.securityEntries];
+    list[i] = { ...list[i], [key]: val };
+    this.companyStore.updateSecurity(list);
+  }
+  patchLogo(i: number, key: string, val: string): void {
+    const list = [...this.logos];
+    list[i] = { ...list[i], [key]: val };
+    this.companyStore.updateLogos(list);
+  }
+  patchSop(i: number, key: string, val: string): void {
+    const list = [...this.sopTemplates];
+    list[i] = { ...list[i], [key]: val };
+    this.companyStore.updateSops(list);
+  }
+  patchCorpDoc(i: number, key: string, val: string): void {
+    const list = [...this.corporateDocs];
+    list[i] = { ...list[i], [key]: val };
+    this.companyStore.updateCorporateDocs(list);
+  }
+  patchPlatform(listKey: 'publishing' | 'payment', i: number, key: string, val: string): void {
+    const list = listKey === 'publishing' ? [...this.publishingPlatforms] : [...this.paymentPlatforms];
+    list[i] = { ...list[i], [key]: val };
+    if (listKey === 'publishing') this.companyStore.updatePlatforms(list);
+    else this.companyStore.updatePaymentPlatforms(list);
+  }
+  patchComms(key: string, val: string): void {
+    this.companyStore.updateCommunications({ ...this.communications, [key]: val });
+  }
+  patchFulfillment(key: string, val: string): void {
+    this.companyStore.updateInventoryFulfillment({ ...this.inventoryFulfillment, [key]: val });
+  }
+  patchSecurityNotes(key: string, val: string): void {
+    this.companyStore.updateSecurityNotes({ ...this.securityNotes, [key]: val });
+  }
+  patchTaxReg(key: string, val: string): void {
+    this.companyStore.updateTaxRegistrations({ ...this.taxRegistrations, [key]: val });
+  }
 
   // ── Lock state ──
   unlocked = false;
@@ -814,6 +948,7 @@ export class VaultCompanyPageComponent implements OnInit {
   private readonly PIN_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
 
   private readonly PIN_KEY = 'av_company_unlocked';
+  private readonly PIN_ACTIVITY_KEY = 'av_company_pin_activity';
   private readonly STORED_PIN_KEY = 'av_company_pin';
   private get storedPin(): string { return localStorage.getItem(this.STORED_PIN_KEY) || ''; }
 
@@ -845,7 +980,7 @@ export class VaultCompanyPageComponent implements OnInit {
   get isbnUsed(): number { return this.isbnRecords.filter(r => r.status === 'used').length; }
   get isbnAvailable(): number { return this.isbnRecords.filter(r => r.status === 'unused').length; }
   get isbnReserved(): number { return this.isbnRecords.filter(r => r.status === 'reserved').length; }
-  get filteredSops(): SopTemplate[] {
+  get filteredSops() {
     if (!this.sopFilter.trim()) return this.sopTemplates;
     const q = this.sopFilter.toLowerCase();
     return this.sopTemplates.filter(s => s.name.toLowerCase().includes(q) || s.description.toLowerCase().includes(q));
@@ -854,163 +989,43 @@ export class VaultCompanyPageComponent implements OnInit {
   // ── ISBN filter ──
   isbnFilterStatus = '';
   isbnFilterFormat = '';
-  get filteredIsbns(): IsbnRecord[] {
+  get filteredIsbns() {
     return this.isbnRecords.filter(r =>
       (!this.isbnFilterStatus || r.status === this.isbnFilterStatus) &&
       (!this.isbnFilterFormat || r.format === this.isbnFilterFormat)
     );
   }
 
-  // ── Mock data ──
-  ownerProfiles: OwnerProfile[] = [
-    { name: 'Eleanor Vance', role: 'Managing Member / CEO', ownershipPct: '100%', email: 'eleanor@authorvaultpress.com', phone: '+1 (212) 555-0147', canSign: true, canManageFinances: true, showNda: true },
-  ];
-
-  bankAccounts: BankAccount[] = [
-    { bank: 'Chase Business', nickname: 'Operating Checking', account: '123456784821', routing: '021000021', wire: '021000021', swift: 'CHASUS33', showAccount: false, showRouting: false },
-    { bank: 'Chase Business', nickname: 'Savings Reserve', account: '987654327733', routing: '021000021', wire: '', swift: 'CHASUS33', showAccount: false, showRouting: false },
-  ];
-
-  paymentPlatforms: Platform[] = [
-    { name: 'Stripe', owner: 'Eleanor Vance', email: 'admin@authorvaultpress.com', phone: '+1 (212) 555-0147', payout: 'Bank Transfer', taxProfile: 'Vance Publishing LLC', username: 'admin@authorvaultpress.com', password: 'Str!pe2024#Vault', notes: 'Primary payment processor for direct sales', showUser: false, showPass: false, accountRep: '', repEmail: '', accountId: 'acct_1ABC' },
-    { name: 'PayPal Business', owner: 'Eleanor Vance', email: 'paypal@authorvaultpress.com', phone: '+1 (212) 555-0147', payout: 'Bank Transfer', taxProfile: 'Vance Publishing LLC', username: 'paypal@authorvaultpress.com', password: 'P@yP@l2024!Vault', notes: 'Used for contractor payments', showUser: false, showPass: false, accountRep: '', repEmail: '', accountId: '' },
-    { name: 'Wise', owner: 'Eleanor Vance', email: 'wise@authorvaultpress.com', phone: '+1 (212) 555-0147', payout: 'Bank Transfer', taxProfile: 'Vance Publishing LLC', username: 'wise@authorvaultpress.com', password: 'W!se2024#Secure', notes: 'International contractor payments', showUser: false, showPass: false, accountRep: '', repEmail: '', accountId: '' },
-  ];
-
-  taxDocs: TaxDoc[] = [
-    { name: 'EIN Confirmation (CP575)', type: 'Federal', year: '2021', status: 'Filed' },
-    { name: 'Form 1120-S (S-Corp Return)', type: 'Federal', year: '2023', status: 'Filed' },
-    { name: 'Form 1120-S (S-Corp Return)', type: 'Federal', year: '2022', status: 'Filed' },
-    { name: 'W-9 (Company)', type: 'Federal', year: '2024', status: 'On File' },
-    { name: '1099-NEC (Contractors)', type: 'Federal', year: '2023', status: 'Filed' },
-    { name: 'Sales Tax Return — NY', type: 'State', year: '2023', status: 'Filed' },
-    { name: 'Sales Tax Return — DE', type: 'State', year: '2023', status: 'Filed' },
-    { name: 'Amazon KDP Tax Form', type: 'Platform', year: '2023', status: 'On File' },
-    { name: 'Draft2Digital Tax Form', type: 'Platform', year: '2023', status: 'On File' },
-    { name: 'Q1 2024 Estimated Tax', type: 'Federal', year: '2024', status: 'Filed' },
-    { name: 'Q2 2024 Estimated Tax', type: 'Federal', year: '2024', status: 'Filed' },
-    { name: 'Q3 2024 Estimated Tax', type: 'Federal', year: '2024', status: 'Pending' },
-  ];
-
-  publishingPlatforms: Platform[] = [
-    { name: 'Amazon KDP', owner: 'Eleanor Vance', email: 'kdp@authorvaultpress.com', phone: '+1 (212) 555-0147', payout: 'Bank Transfer', taxProfile: 'Vance Publishing LLC', username: 'kdp@authorvaultpress.com', password: 'KDP!2024#Vault', notes: '7 titles live. KDP Select enrolled for 3 titles.', showUser: false, showPass: false, accountRep: '', repEmail: '', accountId: '' },
-    { name: 'Draft2Digital', owner: 'Eleanor Vance', email: 'd2d@authorvaultpress.com', phone: '', payout: 'PayPal', taxProfile: 'Vance Publishing LLC', username: 'd2d@authorvaultpress.com', password: 'D2D!2024#Wide', notes: 'Wide distribution. Apple, Kobo, B&N, libraries.', showUser: false, showPass: false, accountRep: '', repEmail: '', accountId: '' },
-    { name: 'IngramSpark', owner: 'Eleanor Vance', email: 'ingram@authorvaultpress.com', phone: '', payout: 'Bank Transfer', taxProfile: 'Vance Publishing LLC', username: 'ingram@authorvaultpress.com', password: 'Ingr@m2024!', notes: 'Print distribution. 60% discount set.', showUser: false, showPass: false, accountRep: 'John Baker', repEmail: 'jbaker@ingramspark.com', accountId: 'IS-92847' },
-    { name: 'Kobo Writing Life', owner: 'Eleanor Vance', email: 'kobo@authorvaultpress.com', phone: '', payout: 'PayPal', taxProfile: 'Vance Publishing LLC', username: 'kobo@authorvaultpress.com', password: 'K0bo!2024#WL', notes: 'Direct Kobo uploads for select titles.', showUser: false, showPass: false, accountRep: '', repEmail: '', accountId: '' },
-    { name: 'Shopify (Direct Store)', owner: 'Eleanor Vance', email: 'admin@authorvaultpress.com', phone: '', payout: 'Stripe', taxProfile: 'Vance Publishing LLC', username: 'admin@authorvaultpress.com', password: 'Sh0p!fy2024#', notes: 'authorvaultpress.com/shop. BookFunnel delivery.', showUser: false, showPass: false, accountRep: '', repEmail: '', accountId: '' },
-    { name: 'BookFunnel', owner: 'Eleanor Vance', email: 'bf@authorvaultpress.com', phone: '', payout: 'N/A', taxProfile: 'N/A', username: 'bf@authorvaultpress.com', password: 'B00kF!2024#', notes: 'ARC delivery + direct sales delivery.', showUser: false, showPass: false, accountRep: '', repEmail: '', accountId: '' },
-    { name: 'MailerLite (Email)', owner: 'Eleanor Vance', email: 'ml@authorvaultpress.com', phone: '', payout: 'N/A', taxProfile: 'N/A', username: 'ml@authorvaultpress.com', password: 'M@ilerL2024!', notes: '12,400 subscribers. 42% open rate.', showUser: false, showPass: false, accountRep: '', repEmail: '', accountId: '' },
-    { name: 'Amazon Ads', owner: 'Eleanor Vance', email: 'ads@authorvaultpress.com', phone: '', payout: 'N/A', taxProfile: 'Vance Publishing LLC', username: 'ads@authorvaultpress.com', password: 'AmzAds!2024#', notes: 'Linked to KDP account. $800/mo budget.', showUser: false, showPass: false, accountRep: '', repEmail: '', accountId: '' },
-    { name: 'Facebook Ads', owner: 'Eleanor Vance', email: 'fb@authorvaultpress.com', phone: '+1 (212) 555-0147', payout: 'N/A', taxProfile: 'Vance Publishing LLC', username: 'fb@authorvaultpress.com', password: 'FbAds!2024#', notes: 'Business Manager ID: 123456789.', showUser: false, showPass: false, accountRep: '', repEmail: '', accountId: 'BM-123456789' },
-  ];
-
-  isbnRecords: IsbnRecord[] = [
-    { isbn: '979-8-XXXX-0001-0', format: 'Ebook', title: 'The Midnight Library', imprint: 'AuthorVault Press', pubDate: '2023-06-15', series: 'Hearts of Manhattan', trimSize: '', edition: '1st', asin: 'B0BK1MOCK', status: 'used' },
-    { isbn: '979-8-XXXX-0001-1', format: 'Paperback 5.5x8.5', title: 'The Midnight Library', imprint: 'AuthorVault Press', pubDate: '2023-06-15', series: 'Hearts of Manhattan', trimSize: '5.5x8.5', edition: '1st', asin: '', status: 'used' },
-    { isbn: '979-8-XXXX-0001-3', format: 'Audiobook', title: 'The Midnight Library', imprint: 'AuthorVault Press', pubDate: '2023-09-01', series: 'Hearts of Manhattan', trimSize: '', edition: '1st', asin: '', status: 'used' },
-    { isbn: '979-8-XXXX-0002-0', format: 'Ebook', title: 'Shadow Protocol', imprint: 'AuthorVault Press', pubDate: '2023-11-01', series: 'Hearts of Manhattan', trimSize: '', edition: '1st', asin: 'B0BK2MOCK', status: 'used' },
-    { isbn: '979-8-XXXX-0002-1', format: 'Paperback 5.5x8.5', title: 'Shadow Protocol', imprint: 'AuthorVault Press', pubDate: '2023-11-01', series: 'Hearts of Manhattan', trimSize: '5.5x8.5', edition: '1st', asin: '', status: 'used' },
-    { isbn: '979-8-XXXX-0003-0', format: 'Ebook', title: 'Salt & Starlight', imprint: 'AuthorVault Press', pubDate: '2024-02-14', series: 'Coastal Dreams', trimSize: '', edition: '1st', asin: 'B0BK4MOCK', status: 'used' },
-    { isbn: '979-8-XXXX-0003-1', format: 'Paperback 6x9', title: 'Salt & Starlight', imprint: 'AuthorVault Press', pubDate: '2024-02-14', series: 'Coastal Dreams', trimSize: '6x9', edition: '1st', asin: '', status: 'used' },
-    { isbn: '979-8-XXXX-0004-0', format: 'Ebook', title: 'Throne of Ashes', imprint: 'AuthorVault Press', pubDate: '2024-01-10', series: 'The Obsidian Crown', trimSize: '', edition: '1st', asin: 'B0BK5MOCK', status: 'used' },
-    { isbn: '979-8-XXXX-0004-1', format: 'Hardcover', title: 'Throne of Ashes', imprint: 'AuthorVault Press', pubDate: '2024-01-10', series: 'The Obsidian Crown', trimSize: '6x9', edition: '1st', asin: '', status: 'used' },
-    { isbn: '979-8-XXXX-0005-0', format: 'Ebook', title: 'Garden of Stars', imprint: 'AuthorVault Press', pubDate: '', series: 'Hearts of Manhattan', trimSize: '', edition: '1st', asin: '', status: 'reserved' },
-    { isbn: '979-8-XXXX-0005-1', format: 'Paperback 5.5x8.5', title: 'Garden of Stars', imprint: 'AuthorVault Press', pubDate: '', series: 'Hearts of Manhattan', trimSize: '5.5x8.5', edition: '1st', asin: '', status: 'reserved' },
-    { isbn: '979-8-XXXX-0006-0', format: 'Box Set', title: 'Hearts of Manhattan Box Set 1-3', imprint: 'AuthorVault Press', pubDate: '', series: 'Hearts of Manhattan', trimSize: '6x9', edition: '1st', asin: '', status: 'reserved' },
-    { isbn: '979-8-XXXX-0007-0', format: 'Ebook', title: '', imprint: 'AuthorVault Press', pubDate: '', series: '', trimSize: '', edition: '', asin: '', status: 'unused' },
-    { isbn: '979-8-XXXX-0007-1', format: 'Paperback 6x9', title: '', imprint: 'AuthorVault Press', pubDate: '', series: '', trimSize: '6x9', edition: '', asin: '', status: 'unused' },
-    { isbn: '979-8-XXXX-0008-0', format: 'Ebook', title: '', imprint: 'Vance Nonfiction', pubDate: '', series: '', trimSize: '', edition: '', asin: '', status: 'unused' },
-  ];
-
-  contractRecords: ContractRecord[] = [
-    { name: 'Developmental Editing Agreement', counterparty: 'Sarah Mitchell', type: 'Editor', date: '2023-01-10', status: 'Active', file: 'contract-mitchell-2023.pdf' },
-    { name: 'Cover Design Agreement', counterparty: 'James Okafor', type: 'Cover Designer', date: '2023-02-01', status: 'Active', file: 'contract-okafor-2023.pdf' },
-    { name: 'Narrator Agreement — The Midnight Library', counterparty: 'Voice Arts Studio', type: 'Narrator', date: '2023-07-15', status: 'Active', file: 'contract-narrator-2023.pdf' },
-    { name: 'Ghostwriter NDA', counterparty: 'Confidential', type: 'NDA', date: '2022-11-01', status: 'Active', file: 'nda-ghostwriter-2022.pdf' },
-    { name: 'Translation Agreement — Spanish', counterparty: 'Maria Gonzalez Translations', type: 'Translation', date: '2024-01-20', status: 'Active', file: 'contract-translation-es-2024.pdf' },
-    { name: 'Affiliate Agreement — BookTok Partner', counterparty: 'ReadWithMe LLC', type: 'Affiliate', date: '2024-03-01', status: 'Active', file: 'affiliate-readwithme-2024.pdf' },
-    { name: 'Co-Author Agreement — Box Set', counterparty: 'V.E. Blackwood (pen name)', type: 'Co-Author', date: '2023-12-01', status: 'Active', file: 'coauthor-boxset-2023.pdf' },
-    { name: 'DMCA Takedown Template', counterparty: 'N/A', type: 'Template', date: '2023-06-01', status: 'Template', file: 'dmca-template.docx' },
-    { name: 'Royalty Split Agreement — Anthology', counterparty: 'Multiple Authors', type: 'Royalty Split', date: '2024-02-15', status: 'Active', file: 'royalty-split-anthology-2024.pdf' },
-  ];
-
-  financialRecords: FinancialRecord[] = [
-    { month: 'Jan 2024', revenue: '$8,420', expenses: '$2,150', net: '$6,270' },
-    { month: 'Feb 2024', revenue: '$9,180', expenses: '$1,980', net: '$7,200' },
-    { month: 'Mar 2024', revenue: '$11,340', expenses: '$3,200', net: '$8,140' },
-    { month: 'Apr 2024', revenue: '$10,750', expenses: '$2,800', net: '$7,950' },
-    { month: 'May 2024', revenue: '$12,600', expenses: '$4,100', net: '$8,500' },
-    { month: 'Jun 2024', revenue: '$15,200', expenses: '$5,500', net: '$9,700' },
-  ];
-
-  teamMembers: TeamMember[] = [
-    { name: 'Sarah Mitchell', role: 'Developmental Editor', company: 'Mitchell Editing', email: 'sarah@mitchellediting.com', phone: '', contractDate: '2023-01-10', rate: '$2,500/book', notes: 'Excellent. Rehire.' },
-    { name: 'James Okafor', role: 'Cover Designer', company: 'Okafor Design Studio', email: 'james@okafor.design', phone: '', contractDate: '2023-02-01', rate: '$800/cover', notes: 'Fast turnaround. Highly recommended.' },
-    { name: 'Sandra Mitchell, CPA', role: 'Accountant / CPA', company: 'Mitchell CPA', email: 'sandra@mitchellcpa.com', phone: '+1 (212) 555-0200', contractDate: '2021-04-01', rate: '$250/hr', notes: 'Annual tax prep + quarterly estimates.' },
-    { name: 'James Chen, Esq.', role: 'Attorney', company: 'Chen Publishing Law', email: 'jchen@publishinglaw.com', phone: '+1 (212) 555-0300', contractDate: '2021-03-15', rate: '$350/hr', notes: 'Contract review + trademark filings.' },
-    { name: 'Maria Gonzalez', role: 'Translator (Spanish)', company: 'Gonzalez Translations', email: 'maria@gonzaleztrans.com', phone: '', contractDate: '2024-01-20', rate: '$0.08/word', notes: 'Spanish (MX). Excellent quality.' },
-    { name: 'Voice Arts Studio', role: 'Narrator / Audio Production', company: 'Voice Arts Studio', email: 'booking@voicearts.com', phone: '+1 (310) 555-0400', contractDate: '2023-07-15', rate: '$250/finished hour', notes: 'ACX + direct delivery.' },
-    { name: 'Alex Rivera', role: 'Virtual Assistant', company: 'Freelance', email: 'alex@vaservices.com', phone: '', contractDate: '2023-09-01', rate: '$25/hr', notes: 'Social media scheduling + inbox management.' },
-  ];
-
-  domainRecords: DomainRecord[] = [
-    { domain: 'authorvaultpress.com', registrar: 'Namecheap', renewal: '2025-03-15', host: 'Shopify', dns: 'Cloudflare. A record → Shopify. MX → Google Workspace.', ssl: '2025-03-15 (auto-renew)', cms: 'Shopify', contact: 'Eleanor Vance' },
-    { domain: 'eleanorvanc.com', registrar: 'Namecheap', renewal: '2025-06-01', host: 'WordPress (WP Engine)', dns: 'Cloudflare. A record → WP Engine.', ssl: '2025-06-01 (auto-renew)', cms: 'WordPress', contact: 'Eleanor Vance' },
-    { domain: 'veblackwood.com', registrar: 'GoDaddy', renewal: '2025-09-20', host: 'WordPress (WP Engine)', dns: 'GoDaddy DNS. A record → WP Engine.', ssl: '2025-09-20 (auto-renew)', cms: 'WordPress', contact: 'Eleanor Vance' },
-  ];
-
-  inventoryItems: InventoryItem[] = [
-    { sku: 'PB-ML-001', title: 'The Midnight Library', format: 'Paperback 5.5x8.5', stock: 45, reorderPoint: 20, printer: 'IngramSpark' },
-    { sku: 'PB-SP-001', title: 'Shadow Protocol', format: 'Paperback 5.5x8.5', stock: 12, reorderPoint: 20, printer: 'IngramSpark' },
-    { sku: 'HC-TA-001', title: 'Throne of Ashes', format: 'Hardcover 6x9', stock: 30, reorderPoint: 15, printer: 'IngramSpark' },
-    { sku: 'PB-SS-001', title: 'Salt & Starlight', format: 'Paperback 6x9', stock: 8, reorderPoint: 20, printer: 'BookVault' },
-    { sku: 'SB-HOM-001', title: 'Hearts of Manhattan Signed Box Set', format: 'Signed Box Set', stock: 25, reorderPoint: 10, printer: 'Local Print' },
-  ];
-
-  securityEntries: SecurityEntry[] = [
-    { resource: 'Amazon KDP', owner: 'Eleanor Vance', accessLevel: 'Admin', twoFa: 'iPhone (Authenticator)', recoveryEmail: 'recovery@authorvaultpress.com', notes: 'Backup codes in 1Password' },
-    { resource: 'Shopify Store', owner: 'Eleanor Vance', accessLevel: 'Owner', twoFa: 'iPhone (Authenticator)', recoveryEmail: 'recovery@authorvaultpress.com', notes: '' },
-    { resource: 'MailerLite', owner: 'Eleanor Vance', accessLevel: 'Admin', twoFa: 'Email 2FA', recoveryEmail: 'recovery@authorvaultpress.com', notes: '' },
-    { resource: 'Stripe', owner: 'Eleanor Vance', accessLevel: 'Admin', twoFa: 'iPhone (Authenticator)', recoveryEmail: 'recovery@authorvaultpress.com', notes: 'Backup codes in fireproof safe' },
-    { resource: 'Namecheap (Domains)', owner: 'Eleanor Vance', accessLevel: 'Owner', twoFa: 'TOTP App', recoveryEmail: 'recovery@authorvaultpress.com', notes: '' },
-    { resource: 'Chase Business Banking', owner: 'Eleanor Vance', accessLevel: 'Primary', twoFa: 'SMS + Token', recoveryEmail: 'N/A', notes: 'Branch: 123 Main St, NY' },
-    { resource: 'Alex Rivera (VA)', owner: 'Eleanor Vance', accessLevel: 'Limited', twoFa: 'N/A', recoveryEmail: 'N/A', notes: 'Access: social media scheduler only. Revoke on offboarding.' },
-  ];
-
-  logos: Logo[] = [
-    { name: 'Primary Logo — Full Color', format: 'Horizontal', dimensions: '2400x800px', fileType: 'PNG', uploaded: '2021-06-01', bg: 'var(--primary-light)' },
-    { name: 'Primary Logo — White', format: 'Horizontal', dimensions: '2400x800px', fileType: 'PNG', uploaded: '2021-06-01', bg: '#1c2e4a' },
-    { name: 'Icon Mark — Full Color', format: 'Square', dimensions: '800x800px', fileType: 'PNG', uploaded: '2021-06-01', bg: 'var(--primary-light)' },
-    { name: 'Icon Mark — White', format: 'Square', dimensions: '800x800px', fileType: 'PNG', uploaded: '2021-06-01', bg: '#1c2e4a' },
-    { name: 'Vector Master File', format: 'All', dimensions: 'Scalable', fileType: 'SVG', uploaded: '2021-06-01', bg: 'var(--background)' },
-    { name: 'Print-Ready Logo', format: 'Horizontal', dimensions: 'Vector', fileType: 'EPS', uploaded: '2021-06-01', bg: 'var(--background)' },
-  ];
-
-  sopTemplates: SopTemplate[] = [
-    { name: 'Invoice Template', description: 'Standard invoice for contractor payments and client billing', updated: '2024-01-15' },
-    { name: 'Royalty Split Sheet', description: 'Template for calculating and documenting royalty splits', updated: '2024-02-01' },
-    { name: 'Book Launch Checklist', description: 'Complete 12-week launch checklist for new releases', updated: '2024-03-10' },
-    { name: 'Book Upload Checklist', description: 'Step-by-step checklist for uploading to all platforms', updated: '2024-01-20' },
-    { name: 'Direct Sales Checklist', description: 'Shopify product setup and BookFunnel delivery checklist', updated: '2024-02-15' },
-    { name: 'Contractor Onboarding SOP', description: 'Steps for onboarding new editors, designers, and VAs', updated: '2023-11-01' },
-    { name: 'Contractor Offboarding SOP', description: 'Steps for offboarding contractors and revoking access', updated: '2023-11-01' },
-    { name: 'ARC Distribution SOP', description: 'Process for distributing ARCs via BookSprout and BookFunnel', updated: '2024-01-05' },
-    { name: 'Monthly Bookkeeping SOP', description: 'Monthly reconciliation and expense categorization process', updated: '2024-03-01' },
-    { name: 'DMCA Takedown Process', description: 'Step-by-step guide for filing DMCA takedown notices', updated: '2023-09-15' },
-  ];
-
   // ── PIN methods ──
   ngOnInit(): void {
-    const stored = localStorage.getItem(this.PIN_KEY);
-    this.unlocked = stored === 'true';
     this.isFirstTime = !localStorage.getItem(this.STORED_PIN_KEY);
-    if (this.unlocked) this.resetPinTimeout();
+    this.unlocked = this.isSessionValid();
+    if (!this.unlocked) localStorage.removeItem(this.PIN_KEY);
+    else this.resetPinTimeout();
+  }
+
+  private isSessionValid(): boolean {
+    if (localStorage.getItem(this.PIN_KEY) !== 'true') return false;
+    const last = Number(localStorage.getItem(this.PIN_ACTIVITY_KEY) || 0);
+    if (!last) return false;
+    return Date.now() - last < this.PIN_TIMEOUT_MS;
+  }
+
+  private touchActivity(): void {
+    if (!this.unlocked) return;
+    localStorage.setItem(this.PIN_ACTIVITY_KEY, String(Date.now()));
+    localStorage.setItem(this.PIN_KEY, 'true');
+    this.resetPinTimeout();
+  }
+
+  private checkPinExpiry(): void {
+    if (this.unlocked && !this.isSessionValid()) this.lockVault();
   }
 
   /** Reset PIN auto-lock timer (10 minutes) */
   private resetPinTimeout(): void {
     clearTimeout(this.pinTimeoutRef);
-    this.pinTimeoutRef = setTimeout(() => this.lockVault(), this.PIN_TIMEOUT_MS);
+    this.pinTimeoutRef = setTimeout(() => this.checkPinExpiry(), this.PIN_TIMEOUT_MS);
   }
 
   /** Reveal EIN with auto-hide after 60 seconds */
@@ -1055,13 +1070,12 @@ export class VaultCompanyPageComponent implements OnInit {
       this.isFirstTime = false;
       this.unlocked = true;
       this.pinMismatch = false;
-      localStorage.setItem(this.PIN_KEY, 'true');
+      this.touchActivity();
     } else {
       if (entered === this.storedPin) {
         this.unlocked = true;
         this.pinError = false;
-        localStorage.setItem(this.PIN_KEY, 'true');
-        this.resetPinTimeout();
+        this.touchActivity();
       } else {
         this.pinError = true;
         this.pinDigits = ['', '', '', ''];
@@ -1103,6 +1117,7 @@ export class VaultCompanyPageComponent implements OnInit {
     clearInterval(this.einTimerRef);
     clearTimeout(this.pinTimeoutRef);
     localStorage.removeItem(this.PIN_KEY);
+    localStorage.removeItem(this.PIN_ACTIVITY_KEY);
   }
 
   changePin(): void {
@@ -1120,5 +1135,53 @@ export class VaultCompanyPageComponent implements OnInit {
     if (!val) return '—';
     if (val.includes('@')) return val.split('@')[0].slice(0, 2) + '****@' + val.split('@')[1];
     return val.slice(0, 2) + '****';
+  }
+
+  scEmailHref(email: string): string {
+    return `https://mail.scribecount.com/compose?to=${encodeURIComponent(email)}`;
+  }
+
+  async onExcelImport(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    this.importMessage = '';
+    this.importError = false;
+    try {
+      const rows = await this.excelImport.parseFile(file);
+      const result = this.vs.importFieldRows(rows);
+      this.importMessage = `Imported ${result.applied} field(s).` +
+        (result.skipped.length ? ` Skipped unknown: ${result.skipped.slice(0, 5).join(', ')}${result.skipped.length > 5 ? '…' : ''}` : '');
+      this.importError = result.applied === 0;
+    } catch (e: unknown) {
+      this.importMessage = e instanceof Error ? e.message : 'Import failed';
+      this.importError = true;
+    }
+    input.value = '';
+  }
+
+  onCompanyStatus(value: string): void {
+    this.vs.patchIdentity({ companyStatus: value as CompanyIdentity['companyStatus'] });
+  }
+
+  onCompanyAvatar(event: Event): void {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => this.vs.setCompanyAvatar(reader.result as string);
+    reader.readAsDataURL(file);
+  }
+
+  @HostListener('document:click')
+  @HostListener('document:keydown')
+  @HostListener('document:mousemove')
+  @HostListener('document:scroll')
+  onUserActivity(): void {
+    if (this.unlocked) this.touchActivity();
+  }
+
+  @HostListener('document:visibilitychange')
+  onVisibilityChange(): void {
+    if (document.visibilityState === 'visible') this.checkPinExpiry();
   }
 }

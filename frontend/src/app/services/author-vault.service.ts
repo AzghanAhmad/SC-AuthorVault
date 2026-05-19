@@ -1,9 +1,11 @@
 import { Injectable, signal, computed } from '@angular/core';
-import { PublishingCompany, Imprint, PenName, Series, Book, LanguageBranch, BookFormat, BreadcrumbItem, VaultLevel } from '../models/author-vault.model';
+import { PublishingCompany, Imprint, PenName, Series, Book, LanguageBranch, BookFormat, BreadcrumbItem, VaultLevel, CompanyIdentity, FinancialTaxRecords, CompanyContractsLegal, CompanyOwnership } from '../models/author-vault.model';
+import { COMPANY_FIELD_MAP } from './excel-import.service';
 
 @Injectable({ providedIn: 'root' })
 export class AuthorVaultService {
-  private _company = signal<PublishingCompany>(this.buildMock());
+  private readonly STORAGE_KEY = 'av_publishing_company_v1';
+  private _company = signal<PublishingCompany>(this.loadPersisted() ?? this.buildMock());
   readonly company = this._company.asReadonly();
 
   // Navigation state
@@ -132,5 +134,116 @@ export class AuthorVaultService {
         ...(s === 'Published' ? [{ id: `${id}-es`, edition: { editionId: `${id}-es`, editionName: 'Spanish Edition', editionType: 'Translated' as any, language: 'Spanish', languageCode: 'es', isPrimaryLanguage: false, localeVariant: 'es-MX', publicationStatus: 'In Progress' as any, releaseDate: '', wordCount: 82000, pageCount: 328, chapterCount: 28 }, localizedMetadata: { localizedTitle: '', localizedSubtitle: '', localizedSeriesName: '', localizedHook: '', localizedShortDescription: '', localizedLongDescription: '', localizedAuthorBio: '', localizedContentWarnings: '', translatorCreditLine: '' }, identifiers: { isbnEbook: '', isbnPaperback: '', isbnHardcover: '', isbnLargePrint: '', isbnAudiobook: '', isbnAssignedDate: '', isbnStatus: 'Reserved' as any }, formats: [] }] : []),
       ]
     };
+  }
+
+  private loadPersisted(): PublishingCompany | null {
+    try {
+      const raw = localStorage.getItem(this.STORAGE_KEY);
+      return raw ? JSON.parse(raw) as PublishingCompany : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private persist(): void {
+    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this._company()));
+  }
+
+  patchIdentity(partial: Partial<CompanyIdentity>): void {
+    this._company.update(c => ({ ...c, identity: { ...c.identity, ...partial } }));
+    this.persist();
+  }
+
+  patchFinancial(partial: Partial<FinancialTaxRecords>): void {
+    this._company.update(c => ({ ...c, financial: { ...c.financial, ...partial } }));
+    this.persist();
+  }
+
+  patchContractsLegal(partial: Partial<CompanyContractsLegal>): void {
+    this._company.update(c => ({ ...c, contractsLegal: { ...c.contractsLegal, ...partial } }));
+    this.persist();
+  }
+
+  patchOwnership(partial: Partial<CompanyOwnership>): void {
+    this._company.update(c => ({ ...c, ownership: { ...c.ownership, ...partial } }));
+    this.persist();
+  }
+
+  setByPath(path: string, value: string): void {
+    const parts = path.split('.');
+    if (parts.length !== 2) return;
+    const [section, field] = parts;
+    if (section === 'identity') this.patchIdentity({ [field]: value } as Partial<CompanyIdentity>);
+    else if (section === 'financial') this.patchFinancial({ [field]: value } as Partial<FinancialTaxRecords>);
+    else if (section === 'contractsLegal') this.patchContractsLegal({ [field]: value } as Partial<CompanyContractsLegal>);
+    else if (section === 'ownership') this.patchOwnership({ [field]: value } as Partial<CompanyOwnership>);
+  }
+
+  importFieldRows(rows: { field: string; value: string }[]): { applied: number; skipped: string[] } {
+    const skipped: string[] = [];
+    let applied = 0;
+    for (const row of rows) {
+      const path = COMPANY_FIELD_MAP[row.field.trim().toLowerCase()];
+      if (path) {
+        this.setByPath(path, row.value);
+        applied++;
+      } else {
+        skipped.push(row.field);
+      }
+    }
+    return { applied, skipped };
+  }
+
+  updatePenName(penNameId: string, partial: Partial<PenName['identity']>): void {
+    this._company.update(c => ({
+      ...c,
+      imprints: c.imprints.map(imp => ({
+        ...imp,
+        penNames: imp.penNames.map(pn =>
+          pn.id === penNameId ? { ...pn, identity: { ...pn.identity, ...partial } } : pn
+        )
+      }))
+    }));
+    this.persist();
+  }
+
+  updateImprint(imprintId: string, partial: Partial<Imprint['identity']>): void {
+    this._company.update(c => ({
+      ...c,
+      imprints: c.imprints.map(imp =>
+        imp.id === imprintId ? { ...imp, identity: { ...imp.identity, ...partial } } : imp
+      )
+    }));
+    this.persist();
+  }
+
+  updateSeries(penNameId: string, seriesId: string, partial: Partial<Series['identity']>): void {
+    this._company.update(c => ({
+      ...c,
+      imprints: c.imprints.map(imp => ({
+        ...imp,
+        penNames: imp.penNames.map(pn =>
+          pn.id !== penNameId ? pn : {
+            ...pn,
+            series: pn.series.map(sr =>
+              sr.id === seriesId ? { ...sr, identity: { ...sr.identity, ...partial } } : sr
+            )
+          }
+        )
+      }))
+    }));
+    this.persist();
+  }
+
+  setCompanyAvatar(dataUrl: string): void {
+    this.patchIdentity({ avatarUrl: dataUrl });
+  }
+
+  setImprintAvatar(imprintId: string, dataUrl: string): void {
+    this.updateImprint(imprintId, { avatarUrl: dataUrl });
+  }
+
+  setPenNameAvatar(penNameId: string, dataUrl: string): void {
+    this.updatePenName(penNameId, { avatarUrl: dataUrl });
   }
 }

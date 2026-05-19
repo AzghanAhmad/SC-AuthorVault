@@ -4,7 +4,6 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthorVaultService } from '../../../services/author-vault.service';
 import { PenName } from '../../../models/author-vault.model';
-
 @Component({
   selector: 'app-vault-pennames-page',
   standalone: true,
@@ -292,7 +291,7 @@ import { PenName } from '../../../models/author-vault.model';
   `]
 })
 export class VaultPenNamesPageComponent {
-  private vs = inject(AuthorVaultService);
+  readonly vs = inject(AuthorVaultService);
   private router = inject(Router);
 
   allPenNames = computed(() => {

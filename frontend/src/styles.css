@@ -3,10 +3,12 @@
 /* ───── Theme Variables ───── */
 :root {
   /* Core palette */
-  --primary: rgb(28, 46, 74);
-  --primary-dark: rgb(18, 30, 48);
-  --primary-light: rgba(59, 130, 246, 0.08);
-  --accent-blue: #3b82f6;
+  --primary: rgb(14, 116, 178);
+  --primary-dark: rgb(8, 80, 130);
+  --primary-light: rgba(56, 189, 248, 0.12);
+  --accent-blue: #38bdf8;
+  --scribe-blue: #38bdf8;
+  --scribe-blue-dark: #0ea5e9;
   --accent-purple: #8b5cf6;
   --accent-teal: #14b8a6;
   --accent-indigo: #6366f1;
@@ -33,9 +35,9 @@
   --trend-down: #ef4444;
 
   /* Gradients */
-  --gradient-primary: linear-gradient(135deg, rgb(28, 46, 74) 0%, rgb(45, 75, 120) 100%);
-  --gradient-accent: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
-  --gradient-sidebar: linear-gradient(180deg, rgb(22, 38, 62) 0%, rgb(14, 24, 40) 100%);
+  --gradient-primary: linear-gradient(135deg, rgb(14, 116, 178) 0%, rgb(56, 189, 248) 100%);
+  --gradient-accent: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%);
+  --gradient-sidebar: linear-gradient(180deg, rgb(12, 74, 110) 0%, rgb(8, 47, 73) 100%);
 
   /* Shadows */
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);

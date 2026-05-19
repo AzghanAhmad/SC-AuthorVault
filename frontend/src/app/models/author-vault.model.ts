@@ -19,6 +19,8 @@ export interface CompanyIdentity {
   phone: string;
   primaryEmail: string;
   website: string;
+  avatarUrl?: string;
+  country?: string;
 }
 
 export interface OwnerRecord {
@@ -76,6 +78,7 @@ export interface ImprintIdentity {
   logo: string;
   website: string;
   email: string;
+  avatarUrl?: string;
 }
 
 export interface ImprintLegalISBN {
@@ -110,6 +113,9 @@ export interface PenNameIdentity {
   publiclyDisclosed: boolean;
   penNameType: 'Sole author' | 'Co-authored' | 'Ghostwritten' | 'House name';
   privacyLevel: 'Internal only' | 'Partially public' | 'Fully public';
+  additionalGenres?: string;
+  notes?: string;
+  avatarUrl?: string;
 }
 
 export interface CoAuthorPenLevel {
