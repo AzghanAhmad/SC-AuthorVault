@@ -1,4 +1,4 @@
-﻿import { Component, signal, computed } from '@angular/core';
+import { Component, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -20,7 +20,21 @@ interface IsbnRecord {
     <div class="page">
       <div class="page-header">
         <div>
-          <h1 class="page-title">ISBN Master List</h1>
+          <div class="page-title-wrap">
+            <svg class="header-icon-svg" viewBox="0 0 24 24" aria-hidden="true" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2.5 21h19"/>
+              <path d="M4.5 21V11.5h3.5V21"/>
+              <path d="M6.25 13.5v5"/>
+              <path d="M8.5 21V6h7V21"/>
+              <path d="M12 6V2.75"/>
+              <path d="M9.75 8h4.5"/><path d="M9.75 9.75h4.5"/><path d="M9.75 11.5h4.5"/>
+              <path d="M9.75 13.25h4.5"/><path d="M9.75 15h4.5"/><path d="M9.75 16.75h4.5"/>
+              <path d="M9.75 18.5h4.5"/>
+              <path d="M16 21V11.5h3.5V21"/>
+              <path d="M17.75 13.5v5"/>
+            </svg>
+            <h1 class="page-title" style="margin:0;">ISBN Master List</h1>
+          </div>
           <p class="page-subtitle">Track every ISBN across all formats and books</p>
         </div>
       </div>

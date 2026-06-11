@@ -192,13 +192,28 @@ type CorePlacementTarget = {
             <!-- ── FRONT MATTER ── -->
             <div class="file-section">
               <div class="file-section-header">
-                <h3 class="file-section-title">📖 Front Matter</h3>
+                <h3 class="file-section-title" style="display:flex;align-items:center;gap:.5rem">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" style="color:var(--accent-blue)"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+                  Front Matter
+                </h3>
                 <span class="file-section-desc">Everything before Chapter 1 — title page, copyright, dedication, TOC, foreword, preface</span>
               </div>
               <div class="file-slots-grid">
                 @for (slot of frontMatterSlots; track slot.key) {
                   <div class="file-slot" (click)="openUploadForSlot(slot)" (dragover)="$event.preventDefault()" (drop)="onDropToSlot($event, slot)">
-                    <div class="slot-icon">{{ slot.icon }}</div>
+                    <div class="slot-icon" style="display:flex;align-items:center;justify-content:center;color:var(--text-secondary)">
+                      @switch (slot.icon) {
+                        @case ('star') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> }
+                        @case ('file') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> }
+                        @case ('file-text') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> }
+                        @case ('image') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg> }
+                        @case ('copyright') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><circle cx="12" cy="12" r="10"/><path d="M14.83 14.83a4 4 0 1 1 0-5.66"/></svg> }
+                        @case ('heart') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> }
+                        @case ('pen') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> }
+                        @case ('list') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg> }
+                        @case ('thanks') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg> }
+                      }
+                    </div>
                     <div class="slot-info">
                       <div class="slot-name">{{ slot.label }}</div>
                       <div class="slot-desc">{{ slot.desc }}</div>
@@ -215,13 +230,27 @@ type CorePlacementTarget = {
             <!-- ── BODY ── -->
             <div class="file-section">
               <div class="file-section-header">
-                <h3 class="file-section-title">📝 Body</h3>
+                <h3 class="file-section-title" style="display:flex;align-items:center;gap:.5rem">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" style="color:var(--accent-blue)"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                  Body
+                </h3>
                 <span class="file-section-desc">The main manuscript — chapters, parts, epilogue</span>
               </div>
               <div class="file-slots-grid">
                 @for (slot of bodySlots; track slot.key) {
                   <div class="file-slot" (click)="openUploadForSlot(slot)" (dragover)="$event.preventDefault()" (drop)="onDropToSlot($event, slot)">
-                    <div class="slot-icon">{{ slot.icon }}</div>
+                    <div class="slot-icon" style="display:flex;align-items:center;justify-content:center;color:var(--text-secondary)">
+                      @switch (slot.icon) {
+                        @case ('play') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><polygon points="5 3 19 12 5 21 5 3"/></svg> }
+                        @case ('compass') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg> }
+                        @case ('book') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg> }
+                        @case ('book-open') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg> }
+                        @case ('list') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg> }
+                        @case ('image') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg> }
+                        @case ('check') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><polyline points="20 6 9 17 4 12"/></svg> }
+                        @case ('sparkles') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg> }
+                      }
+                    </div>
                     <div class="slot-info">
                       <div class="slot-name">{{ slot.label }}</div>
                       <div class="slot-desc">{{ slot.desc }}</div>
@@ -238,13 +267,35 @@ type CorePlacementTarget = {
             <!-- ── BACK MATTER ── -->
             <div class="file-section">
               <div class="file-section-header">
-                <h3 class="file-section-title">📚 Back Matter</h3>
+                <h3 class="file-section-title" style="display:flex;align-items:center;gap:.5rem">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" style="color:var(--accent-blue)"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><path d="M6 6h10M6 10h10M6 14h10"/></svg>
+                  Back Matter
+                </h3>
                 <span class="file-section-desc">Everything after the story — acknowledgments, author bio, bibliography, index, bonus content, next-book preview</span>
               </div>
               <div class="file-slots-grid">
                 @for (slot of backMatterSlots; track slot.key) {
                   <div class="file-slot" (click)="openUploadForSlot(slot)" (dragover)="$event.preventDefault()" (drop)="onDropToSlot($event, slot)">
-                    <div class="slot-icon">{{ slot.icon }}</div>
+                    <div class="slot-icon" style="display:flex;align-items:center;justify-content:center;color:var(--text-secondary)">
+                      @switch (slot.icon) {
+                        @case ('thanks') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg> }
+                        @case ('profile') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> }
+                        @case ('file-text') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> }
+                        @case ('pen') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> }
+                        @case ('mail') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg> }
+                        @case ('eye') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> }
+                        @case ('book') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg> }
+                        @case ('gift') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg> }
+                        @case ('book-open') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg> }
+                        @case ('number') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg> }
+                        @case ('link') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> }
+                        @case ('message') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> }
+                        @case ('paperclip') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg> }
+                        @case ('calendar') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> }
+                        @case ('receipt') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1-2-1Z"/><path d="M16 8H8"/><path d="M16 12H8"/><path d="M13 16H8"/></svg> }
+                        @case ('printer') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> }
+                      }
+                    </div>
                     <div class="slot-info">
                       <div class="slot-name">{{ slot.label }}</div>
                       <div class="slot-desc">{{ slot.desc }}</div>
@@ -261,13 +312,25 @@ type CorePlacementTarget = {
             <!-- ── METADATA & RETAILER COPY ── -->
             <div class="file-section">
               <div class="file-section-header">
-                <h3 class="file-section-title">🏷 Metadata & Retailer Copy</h3>
+                <h3 class="file-section-title" style="display:flex;align-items:center;gap:.5rem">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" style="color:var(--accent-blue)"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+                  Metadata & Retailer Copy
+                </h3>
                 <span class="file-section-desc">Book metadata, retailer descriptions, keywords, categories, and platform-specific back-matter instructions</span>
               </div>
               <div class="file-slots-grid">
                 @for (slot of metadataSlots; track slot.key) {
                   <div class="file-slot" (click)="openUploadForSlot(slot)" (dragover)="$event.preventDefault()" (drop)="onDropToSlot($event, slot)">
-                    <div class="slot-icon">{{ slot.icon }}</div>
+                    <div class="slot-icon" style="display:flex;align-items:center;justify-content:center;color:var(--text-secondary)">
+                      @switch (slot.icon) {
+                        @case ('clipboard') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg> }
+                        @case ('search') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> }
+                        @case ('cart') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg> }
+                        @case ('list') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg> }
+                        @case ('number') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg> }
+                        @case ('scale') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><line x1="12" y1="2" x2="12" y2="22"/><line x1="5" y1="5" x2="19" y2="5"/><path d="M5 5v14a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V5"/></svg> }
+                      }
+                    </div>
                     <div class="slot-info">
                       <div class="slot-name">{{ slot.label }}</div>
                       <div class="slot-desc">{{ slot.desc }}</div>
@@ -284,7 +347,10 @@ type CorePlacementTarget = {
             <!-- ── EBOOK FILES (per platform) ── -->
             <div class="file-section">
               <div class="file-section-header">
-                <h3 class="file-section-title">📱 Ebook Files — Per Platform</h3>
+                <h3 class="file-section-title" style="display:flex;align-items:center;gap:.5rem">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" style="color:var(--accent-blue)"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+                  Ebook Files — Per Platform
+                </h3>
                 <span class="file-section-desc">Each platform may require different metadata in the back matter, different cover sizes, or different EPUB specs</span>
               </div>
               <div class="platform-file-grid">
@@ -312,7 +378,10 @@ type CorePlacementTarget = {
             <!-- ── PAPERBACK INTERIORS (per trim size) ── -->
             <div class="file-section">
               <div class="file-section-header">
-                <h3 class="file-section-title">📄 Paperback Interiors — Per Trim Size</h3>
+                <h3 class="file-section-title" style="display:flex;align-items:center;gap:.5rem">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" style="color:var(--accent-blue)"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                  Paperback Interiors — Per Trim Size
+                </h3>
                 <span class="file-section-desc">Each trim size is a separate formatted file. Most authors use one size; some use several.</span>
               </div>
               <div class="platform-file-grid">
@@ -340,7 +409,10 @@ type CorePlacementTarget = {
             <!-- ── COVER ART (per platform/format) ── -->
             <div class="file-section">
               <div class="file-section-header">
-                <h3 class="file-section-title">🎨 Cover Art — Per Platform & Format</h3>
+                <h3 class="file-section-title" style="display:flex;align-items:center;gap:.5rem">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" style="color:var(--accent-blue)"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                  Cover Art — Per Platform & Format
+                </h3>
                 <span class="file-section-desc">Each platform and format requires specific cover dimensions. Source files (PSD/AI) go here too.</span>
               </div>
               <div class="platform-file-grid">
@@ -368,13 +440,23 @@ type CorePlacementTarget = {
             <!-- ── AUDIOBOOK ── -->
             <div class="file-section">
               <div class="file-section-header">
-                <h3 class="file-section-title">🎧 Audiobook Files</h3>
+                <h3 class="file-section-title" style="display:flex;align-items:center;gap:.5rem">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" style="color:var(--accent-blue)"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
+                  Audiobook Files
+                </h3>
                 <span class="file-section-desc">Audio is one-size-fits-all across platforms. Upload chapter files or the full production master.</span>
               </div>
               <div class="file-slots-grid">
                 @for (slot of audiobookSlots; track slot.key) {
                   <div class="file-slot" (click)="openUploadForSlot(slot)" (dragover)="$event.preventDefault()" (drop)="onDropToSlot($event, slot)">
-                    <div class="slot-icon">{{ slot.icon }}</div>
+                    <div class="slot-icon" style="display:flex;align-items:center;justify-content:center;color:var(--text-secondary)">
+                      @switch (slot.icon) {
+                        @case ('mic') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg> }
+                        @case ('headphones') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg> }
+                        @case ('image') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg> }
+                        @case ('play-icon') { <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><polygon points="5 3 19 12 5 21 5 3"/></svg> }
+                      }
+                    </div>
                     <div class="slot-info">
                       <div class="slot-name">{{ slot.label }}</div>
                       <div class="slot-desc">{{ slot.desc }}</div>
@@ -614,6 +696,26 @@ type CorePlacementTarget = {
                   </div>
                 </button>
               }
+            </div>
+
+            <!-- Interactive AI Custom Prompt Box (Question Box) -->
+            <div class="card section-card" style="margin-top:1.5rem">
+              <h3 class="section-title" style="display:flex;align-items:center;gap:.5rem">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" style="color:var(--accent-blue)"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                Ask a Custom Question
+              </h3>
+              <p class="section-subtitle">Type a prompt below to generate custom blurbs, marketing hooks, or email campaigns for this book.</p>
+              
+              <div class="ai-prompt-box" style="position:relative;display:flex;align-items:center;background:var(--background);border:1.5px solid var(--border-color);border-radius:12px;padding:.5rem .75rem;transition:border-color .2s">
+                <span style="color:var(--text-muted);display:flex;align-items:center;margin-right:.6rem">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                </span>
+                <input type="text" [(ngModel)]="customAiPrompt" (keydown.enter)="runCustomAiAction()" placeholder="Ask AI to write copy, draft an email, or compile notes..." style="flex:1;background:transparent;border:none;outline:none;font-family:inherit;font-size:.875rem;color:var(--text-primary);padding:.5rem 0" />
+                <button (click)="runCustomAiAction()" [disabled]="aiLoading() || !customAiPrompt.trim()" style="background:var(--accent-blue);color:#fff;border:none;border-radius:8px;padding:.4rem .85rem;font-size:.8125rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:.35rem;font-family:inherit;transition:opacity .15s">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                  Send
+                </button>
+              </div>
             </div>
 
             <!-- AI Output -->
@@ -1054,61 +1156,61 @@ export class BookDetailComponent implements OnInit {
 
   // ── Front Matter slots ──
   frontMatterSlots = [
-    { key: 'fm-accolades', label: 'Accolades / Praise', desc: 'Praise quotes and reviews', icon: '⭐' },
-    { key: 'fm-half-title', label: 'Half Title Page', desc: 'Title only, no author', icon: '📄' },
-    { key: 'fm-frontispiece', label: 'Frontispiece', desc: 'Illustration or decorative page facing title', icon: '🖼' },
-    { key: 'fm-title-page', label: 'Full Title Page', desc: 'Title, author, imprint', icon: '📄' },
-    { key: 'fm-copyright', label: 'Copyright Page', desc: 'ISBN, copyright, legal notices', icon: '©' },
-    { key: 'fm-dedication', label: 'Dedication', desc: 'Dedication text', icon: '💌' },
-    { key: 'fm-epigraph', label: 'Epigraph', desc: 'Opening quote or poem', icon: '✍️' },
-    { key: 'fm-toc', label: 'Table of Contents', desc: 'Chapter list with page numbers', icon: '📋' },
-    { key: 'fm-foreword', label: 'Foreword', desc: 'Written by someone other than the author', icon: '📝' },
-    { key: 'fm-preface', label: 'Preface', desc: 'Author\'s introduction to the book', icon: '📝' },
-    { key: 'fm-acknowledgments-front', label: 'Acknowledgments (Front)', desc: 'If placed before the story', icon: '🙏' },
+    { key: 'fm-accolades', label: 'Accolades / Praise', desc: 'Praise quotes and reviews', icon: 'star' },
+    { key: 'fm-half-title', label: 'Half Title Page', desc: 'Title only, no author', icon: 'file' },
+    { key: 'fm-frontispiece', label: 'Frontispiece', desc: 'Illustration or decorative page facing title', icon: 'image' },
+    { key: 'fm-title-page', label: 'Full Title Page', desc: 'Title, author, imprint', icon: 'file' },
+    { key: 'fm-copyright', label: 'Copyright Page', desc: 'ISBN, copyright, legal notices', icon: 'copyright' },
+    { key: 'fm-dedication', label: 'Dedication', desc: 'Dedication text', icon: 'heart' },
+    { key: 'fm-epigraph', label: 'Epigraph', desc: 'Opening quote or poem', icon: 'pen' },
+    { key: 'fm-toc', label: 'Table of Contents', desc: 'Chapter list with page numbers', icon: 'list' },
+    { key: 'fm-foreword', label: 'Foreword', desc: 'Written by someone other than the author', icon: 'file-text' },
+    { key: 'fm-preface', label: 'Preface', desc: 'Author\'s introduction to the book', icon: 'file-text' },
+    { key: 'fm-acknowledgments-front', label: 'Acknowledgments (Front)', desc: 'If placed before the story', icon: 'thanks' },
   ];
 
   // ── Body slots ──
   bodySlots = [
-    { key: 'body-prologue', label: 'Prologue', desc: 'Sets the stage before Chapter 1', icon: '🎬' },
-    { key: 'body-introduction', label: 'Introduction', desc: 'Context for nonfiction or guided reading', icon: '🧭' },
-    { key: 'body-manuscript', label: 'Full Manuscript', desc: 'Complete formatted manuscript file', icon: '📖' },
-    { key: 'body-chapters', label: 'Chapter Files', desc: 'Individual chapter files (if split)', icon: '📑' },
-    { key: 'body-parts', label: 'Part Dividers', desc: 'Part I, Part II, etc.', icon: '🗂' },
-    { key: 'body-illustrations', label: 'Interior Images / Figures', desc: 'Illustrations, tables, maps, charts', icon: '🖼' },
-    { key: 'body-conclusion', label: 'Conclusion', desc: 'Wrap-up section for nonfiction', icon: '✅' },
-    { key: 'body-epilogue', label: 'Epilogue', desc: 'Story content after final chapter', icon: '🎭' },
-    { key: 'body-interlude', label: 'Interlude / Bonus Scene', desc: 'Bonus content within the story', icon: '✨' },
+    { key: 'body-prologue', label: 'Prologue', desc: 'Sets the stage before Chapter 1', icon: 'play' },
+    { key: 'body-introduction', label: 'Introduction', desc: 'Context for nonfiction or guided reading', icon: 'compass' },
+    { key: 'body-manuscript', label: 'Full Manuscript', desc: 'Complete formatted manuscript file', icon: 'book' },
+    { key: 'body-chapters', label: 'Chapter Files', desc: 'Individual chapter files (if split)', icon: 'book-open' },
+    { key: 'body-parts', label: 'Part Dividers', desc: 'Part I, Part II, etc.', icon: 'list' },
+    { key: 'body-illustrations', label: 'Interior Images / Figures', desc: 'Illustrations, tables, maps, charts', icon: 'image' },
+    { key: 'body-conclusion', label: 'Conclusion', desc: 'Wrap-up section for nonfiction', icon: 'check' },
+    { key: 'body-epilogue', label: 'Epilogue', desc: 'Story content after final chapter', icon: 'play' },
+    { key: 'body-interlude', label: 'Interlude / Bonus Scene', desc: 'Bonus content within the story', icon: 'sparkles' },
   ];
 
   // ── Back Matter slots ──
   backMatterSlots = [
-    { key: 'bm-acknowledgments', label: 'Acknowledgments', desc: 'Thank-you section', icon: '🙏' },
-    { key: 'bm-author-bio', label: 'Author Bio', desc: 'About the author page', icon: '👤' },
-    { key: 'bm-author-note', label: 'Author\'s Note', desc: 'Notes on research, inspiration, etc.', icon: '📝' },
-    { key: 'bm-afterword', label: 'Afterword', desc: 'Reflection after the main text', icon: '🪶' },
-    { key: 'bm-postscript', label: 'Postscript', desc: 'Final note or update', icon: '✉️' },
-    { key: 'bm-next-book', label: 'Next Book Preview', desc: 'Chapter 1 of the next book', icon: '👀' },
-    { key: 'bm-series-list', label: 'Also By / Series List', desc: 'Other books by this author', icon: '📚' },
-    { key: 'bm-bonus-material', label: 'Bonus Material', desc: 'Extras, deleted scenes, preview content', icon: '🎁' },
-    { key: 'bm-newsletter-cta', label: 'Newsletter CTA', desc: 'Reader magnet / sign-up link', icon: '📧' },
-    { key: 'bm-glossary', label: 'Glossary', desc: 'Definitions of terms used', icon: '📖' },
-    { key: 'bm-endnotes', label: 'Endnotes', desc: 'Citations and supplemental notes', icon: '🔢' },
-    { key: 'bm-bibliography', label: 'Bibliography', desc: 'Sources and references', icon: '🔗' },
-    { key: 'bm-index', label: 'Index', desc: 'Alphabetical index (non-fiction)', icon: '🗃' },
-    { key: 'bm-discussion', label: 'Discussion Questions', desc: 'Book club / reader guide', icon: '💬' },
-    { key: 'bm-appendix', label: 'Appendix', desc: 'Supplementary material', icon: '📎' },
-    { key: 'bm-timeline', label: 'Chronology / Timeline', desc: 'Dates, events, continuity notes', icon: '🗓' },
-    { key: 'bm-permissions', label: 'Permissions / Credits', desc: 'Licensed text, images, lyrics, or art credits', icon: '🧾' },
-    { key: 'bm-colophon', label: 'Colophon', desc: 'Typeface and production notes', icon: '🖨' },
+    { key: 'bm-acknowledgments', label: 'Acknowledgments', desc: 'Thank-you section', icon: 'thanks' },
+    { key: 'bm-author-bio', label: 'Author Bio', desc: 'About the author page', icon: 'profile' },
+    { key: 'bm-author-note', label: 'Author\'s Note', desc: 'Notes on research, inspiration, etc.', icon: 'file-text' },
+    { key: 'bm-afterword', label: 'Afterword', desc: 'Reflection after the main text', icon: 'pen' },
+    { key: 'bm-postscript', label: 'Postscript', desc: 'Final note or update', icon: 'mail' },
+    { key: 'bm-next-book', label: 'Next Book Preview', desc: 'Chapter 1 of the next book', icon: 'eye' },
+    { key: 'bm-series-list', label: 'Also By / Series List', desc: 'Other books by this author', icon: 'book' },
+    { key: 'bm-bonus-material', label: 'Bonus Material', desc: 'Extras, deleted scenes, preview content', icon: 'gift' },
+    { key: 'bm-newsletter-cta', label: 'Newsletter CTA', desc: 'Reader magnet / sign-up link', icon: 'mail' },
+    { key: 'bm-glossary', label: 'Glossary', desc: 'Definitions of terms used', icon: 'book-open' },
+    { key: 'bm-endnotes', label: 'Endnotes', desc: 'Citations and supplemental notes', icon: 'number' },
+    { key: 'bm-bibliography', label: 'Bibliography', desc: 'Sources and references', icon: 'link' },
+    { key: 'bm-index', label: 'Index', desc: 'Alphabetical index (non-fiction)', icon: 'list' },
+    { key: 'bm-discussion', label: 'Discussion Questions', desc: 'Book club / reader guide', icon: 'message' },
+    { key: 'bm-appendix', label: 'Appendix', desc: 'Supplementary material', icon: 'paperclip' },
+    { key: 'bm-timeline', label: 'Chronology / Timeline', desc: 'Dates, events, continuity notes', icon: 'calendar' },
+    { key: 'bm-permissions', label: 'Permissions / Credits', desc: 'Licensed text, images, lyrics, or art credits', icon: 'receipt' },
+    { key: 'bm-colophon', label: 'Colophon', desc: 'Typeface and production notes', icon: 'printer' },
   ];
 
   metadataSlots = [
-    { key: 'meta-master', label: 'Master Metadata Sheet', desc: 'Canonical title, subtitle, author, identifiers, pricing, and territories', icon: '📋' },
-    { key: 'meta-keywords', label: 'Keywords & Categories', desc: 'BISAC, retailer categories, search keywords', icon: '🔎' },
-    { key: 'meta-retailer-copy', label: 'Retailer Description Copy', desc: 'Short and long descriptions by storefront', icon: '🛒' },
-    { key: 'meta-backmatter-rules', label: 'Back-Matter Rules', desc: 'Platform-specific links, CTAs, previews, and compliance notes', icon: '📌' },
-    { key: 'meta-isbn', label: 'ISBN / Identifier Records', desc: 'ISBN, ASIN, Apple ID, Kobo ID, Google Play ID, direct sales SKU', icon: '#️⃣' },
-    { key: 'meta-rights', label: 'Rights & Territory Notes', desc: 'Rights ownership, territories, distributor restrictions', icon: '⚖️' },
+    { key: 'meta-master', label: 'Master Metadata Sheet', desc: 'Canonical title, subtitle, author, identifiers, pricing, and territories', icon: 'clipboard' },
+    { key: 'meta-keywords', label: 'Keywords & Categories', desc: 'BISAC, retailer categories, search keywords', icon: 'search' },
+    { key: 'meta-retailer-copy', label: 'Retailer Description Copy', desc: 'Short and long descriptions by storefront', icon: 'cart' },
+    { key: 'meta-backmatter-rules', label: 'Back-Matter Rules', desc: 'Platform-specific links, CTAs, previews, and compliance notes', icon: 'list' },
+    { key: 'meta-isbn', label: 'ISBN / Identifier Records', desc: 'ISBN, ASIN, Apple ID, Kobo ID, Google Play ID, direct sales SKU', icon: 'number' },
+    { key: 'meta-rights', label: 'Rights & Territory Notes', desc: 'Rights ownership, territories, distributor restrictions', icon: 'scale' },
   ];
 
   // ── Ebook per-platform slots ──
@@ -1271,11 +1373,11 @@ export class BookDetailComponent implements OnInit {
 
   // ── Audiobook slots ──
   audiobookSlots = [
-    { key: 'audio-master', label: 'Production Master', desc: 'Full uncompressed master file', icon: '🎙' },
-    { key: 'audio-acx', label: 'ACX / Audible File', desc: 'MP3 192kbps, per ACX specs', icon: '🎧' },
-    { key: 'audio-findaway', label: 'Findaway Voices', desc: 'For wide audio distribution', icon: '🎧' },
-    { key: 'audio-cover', label: 'Audiobook Cover', desc: '3000×3000px square JPG', icon: '🖼' },
-    { key: 'audio-retail-sample', label: 'Retail Sample', desc: '5-min sample for store preview', icon: '▶️' },
+    { key: 'audio-master', label: 'Production Master', desc: 'Full uncompressed master file', icon: 'mic' },
+    { key: 'audio-acx', label: 'ACX / Audible File', desc: 'MP3 192kbps, per ACX specs', icon: 'headphones' },
+    { key: 'audio-findaway', label: 'Findaway Voices', desc: 'For wide audio distribution', icon: 'headphones' },
+    { key: 'audio-cover', label: 'Audiobook Cover', desc: '3000×3000px square JPG', icon: 'image' },
+    { key: 'audio-retail-sample', label: 'Retail Sample', desc: '5-min sample for store preview', icon: 'play-icon' },
   ];
 
   corePlacementTargets: CorePlacementTarget[] = [
@@ -1411,6 +1513,8 @@ export class BookDetailComponent implements OnInit {
     { label: 'Draft Newsletter', description: 'Create an engaging newsletter for your reader list', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>', mock: 'NEWSLETTER DRAFT:\n\nSubject Line: A new chapter begins...\n\nDear [Reader],\n\nI have exciting news to share!\n\nMy latest book is now available, and I couldn\'t be more thrilled to finally put it in your hands. This one has been a labor of love — months of research, countless revisions, and many late nights.\n\nHere\'s what readers are saying:\n"Incredible storytelling..." ★★★★★\n"I couldn\'t put it down!" ★★★★★\n\nAs a valued subscriber, you get an exclusive 20% discount:\nUse code: READER20 at checkout.\n\n📖 Grab your copy: [LINK]\n\nThank you for being part of this journey.\n\nWarmly,\n[Author Name]' },
     { label: 'Pull Approved Assets', description: 'Compile all approved marketing materials into one document', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>', mock: 'APPROVED ASSETS COMPILATION:\n\n═══════════════════════════════\n1. Amazon Launch Ad — Facebook\n   Status: ✅ Approved\n   Platform: Facebook\n   Campaign: Launch Q1 2024\n\n   Content:\n   📚 Discover the novel about all the lives you could have lived.\n   Available on Kindle & in print.\n   ⭐⭐⭐⭐⭐ "Life-changing read!"\n\n═══════════════════════════════\n2. Newsletter Announcement\n   Status: ✅ Approved\n   Platform: Email\n   Campaign: Launch Q1 2024\n\n═══════════════════════════════\n3. Instagram Carousel Headlines\n   Status: ✅ Approved\n   Platform: Instagram\n   Campaign: Social Launch\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nTotal Approved: 3 assets\nTotal Draft: 2 assets\nCompiled: ' + new Date().toLocaleDateString() },
   ];
+
+  customAiPrompt = '';
 
   configuredPlatforms = signal(0);
   approvedCount = signal(0);
@@ -1592,6 +1696,18 @@ export class BookDetailComponent implements OnInit {
     this.aiResult.set('');
     setTimeout(() => {
       this.aiResult.set(action.mock);
+      this.aiLoading.set(false);
+    }, 1500 + Math.random() * 1000);
+  }
+
+  runCustomAiAction() {
+    if (!this.customAiPrompt.trim()) return;
+    const prompt = this.customAiPrompt.trim();
+    this.aiLoading.set(true);
+    this.aiResult.set('');
+    this.customAiPrompt = '';
+    setTimeout(() => {
+      this.aiResult.set(`CUSTOM AI RESPONSE FOR PROMPT: "${prompt}"\n\nHere is a draft response tailored to your request:\n\n1. Overview:\n   We analyzed your prompt regarding "${this.book()?.title}" and generated a fresh copy structure.\n\n2. Suggested Copy:\n   "In this brilliant work, "${this.book()?.title}" by ${this.book()?.author}, the narrative pushes the boundaries of imagination to deliver a truly captivating reading experience."\n\n3. Key Hooks:\n   - Modern storytelling with high-stakes tension\n   - Exceptional depth and pacing\n\nFeel free to adjust this generated content or copy it to your clipboard.`);
       this.aiLoading.set(false);
     }, 1500 + Math.random() * 1000);
   }

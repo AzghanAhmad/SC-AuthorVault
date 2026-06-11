@@ -35,7 +35,12 @@ interface BookEdition {
       <div class="page-header">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem">
           <div>
-            <h1 class="page-title">🌐 Languages</h1>
+            <div class="page-title-wrap">
+              <svg class="header-icon-svg" viewBox="0 0 24 24" aria-hidden="true" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
+              </svg>
+              <h1 class="page-title" style="margin:0;">Languages</h1>
+            </div>
             <p class="page-subtitle">
               @if (!selectedLanguage) { Select a language to see all titles published in that language }
               @if (selectedLanguage && !selectedEdition) { Showing all <strong>{{ selectedLanguage }}</strong> titles — click a title to view its book file }
@@ -152,7 +157,23 @@ interface BookEdition {
         <div class="vault-layout" style="margin-top:1rem">
           <nav class="vault-nav">
             @for (t of detailTabs; track t.id) {
-              <button class="tab-item" [class.active]="detailTab() === t.id" (click)="detailTab.set(t.id)">{{ t.label }}</button>
+              <button class="tab-item" [class.active]="detailTab() === t.id" (click)="detailTab.set(t.id)">
+                @switch (t.id) {
+                  @case ('edition') {
+                    <svg class="tab-icon-svg" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+                  }
+                  @case ('metadata') {
+                    <svg class="tab-icon-svg" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                  }
+                  @case ('identifiers') {
+                    <svg class="tab-icon-svg" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
+                  }
+                  @case ('formats') {
+                    <svg class="tab-icon-svg" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                  }
+                }
+                {{ t.label }}
+              </button>
             }
           </nav>
           <div class="vault-content">
@@ -216,7 +237,15 @@ interface BookEdition {
                 <h3 class="section-title">Formats — {{ be.branch.edition.language }} Edition</h3>
                 <p class="section-subtitle">Each format below is a separate file for a specific platform. Ebooks vary by platform metadata; paperbacks vary by trim size.</p>
                 @if (!be.branch.formats.length) {
-                  <div class="empty-state"><div class="empty-icon">📄</div><p>No formats yet for this edition</p></div>
+                  <div class="empty-state">
+                    <div class="empty-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="40" height="40" style="color:var(--text-muted)">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                      </svg>
+                    </div>
+                    <p>No formats yet for this edition</p>
+                  </div>
                 }
                 @for (f of be.branch.formats; track f.id) {
                   <div class="record-card" style="margin-bottom:.75rem">
@@ -315,10 +344,10 @@ export class VaultLanguagesPageComponent {
   newLanguage = '';
 
   detailTabs = [
-    { id: 'edition',     label: '📖 Edition' },
-    { id: 'metadata',    label: '📝 Metadata' },
-    { id: 'identifiers', label: '🔢 ISBNs' },
-    { id: 'formats',     label: '📄 Formats' },
+    { id: 'edition',     label: 'Edition' },
+    { id: 'metadata',    label: 'Metadata' },
+    { id: 'identifiers', label: 'ISBNs' },
+    { id: 'formats',     label: 'Formats' },
   ];
 
   get availableLanguages(): string[] {

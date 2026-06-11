@@ -142,6 +142,8 @@ export interface PenNameBranding {
   brandFonts: string;
   coverStyleNotes: string;
   logo: string;
+  pressKitFile?: string;
+  pressKitChecklist?: string[];
 }
 
 export interface PlatformAccount {

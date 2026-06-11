@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit, HostListener } from '@angular/core';
+import { Component, inject, signal, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -93,7 +93,7 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
         <h2 style="font-size:1.25rem;font-weight:700;color:var(--text-primary);margin:0 0 1.25rem;">Change PIN</h2>
         <div style="text-align:left;">
           <div style="margin-bottom:.85rem;">
-            <label style="font-size:.75rem;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:.35rem;">Current PIN</label>
+            <label style="font-size:.75rem;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing: .04em;display:block;margin-bottom:.35rem;">Current PIN</label>
             <input type="password" maxlength="4" [(ngModel)]="currentPinInput" style="width:100%;padding:.55rem .75rem;border:1.5px solid var(--border-color);border-radius:8px;background:var(--background);color:var(--text-primary);font-size:1rem;font-family:inherit;box-sizing:border-box;">
           </div>
           <div style="margin-bottom:.85rem;">
@@ -117,7 +117,7 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
 <div class="page">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.25rem;">
     <div>
-      <label class="entity-avatar-upload" title="Upload company avatar" style="margin-right:.5rem;">
+      <label class="entity-avatar-upload" title="Upload company avatar (Click to change)" style="margin-right:.5rem;">
         @if (company().identity.avatarUrl) {
           <img [src]="company().identity.avatarUrl" alt="" class="entity-avatar-img" />
         } @else {
@@ -125,7 +125,21 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
         }
         <input type="file" accept="image/*" hidden (change)="onCompanyAvatar($event)" />
       </label>
-      <h1 class="page-title" style="display:inline">{{ company().identity.legalName }}</h1>
+      <div class="page-title-wrap" style="display:inline-flex; align-items:center; vertical-align:middle;">
+        <svg class="header-icon-svg" viewBox="0 0 24 24" aria-hidden="true" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2.5 21h19"/>
+          <path d="M4.5 21V11.5h3.5V21"/>
+          <path d="M6.25 13.5v5"/>
+          <path d="M8.5 21V6h7V21"/>
+          <path d="M12 6V2.75"/>
+          <path d="M9.75 8h4.5"/><path d="M9.75 9.75h4.5"/><path d="M9.75 11.5h4.5"/>
+          <path d="M9.75 13.25h4.5"/><path d="M9.75 15h4.5"/><path d="M9.75 16.75h4.5"/>
+          <path d="M9.75 18.5h4.5"/>
+          <path d="M16 21V11.5h3.5V21"/>
+          <path d="M17.75 13.5v5"/>
+        </svg>
+        <h1 class="page-title" style="margin: 0 0 0 0.5rem; display: inline-block;">{{ company().identity.legalName }}</h1>
+      </div>
       <p class="page-subtitle">{{ company().identity.entityType }} · {{ company().identity.stateOfIncorporation }} · <span class="status status-green">{{ company().identity.companyStatus }}</span></p>
     </div>
     <button (click)="lockVault()" style="display:inline-flex;align-items:center;gap:.4rem;padding:.4rem .85rem;background:var(--surface);border:1.5px solid var(--border-color);border-radius:8px;font-size:.8125rem;font-weight:500;color:var(--text-secondary);cursor:pointer;font-family:inherit;">
@@ -153,7 +167,62 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
   <div class="vault-layout">
     <nav class="vault-nav">
       @for(t of tabs; track t.id) {
-        <button class="tab-item" [class.active]="activeTab()===t.id" (click)="activeTab.set(t.id)">{{ t.icon }} {{ t.label }}</button>
+        <button class="tab-item" [class.active]="activeTab()===t.id" (click)="activeTab.set(t.id)">
+          @switch (t.id) {
+            @case ('overview') {
+              <svg class="tab-icon-svg" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M21 12H3M12 3v18"/></svg>
+            }
+            @case ('identity') {
+              <svg class="tab-icon-svg" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            }
+            @case ('ownership') {
+              <svg class="tab-icon-svg" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            }
+            @case ('legal') {
+              <svg class="tab-icon-svg" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22V8M5 12H19M19 12a4 4 0 1 1-8 0M5 12a4 4 0 1 1 8 0M2 22h20"/></svg>
+            }
+            @case ('banking') {
+              <svg class="tab-icon-svg" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+            }
+            @case ('tax') {
+              <svg class="tab-icon-svg" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            }
+            @case ('platforms') {
+              <svg class="tab-icon-svg" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+            }
+            @case ('isbns') {
+              <svg class="tab-icon-svg" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
+            }
+            @case ('contracts') {
+              <svg class="tab-icon-svg" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            }
+            @case ('financial') {
+              <svg class="tab-icon-svg" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            }
+            @case ('team') {
+              <svg class="tab-icon-svg" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            }
+            @case ('domains') {
+              <svg class="tab-icon-svg" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            }
+            @case ('comms') {
+              <svg class="tab-icon-svg" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            }
+            @case ('inventory') {
+              <svg class="tab-icon-svg" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+            }
+            @case ('security') {
+              <svg class="tab-icon-svg" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            }
+            @case ('logos') {
+              <svg class="tab-icon-svg" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z"/><circle cx="7.5" cy="10.5" r="1.5"/><circle cx="11.5" cy="7.5" r="1.5"/><circle cx="16.5" cy="9.5" r="1.5"/><circle cx="15.5" cy="14.5" r="1.5"/></svg>
+            }
+            @case ('sops') {
+              <svg class="tab-icon-svg" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
+            }
+          }
+          {{ t.label }}
+        </button>
       }
     </nav>
 
@@ -220,7 +289,16 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
                   <td><input class="form-input" [ngModel]="o.name" (ngModelChange)="patchOwner(i, 'name', $event)" /></td>
                   <td><input class="form-input" [ngModel]="o.role" (ngModelChange)="patchOwner(i, 'role', $event)" /></td>
                   <td><input class="form-input" [ngModel]="o.ownershipPct" (ngModelChange)="patchOwner(i, 'ownershipPct', $event)" /></td>
-                  <td><input class="form-input" [ngModel]="o.email" (ngModelChange)="patchOwner(i, 'email', $event)" /></td>
+                  <td>
+                    <div style="display:flex;align-items:center;gap:.35rem">
+                      <input class="form-input" style="flex:1" [ngModel]="o.email" (ngModelChange)="patchOwner(i, 'email', $event)" />
+                      @if (o.email) {
+                        <a [href]="scEmailHref(o.email)" target="_blank" rel="noopener noreferrer" title="Compose email in SC Email" style="color:var(--accent-blue);flex-shrink:0">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                        </a>
+                      }
+                    </div>
+                  </td>
                   <td><input class="form-input" [ngModel]="o.phone" (ngModelChange)="patchOwner(i, 'phone', $event)" /></td>
                   <td>
                     <select class="form-input" [ngModel]="o.canSign" (ngModelChange)="patchOwner(i, 'canSign', $event)">
@@ -239,20 +317,29 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
         </div>
         <div class="card">
           <h3 class="section-title">Documents per Person</h3>
-          <p class="section-subtitle">CVs, letterhead, business cards, avatar pics, bio, electronic signature, job description, signed NDA</p>
-          @for(o of ownerProfiles; track o.name) {
-            <div class="record-card">
+          <p class="section-subtitle">Upload CVs, letterhead, business cards, avatar photos, bios, electronic signatures, job descriptions, and signed NDAs for each person</p>
+          @for(o of ownerProfiles; track o.name; let oi = $index) {
+            <div class="record-card" style="margin-bottom:1rem">
               <div class="record-header"><h4 class="record-title">{{ o.name }} — {{ o.role }}</h4></div>
-              <div class="tag-row">
-                <span class="tag">📄 CV / Resume</span>
-                <span class="tag">🖼 Avatar Photo</span>
-                <span class="tag">✍️ Electronic Signature</span>
-                <span class="tag">📋 Job Description</span>
-                <span class="tag">🤝 Signed NDA</span>
-                <span class="tag">📇 Business Card</span>
-                <span class="tag">📝 Bio (Short)</span>
-                <span class="tag">📝 Bio (Long)</span>
-                <span class="tag">🖨 Letterhead Template</span>
+              <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:.625rem;margin-top:.75rem">
+                @for(slot of ownerDocSlots; track slot.key) {
+                  <div class="doc-upload-slot" [class.has-file]="o.docs?.[slot.key]" [title]="o.docs?.[slot.key] ? 'Click to view ' + slot.label : 'Upload ' + slot.label">
+                    <span class="doc-slot-icon">{{ slot.icon }}</span>
+                    <div class="doc-slot-body" (click)="o.docs?.[slot.key] ? downloadFile(o.docs?.[slot.key]) : null">
+                      <span class="doc-slot-name" [style.text-decoration]="o.docs?.[slot.key] ? 'underline' : 'none'">{{ slot.label }}</span>
+                      <span class="doc-slot-hint">{{ o.docs?.[slot.key] ? '✓ ' + o.docs?.[slot.key] : slot.hint }}</span>
+                    </div>
+                    @if (o.docs?.[slot.key]) {
+                      <span class="doc-slot-btn-delete" title="Delete document" (click)="$event.stopPropagation(); removeOwnerDoc(oi, slot.key)">✕</span>
+                    } @else {
+                      <label style="margin:0;cursor:pointer;" class="doc-slot-btn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        Attach
+                        <input type="file" hidden (change)="onOwnerDocUpload($event, oi, slot.key)" />
+                      </label>
+                    }
+                  </div>
+                }
               </div>
             </div>
           }
@@ -273,9 +360,10 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
           <div class="form-grid">
             <div class="form-group"><span class="form-label">EIN / Tax ID</span>
               <div style="display:flex;align-items:center;gap:.5rem;">
-                <div class="form-value" style="flex:1">{{ showEin ? company().identity.einTaxId : '**-*******' }}</div>
-                <button (click)="revealEin()" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:.875rem;">{{ showEin ? '🙈 Hide' : '👁 Reveal' }}</button>
-                @if(einTimer > 0) { <span style="font-size:.7rem;color:var(--text-muted);">auto-hides in {{einTimer}}s</span> }
+                <div class="form-value" style="flex:1">{{ isRevealed('legal-ein') ? company().identity.einTaxId : '**-*******' }}</div>
+                <button (click)="toggleReveal('legal-ein')" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:.875rem;">
+                  {{ isRevealed('legal-ein') ? '🙈 Hide (' + getTimerValue('legal-ein') + 's)' : '👁 Reveal' }}
+                </button>
               </div>
             </div>
             <app-editable-field label="Registered Agent" [value]="company().identity.registeredAgent" (valueChange)="vs.patchIdentity({ registeredAgent: $event })"  />
@@ -333,12 +421,16 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
                   <td><input class="form-input" [ngModel]="b.bank" (ngModelChange)="patchBank(i, 'bank', $event)" /></td>
                   <td><input class="form-input" [ngModel]="b.nickname" (ngModelChange)="patchBank(i, 'nickname', $event)" /></td>
                   <td>
-                    <span style="font-family:monospace">{{ b.showAccount ? b.account : '****' + b.account.slice(-4) }}</span>
-                    <button (click)="b.showAccount=!b.showAccount" style="background:none;border:none;cursor:pointer;color:var(--text-muted);margin-left:.35rem;">{{ b.showAccount ? '🙈' : '👁' }}</button>
+                    <span style="font-family:monospace">{{ isRevealed('bank-account-' + i) ? b.account : '****' + b.account.slice(-4) }}</span>
+                    <button (click)="toggleReveal('bank-account-' + i)" style="background:none;border:none;cursor:pointer;color:var(--text-muted);margin-left:.35rem;">
+                      {{ isRevealed('bank-account-' + i) ? '🙈' + ' (' + getTimerValue('bank-account-' + i) + 's)' : '👁' }}
+                    </button>
                   </td>
                   <td>
-                    <span style="font-family:monospace">{{ b.showRouting ? b.routing : '****' + b.routing.slice(-4) }}</span>
-                    <button (click)="b.showRouting=!b.showRouting" style="background:none;border:none;cursor:pointer;color:var(--text-muted);margin-left:.35rem;">{{ b.showRouting ? '🙈' : '👁' }}</button>
+                    <span style="font-family:monospace">{{ isRevealed('bank-routing-' + i) ? b.routing : '****' + b.routing.slice(-4) }}</span>
+                    <button (click)="toggleReveal('bank-routing-' + i)" style="background:none;border:none;cursor:pointer;color:var(--text-muted);margin-left:.35rem;">
+                      {{ isRevealed('bank-routing-' + i) ? '🙈' + ' (' + getTimerValue('bank-routing-' + i) + 's)' : '👁' }}
+                    </button>
                   </td>
                   <td style="font-family:monospace">{{ b.wire || '—' }}</td>
                   <td style="font-family:monospace">{{ b.swift || '—' }}</td>
@@ -360,7 +452,7 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
         </div>
         <div class="card">
           <h3 class="section-title">Platform Login Credentials</h3>
-          <p class="section-subtitle">Stripe, PayPal, Wise — usernames and passwords are masked</p>
+          <p class="section-subtitle">Stripe, PayPal, Wise — usernames and passwords are masked by default (60s timer)</p>
           <table class="data-table">
             <thead><tr><th>Platform</th><th>Username / Email</th><th>Password</th><th>Recovery</th><th>Notes</th></tr></thead>
             <tbody>
@@ -368,12 +460,16 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
                 <tr>
                   <td class="td-primary">{{ p.name }}</td>
                   <td>
-                    <span>{{ p.showUser ? p.username : maskValue(p.username) }}</span>
-                    <button (click)="p.showUser=!p.showUser" style="background:none;border:none;cursor:pointer;color:var(--text-muted);margin-left:.35rem;">{{ p.showUser ? '🙈' : '👁' }}</button>
+                    <span>{{ isRevealed('payment-user-' + p.name) ? p.username : maskValue(p.username) }}</span>
+                    <button (click)="toggleReveal('payment-user-' + p.name)" style="background:none;border:none;cursor:pointer;color:var(--text-muted);margin-left:.35rem;">
+                      {{ isRevealed('payment-user-' + p.name) ? '🙈 (' + getTimerValue('payment-user-' + p.name) + 's)' : '👁' }}
+                    </button>
                   </td>
                   <td>
-                    <span style="font-family:monospace">{{ p.showPass ? p.password : '••••••••' }}</span>
-                    <button (click)="p.showPass=!p.showPass" style="background:none;border:none;cursor:pointer;color:var(--text-muted);margin-left:.35rem;">{{ p.showPass ? '🙈' : '👁' }}</button>
+                    <span style="font-family:monospace">{{ isRevealed('payment-pass-' + p.name) ? p.password : '••••••••' }}</span>
+                    <button (click)="toggleReveal('payment-pass-' + p.name)" style="background:none;border:none;cursor:pointer;color:var(--text-muted);margin-left:.35rem;">
+                      {{ isRevealed('payment-pass-' + p.name) ? '🙈 (' + getTimerValue('payment-pass-' + p.name) + 's)' : '👁' }}
+                    </button>
                   </td>
                   <td>{{ p.phone }}</td>
                   <td>{{ p.notes }}</td>
@@ -387,9 +483,19 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
       <!-- ── TAX INFORMATION ── -->
       @if (activeTab() === 'tax') {
         <div class="card">
-          <h3 class="section-title">Tax Documents</h3>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+            <h3 class="section-title" style="margin:0">Tax Documents</h3>
+            <label class="btn-primary btn-sm" style="cursor:pointer">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Upload Tax Doc
+              <input type="file" hidden accept=".pdf,.docx,.xlsx,.png,.jpg" (change)="onTaxDocUpload($event)" />
+            </label>
+          </div>
+          <p style="font-size:.8125rem;color:var(--text-muted);margin-bottom:.75rem">
+            Click <strong>Upload Tax Doc</strong> to upload a general file, or upload directly to a specific row slot in the table below.
+          </p>
           <table class="data-table">
-            <thead><tr><th>Document</th><th>Type</th><th>Year</th><th>Status</th></tr></thead>
+            <thead><tr><th>Document</th><th>Type</th><th>Year</th><th>Status</th><th>File</th></tr></thead>
             <tbody>
               @for(d of taxDocs; track $index; let i = $index) {
                 <tr>
@@ -397,20 +503,51 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
                   <td><input class="form-input" [ngModel]="d.type" (ngModelChange)="patchTaxDoc(i, 'type', $event)" /></td>
                   <td><input class="form-input" [ngModel]="d.year" (ngModelChange)="patchTaxDoc(i, 'year', $event)" /></td>
                   <td><input class="form-input" [ngModel]="d.status" (ngModelChange)="patchTaxDoc(i, 'status', $event)" /></td>
+                  <td>
+                    @if (d.fileName) {
+                      <div style="display:flex;align-items:center;gap:.5rem">
+                        <span style="color:var(--success);cursor:pointer;font-weight:600;text-decoration:underline" (click)="downloadFile(d.fileName)" title="Click to view file">📄 {{ d.fileName }}</span>
+                        <button class="row-upload-btn" style="padding:.2rem .4rem;border-color:var(--text-muted);color:var(--text-secondary)" (click)="removeTaxDocFile(i)" title="Remove file">✕</button>
+                      </div>
+                    } @else {
+                      <label class="row-upload-btn" [title]="'Upload file for: ' + d.name">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M21.44 11.05 12.25 20.24a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                        Upload File
+                        <input type="file" hidden accept=".pdf,.docx,.xlsx,.png,.jpg" (change)="onTaxDocRowUpload($event, i)" />
+                      </label>
+                    }
+                  </td>
                 </tr>
               }
             </tbody>
           </table>
         </div>
         <div class="card">
-          <h3 class="section-title">Tax Registrations</h3>
+          <h3 class="section-title">Tax Registrations & Contacts</h3>
           <div class="form-grid">
-            <div class="form-group"><span class="form-label">EIN Confirmation</span><div class="form-value">ein-confirmation-cp575.pdf</div></div>
+            <div class="form-group"><span class="form-label">EIN Confirmation</span>
+              <div style="display:flex;align-items:center;gap:.5rem">
+                <div class="form-value" style="flex:1">ein-confirmation-cp575.pdf</div>
+                <label class="row-upload-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M21.44 11.05 12.25 20.24a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>Replace<input type="file" hidden accept=".pdf" /></label>
+              </div>
+            </div>
             <div class="form-group"><span class="form-label">Sales Tax Registrations</span><div class="form-value">NY, DE</div></div>
             <div class="form-group"><span class="form-label">VAT / GST</span><div class="form-value">N/A — US only</div></div>
-            <div class="form-group"><span class="form-label">Resale Certificates</span><div class="form-value">resale-cert-ny.pdf</div></div>
+            <div class="form-group"><span class="form-label">Resale Certificates</span>
+              <div style="display:flex;align-items:center;gap:.5rem">
+                <div class="form-value" style="flex:1">resale-cert-ny.pdf</div>
+                <label class="row-upload-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M21.44 11.05 12.25 20.24a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>Replace<input type="file" hidden accept=".pdf" /></label>
+              </div>
+            </div>
             <div class="form-group"><span class="form-label">Accountant</span><div class="form-value">{{ company().financial.cpaName }}</div></div>
-            <div class="form-group"><span class="form-label">Accountant Contact</span><div class="form-value">{{ company().financial.cpaContact }}</div></div>
+            <div class="form-group"><span class="form-label">Accountant Email</span>
+              <div class="form-value">
+                <a [href]="scEmailHref(company().financial.cpaContact)" target="_blank" rel="noopener noreferrer" style="color:var(--accent-blue);text-decoration:none;display:inline-flex;align-items:center;gap:.3rem">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                  {{ company().financial.cpaContact }}
+                </a>
+              </div>
+            </div>
           </div>
           <div style="margin-top:1rem;padding:.75rem;background:var(--primary-light);border-radius:8px;font-size:.8125rem;color:var(--text-secondary);">
             🔗 IRS Forms & Instructions: <a href="https://www.irs.gov/forms-instructions" target="_blank" style="color:var(--accent-blue)">https://www.irs.gov/forms-instructions</a>
@@ -422,7 +559,7 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
       @if (activeTab() === 'platforms') {
         <div class="card">
           <h3 class="section-title">Publishing Platform Accounts</h3>
-          <p class="section-subtitle">All platform credentials — usernames and passwords are masked by default</p>
+          <p class="section-subtitle">All platform credentials — usernames and passwords are masked by default (60s timer)</p>
           @for(p of publishingPlatforms; track $index; let i = $index) {
             <div class="record-card" style="margin-bottom:.75rem;">
               <div class="record-header">
@@ -439,15 +576,19 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
                 <div class="record-field">
                   <span class="label">Username</span>
                   <span class="value" style="display:flex;align-items:center;gap:.35rem;">
-                    {{ p.showUser ? p.username : maskValue(p.username) }}
-                    <button (click)="p.showUser=!p.showUser" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:.75rem;">{{ p.showUser ? '🙈' : '👁' }}</button>
+                    {{ isRevealed('platform-user-' + p.name) ? p.username : maskValue(p.username) }}
+                    <button (click)="toggleReveal('platform-user-' + p.name)" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:.75rem;">
+                      {{ isRevealed('platform-user-' + p.name) ? '🙈 (' + getTimerValue('platform-user-' + p.name) + 's)' : '👁' }}
+                    </button>
                   </span>
                 </div>
                 <div class="record-field">
                   <span class="label">Password</span>
                   <span class="value" style="display:flex;align-items:center;gap:.35rem;font-family:monospace;">
-                    {{ p.showPass ? p.password : '••••••••' }}
-                    <button (click)="p.showPass=!p.showPass" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:.75rem;">{{ p.showPass ? '🙈' : '👁' }}</button>
+                    {{ isRevealed('platform-pass-' + p.name) ? p.password : '••••••••' }}
+                    <button (click)="toggleReveal('platform-pass-' + p.name)" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:.75rem;">
+                      {{ isRevealed('platform-pass-' + p.name) ? '🙈 (' + getTimerValue('platform-pass-' + p.name) + 's)' : '👁' }}
+                    </button>
                   </span>
                 </div>
               </div>
@@ -533,9 +674,16 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
       <!-- ── CONTRACTS & AGREEMENTS ── -->
       @if (activeTab() === 'contracts') {
         <div class="card">
-          <h3 class="section-title">Contracts & Agreements</h3>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+            <h3 class="section-title" style="margin:0">Contracts & Agreements</h3>
+            <label class="btn-primary btn-sm" style="cursor:pointer">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Upload Contract
+              <input type="file" hidden accept=".pdf,.docx" (change)="onContractUpload($event)" />
+            </label>
+          </div>
           <table class="data-table">
-            <thead><tr><th>Contract Name</th><th>Counterparty</th><th>Type</th><th>Date</th><th>Status</th></tr></thead>
+            <thead><tr><th>Contract Name</th><th>Counterparty</th><th>Type</th><th>Date</th><th>Status</th><th>File</th></tr></thead>
             <tbody>
               @for(c of contractRecords; track $index; let i = $index) {
                 <tr>
@@ -544,20 +692,64 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
                   <td><input class="form-input" [ngModel]="c.type" (ngModelChange)="patchContract(i, 'type', $event)" /></td>
                   <td><input class="form-input" [ngModel]="c.date" (ngModelChange)="patchContract(i, 'date', $event)" /></td>
                   <td><input class="form-input" [ngModel]="c.status" (ngModelChange)="patchContract(i, 'status', $event)" /></td>
+                  <td>
+                    @if (c.file) {
+                      <div style="display:flex;align-items:center;gap:.5rem">
+                        <span style="color:var(--accent-blue);cursor:pointer;font-weight:600;text-decoration:underline" (click)="downloadFile(c.file)" title="Click to view file">📄 {{ c.file }}</span>
+                        <button class="row-upload-btn" style="padding:.2rem .4rem;border-color:var(--text-muted);color:var(--text-secondary)" (click)="removeContractFile(i)" title="Remove file">✕</button>
+                      </div>
+                    } @else {
+                      <label class="row-upload-btn" [title]="'Attach file to: ' + c.name">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M21.44 11.05 12.25 20.24a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                        Upload Contract
+                        <input type="file" hidden accept=".pdf,.docx" (change)="onContractRowUpload($event, i)" />
+                      </label>
+                    }
+                  </td>
                 </tr>
               }
             </tbody>
           </table>
         </div>
         <div class="card">
-          <h3 class="section-title">Contract Categories</h3>
-          <div class="tag-row">
-            <span class="tag">Author Contracts</span><span class="tag">Ghostwriter Agreements</span><span class="tag">Editor Agreements</span>
-            <span class="tag">Cover Designer Agreements</span><span class="tag">Narrator Contracts</span><span class="tag">Formatting Agreements</span>
-            <span class="tag">Translation Agreements</span><span class="tag">Affiliate Agreements</span><span class="tag">Advertising Agreements</span>
-            <span class="tag">Co-Author Agreements</span><span class="tag">Royalty Split Agreements</span><span class="tag">NDAs</span>
-            <span class="tag">DMCA Takedown Templates</span>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+            <h3 class="section-title" style="margin:0">Contract Templates</h3>
+            <select [(ngModel)]="contractCategoryFilter" style="padding:.35rem .6rem;border:1px solid var(--border-color);border-radius:6px;background:var(--background);color:var(--text-secondary);font-size:.8125rem;font-family:inherit">
+              <option value="">All Categories</option>
+              <option value="Author">Author Contracts</option>
+              <option value="Ghostwriter">Ghostwriter Agreements</option>
+              <option value="Editor">Editor Agreements</option>
+              <option value="Cover Designer">Cover Designer Agreements</option>
+              <option value="Narrator">Narrator Contracts</option>
+              <option value="Formatting">Formatting Agreements</option>
+              <option value="Translation">Translation Agreements</option>
+              <option value="Affiliate">Affiliate Agreements</option>
+              <option value="Advertising">Advertising Agreements</option>
+              <option value="Co-Author">Co-Author Agreements</option>
+              <option value="Royalty">Royalty Split Agreements</option>
+              <option value="NDA">NDAs</option>
+              <option value="DMCA">DMCA Takedown Templates</option>
+            </select>
           </div>
+          <p style="font-size:.8125rem;color:var(--text-muted);margin-bottom:.75rem">
+            Sample templates you can open, edit, and send directly from AuthorVAULT. Click <strong>View</strong> to open the template editor.
+          </p>
+          <table class="data-table">
+            <thead><tr><th>Template Name</th><th>Category</th><th>Last Updated</th><th>Actions</th></tr></thead>
+            <tbody>
+              @for(t of filteredContractTemplates; track t.name) {
+                <tr>
+                  <td class="td-primary">{{ t.name }}</td>
+                  <td><span class="tag">{{ t.category }}</span></td>
+                  <td class="td-muted">{{ t.updated }}</td>
+                  <td style="display:flex;gap:.5rem;align-items:center">
+                    <button style="background:none;border:none;color:var(--accent-blue);cursor:pointer;font-size:.8125rem;font-family:inherit" (click)="viewContractTemplate(t)">View & Edit</button>
+                    <button style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:.8125rem;font-family:inherit" (click)="useContractTemplate(t)">Quick Use</button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
         </div>
       }
 
@@ -579,29 +771,88 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
             </tbody>
           </table>
         </div>
+
         <div class="card">
-          <h3 class="section-title">Financial Document Categories</h3>
-          <div class="tag-row">
-            <span class="tag">📊 P&L Reports</span><span class="tag">📋 Chart of Accounts</span><span class="tag">🧾 Receipts</span>
-            <span class="tag">📄 Invoices</span><span class="tag">💸 Contractor Payments</span><span class="tag">📦 Subscription Costs</span>
-            <span class="tag">📈 Royalty Statements</span><span class="tag">📣 Ad Spend by Platform</span><span class="tag">💰 Expense Logs</span>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:.75rem">
+            <h3 class="section-title" style="margin:0">Financial Reports & Files</h3>
+            <div style="display:flex;gap:.5rem;align-items:center">
+              <select [(ngModel)]="financialCategoryFilter" style="padding:.4rem .6rem;border:1px solid var(--border-color);border-radius:8px;background:var(--background);color:var(--text-secondary);font-size:.8125rem;font-family:inherit">
+                <option value="">All Categories</option>
+                <option value="📊 P&L Reports">📊 P&L Reports</option>
+                <option value="📋 Chart of Accounts">📋 Chart of Accounts</option>
+                <option value="🧾 Receipts">🧾 Receipts</option>
+                <option value="📄 Invoices">📄 Invoices</option>
+                <option value="💸 Contractor Payments">💸 Contractor Payments</option>
+                <option value="📦 Subscription Costs">📦 Subscription Costs</option>
+                <option value="📈 Royalty Statements">📈 Royalty Statements</option>
+                <option value="📣 Ad Spend by Platform">📣 Ad Spend by Platform</option>
+                <option value="💰 Expense Logs">💰 Expense Logs</option>
+              </select>
+              <label class="btn-primary btn-sm" style="cursor:pointer">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                Upload Report
+                <input type="file" hidden accept=".pdf,.xlsx,.csv,.png" (change)="onFinancialUpload($event)" />
+              </label>
+            </div>
           </div>
+          <table class="data-table">
+            <thead><tr><th>File Name</th><th>Category</th><th>Period</th><th>Size</th><th>Date Uploaded</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody>
+              @for(f of filteredFinancialDocs; track $index) {
+                <tr>
+                  <td class="td-primary" style="cursor:pointer;color:var(--accent-blue);text-decoration:underline" (click)="downloadFile(f.fileName)">📄 {{ f.fileName }}</td>
+                  <td><span class="tag">{{ f.category }}</span></td>
+                  <td>{{ f.month }} {{ f.year }}</td>
+                  <td style="color:var(--text-muted)">{{ f.fileSize || 'N/A' }}</td>
+                  <td style="color:var(--text-muted)">{{ f.uploadedDate || 'N/A' }}</td>
+                  <td><span class="status status-green">{{ f.status }}</span></td>
+                  <td>
+                    <button style="background:none;border:none;color:var(--error);cursor:pointer;font-size:.8125rem" (click)="deleteFinancialDoc(f)">Delete</button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
         </div>
       }
 
       <!-- ── TEAM & VENDORS ── -->
       @if (activeTab() === 'team') {
         <div class="card">
-          <h3 class="section-title">Team & Vendor Directory</h3>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+            <h3 class="section-title" style="margin:0">Team & Vendor Directory</h3>
+            <select [(ngModel)]="vendorCategoryFilter" style="padding:.35rem .6rem;border:1px solid var(--border-color);border-radius:6px;background:var(--background);color:var(--text-secondary);font-size:.8125rem;font-family:inherit">
+              <option value="">All Categories</option>
+              <option value="Editor">✏️ Editors</option>
+              <option value="Cover Designer">🎨 Cover Designers</option>
+              <option value="Narrator">🎙 Narrators</option>
+              <option value="Translator">🌐 Translators</option>
+              <option value="Formatter">📐 Formatters</option>
+              <option value="Marketer">📣 Marketers</option>
+              <option value="Virtual Assistant">🤝 Virtual Assistants</option>
+              <option value="Web Developer">💻 Web Developers</option>
+              <option value="Accountant">🧮 Accountants</option>
+              <option value="Legal">⚖️ Legal Counsel</option>
+            </select>
+          </div>
           <table class="data-table">
             <thead><tr><th>Name</th><th>Role</th><th>Company</th><th>Email</th><th>Phone</th><th>Contract Date</th><th>Rate</th></tr></thead>
             <tbody>
-              @for(m of teamMembers; track $index; let i = $index) {
+              @for(m of filteredTeamMembers; track $index; let i = $index) {
                 <tr>
                   <td><input class="form-input" [ngModel]="m.name" (ngModelChange)="patchTeam(i, 'name', $event)" /></td>
                   <td><input class="form-input" [ngModel]="m.role" (ngModelChange)="patchTeam(i, 'role', $event)" /></td>
                   <td><input class="form-input" [ngModel]="m.company" (ngModelChange)="patchTeam(i, 'company', $event)" /></td>
-                  <td><input class="form-input" [ngModel]="m.email" (ngModelChange)="patchTeam(i, 'email', $event)" /></td>
+                  <td>
+                    <div style="display:flex;align-items:center;gap:.35rem">
+                      <input class="form-input" style="flex:1" [ngModel]="m.email" (ngModelChange)="patchTeam(i, 'email', $event)" />
+                      @if (m.email) {
+                        <a [href]="scEmailHref(m.email)" target="_blank" rel="noopener noreferrer" title="Compose email" style="color:var(--accent-blue);flex-shrink:0">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                        </a>
+                      }
+                    </div>
+                  </td>
                   <td><input class="form-input" [ngModel]="m.phone" (ngModelChange)="patchTeam(i, 'phone', $event)" /></td>
                   <td><input class="form-input" [ngModel]="m.contractDate" (ngModelChange)="patchTeam(i, 'contractDate', $event)" /></td>
                   <td><input class="form-input" [ngModel]="m.rate" (ngModelChange)="patchTeam(i, 'rate', $event)" /></td>
@@ -609,15 +860,6 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
               }
             </tbody>
           </table>
-        </div>
-        <div class="card">
-          <h3 class="section-title">Vendor Categories</h3>
-          <div class="tag-row">
-            <span class="tag">✏️ Editors</span><span class="tag">🎨 Cover Designers</span><span class="tag">🎙 Narrators</span>
-            <span class="tag">🌐 Translators</span><span class="tag">📐 Formatters</span><span class="tag">📣 Marketers</span>
-            <span class="tag">🤝 Virtual Assistants</span><span class="tag">�� Web Developers</span><span class="tag">🧮 Accountants</span>
-            <span class="tag">⚖️ Legal Counsel</span>
-          </div>
         </div>
       }
 
@@ -660,17 +902,92 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
           <div class="form-grid">
             <app-editable-field label="Sender Domain" [value]="communications.senderDomain" (valueChange)="patchComms('senderDomain', $event)" />
             <app-editable-field label="Email Platform" [value]="communications.emailPlatform" (valueChange)="patchComms('emailPlatform', $event)" />
-            <app-editable-field label="SPF Record" [value]="communications.spfRecord" (valueChange)="patchComms('spfRecord', $event)" />
-            <app-editable-field label="DKIM" [value]="communications.dkimStatus" (valueChange)="patchComms('dkimStatus', $event)" />
-            <app-editable-field label="DMARC" [value]="communications.dmarcStatus" (valueChange)="patchComms('dmarcStatus', $event)" />
+
+            <!-- SPF — masked with timer -->
+            <div class="form-group">
+              <span class="form-label">SPF Record</span>
+              <div style="display:flex;align-items:center;gap:.5rem">
+                <div class="form-value" style="flex:1;font-family:monospace;font-size:.8125rem">
+                  {{ isRevealed('comms-spf') ? communications.spfRecord : maskSensitive(communications.spfRecord) }}
+                </div>
+                <button (click)="toggleReveal('comms-spf')" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:.8125rem;white-space:nowrap">
+                  {{ isRevealed('comms-spf') ? '🙈 Hide (' + getTimerValue('comms-spf') + 's)' : '👁 Reveal' }}
+                </button>
+              </div>
+            </div>
+
+            <!-- DKIM — masked with timer -->
+            <div class="form-group">
+              <span class="form-label">DKIM Key</span>
+              <div style="display:flex;align-items:center;gap:.5rem">
+                <div class="form-value" style="flex:1;font-family:monospace;font-size:.8125rem">
+                  {{ isRevealed('comms-dkim') ? communications.dkimStatus : maskSensitive(communications.dkimStatus) }}
+                </div>
+                <button (click)="toggleReveal('comms-dkim')" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:.8125rem;white-space:nowrap">
+                  {{ isRevealed('comms-dkim') ? '🙈 Hide (' + getTimerValue('comms-dkim') + 's)' : '👁 Reveal' }}
+                </button>
+              </div>
+            </div>
+
+            <!-- API Key — masked with timer -->
+            <div class="form-group">
+              <span class="form-label">Newsletter API Key</span>
+              <div style="display:flex;align-items:center;gap:.5rem">
+                <div class="form-value" style="flex:1;font-family:monospace;font-size:.8125rem">
+                  {{ isRevealed('comms-api-key') ? communications.apiKey : maskSensitive(communications.apiKey) }}
+                </div>
+                <button (click)="toggleReveal('comms-api-key')" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:.8125rem;white-space:nowrap">
+                  {{ isRevealed('comms-api-key') ? '🙈 Hide (' + getTimerValue('comms-api-key') + 's)' : '👁 Reveal' }}
+                </button>
+              </div>
+            </div>
+
+            <!-- SMTP Password — masked with timer -->
+            <div class="form-group">
+              <span class="form-label">SMTP Password</span>
+              <div style="display:flex;align-items:center;gap:.5rem">
+                <div class="form-value" style="flex:1;font-family:monospace;font-size:.8125rem">
+                  {{ isRevealed('comms-smtp-pass') ? communications.smtpPassword : '••••••••••••••••' }}
+                </div>
+                <button (click)="toggleReveal('comms-smtp-pass')" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:.8125rem;white-space:nowrap">
+                  {{ isRevealed('comms-smtp-pass') ? '🙈 Hide (' + getTimerValue('comms-smtp-pass') + 's)' : '👁 Reveal' }}
+                </button>
+              </div>
+            </div>
+
+            <app-editable-field label="DMARC Policy" [value]="communications.dmarcStatus" (valueChange)="patchComms('dmarcStatus', $event)" />
             <app-editable-field label="Newsletter List Size" [value]="communications.newsletterListSize" (valueChange)="patchComms('newsletterListSize', $event)" />
-            <app-editable-field label="Support Inbox" [value]="communications.supportInbox" (valueChange)="patchComms('supportInbox', $event)" type="email" />
+
+            <!-- Support Inbox — clickable email -->
+            <div class="form-group">
+              <span class="form-label">Support Inbox</span>
+              <div style="display:flex;align-items:center;gap:.5rem">
+                <app-editable-field [value]="communications.supportInbox" (valueChange)="patchComms('supportInbox', $event)" type="email" style="flex:1" />
+                @if (communications.supportInbox) {
+                  <a [href]="scEmailHref(communications.supportInbox)" target="_blank" rel="noopener noreferrer" title="Compose email" style="color:var(--accent-blue);flex-shrink:0">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                  </a>
+                }
+              </div>
+            </div>
             <app-editable-field label="Business Phone" [value]="company().identity.phone" (valueChange)="vs.patchIdentity({ phone: $event })" type="tel" />
             <app-editable-field label="PO Box" [value]="communications.poBox" (valueChange)="patchComms('poBox', $event)" />
           </div>
         </div>
         <div class="card">
-          <h3 class="section-title">Automation & Opt-in Sources</h3>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+            <h3 class="section-title" style="margin:0">Automations & Opt-in Sources</h3>
+            <select [(ngModel)]="commsAutomationFilter" style="padding:.35rem .6rem;border:1px solid var(--border-color);border-radius:6px;background:var(--background);color:var(--text-secondary);font-size:.8125rem;font-family:inherit">
+              <option value="">All Types</option>
+              <option value="Welcome">Welcome Sequences</option>
+              <option value="Funnel">Reader Funnels</option>
+              <option value="Launch">Launch Sequences</option>
+              <option value="Re-engagement">Re-engagement</option>
+              <option value="Opt-in">Opt-in Sources</option>
+              <option value="Delivery">Delivery Automations</option>
+              <option value="Ads">Ad Opt-ins</option>
+            </select>
+          </div>
           <div class="tag-row">
             <span class="tag">📧 Welcome Sequence</span><span class="tag">📚 Reader Magnet Funnel</span><span class="tag">🚀 Launch Sequence</span>
             <span class="tag">🔁 Re-engagement Series</span><span class="tag">📝 Website Opt-in Form</span><span class="tag">🎁 BookFunnel Delivery</span>
@@ -704,7 +1021,7 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
           <div class="form-grid">
             <app-editable-field label="Fulfillment Partner" [value]="inventoryFulfillment.fulfillmentPartner" (valueChange)="patchFulfillment('fulfillmentPartner', $event)" />
             <app-editable-field label="Shipping Account" [value]="inventoryFulfillment.shippingAccount" (valueChange)="patchFulfillment('shippingAccount', $event)" />
-            <app-editable-field label="Packaging Vendor" [value]="inventoryFulfillment.packagingVendor" (valueChange)="patchFulfillment('packagingVendor', $event)" />
+            <app-editable-field label="Packaging Vendor" [value]="inventoryFulfillment.packagingVendor" (valueChange)="patchFulfillment('shippingAccount', $event)" />
             <app-editable-field label="Return Address" [value]="company().identity.primaryAddress" (valueChange)="vs.patchIdentity({ primaryAddress: $event })" />
             <app-editable-field label="Delivery Policy" type="textarea" [rows]="3" [value]="inventoryFulfillment.deliveryPolicy" (valueChange)="patchFulfillment('deliveryPolicy', $event)" [full]="true" />
           </div>
@@ -743,27 +1060,69 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
       <!-- ── LOGOS ── -->
       @if (activeTab() === 'logos') {
         <div class="card">
-          <h3 class="section-title">Company Logos</h3>
-          <p class="section-subtitle">All logo variants — upload files and tag by format</p>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+            <h3 class="section-title" style="margin:0">Company Logos</h3>
+            <label class="btn-primary btn-sm" style="cursor:pointer">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Upload Logo
+              <input type="file" hidden accept=".png,.svg,.pdf,.eps,.ai,.jpg" (change)="onLogoUpload($event)" />
+            </label>
+          </div>
+          <p style="font-size:.8125rem;color:var(--text-muted);margin-bottom:.875rem">Upload your logo in every format — PNG, SVG, EPS, PDF. Click a logo card to replace its file.</p>
+
+          <!-- Logos Search & Filter bar -->
+          <div style="display:flex;gap:.5rem;align-items:center;margin-bottom:1.25rem;flex-wrap:wrap">
+            <input type="text" [(ngModel)]="logoSearch" placeholder="Search logos..." style="padding:.4rem .75rem;border:1px solid var(--border-color);border-radius:8px;background:var(--background);color:var(--text-primary);font-size:.8125rem;font-family:inherit;width:220px">
+            <select [(ngModel)]="logoFormatFilter" style="padding:.4rem .6rem;border:1px solid var(--border-color);border-radius:8px;background:var(--background);color:var(--text-secondary);font-size:.8125rem;font-family:inherit">
+              <option value="">All Formats</option>
+              <option value="Horizontal">Horizontal</option>
+              <option value="Square">Square</option>
+              <option value="All">All / Vector</option>
+            </select>
+            <select [(ngModel)]="logoTypeFilter" style="padding:.4rem .6rem;border:1px solid var(--border-color);border-radius:8px;background:var(--background);color:var(--text-secondary);font-size:.8125rem;font-family:inherit">
+              <option value="">All File Types</option>
+              <option value="PNG">PNG</option>
+              <option value="SVG">SVG</option>
+              <option value="EPS">EPS</option>
+            </select>
+          </div>
+
           <div class="entity-list">
-            @for(logo of logos; track $index; let i = $index) {
-              <div class="entity-card">
-                <div style="width:100%;height:80px;background:{{ logo.bg }};border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:.75rem;font-size:2rem;">🏢</div>
-                <input class="form-input" style="margin-bottom:.35rem;font-weight:600" [ngModel]="logo.name" (ngModelChange)="patchLogo(i, 'name', $event)" />
-                <input class="form-input" style="margin-bottom:.25rem;font-size:.75rem" [ngModel]="logo.format" (ngModelChange)="patchLogo(i, 'format', $event)" />
-                <input class="form-input" style="margin-bottom:.25rem;font-size:.75rem" [ngModel]="logo.dimensions" (ngModelChange)="patchLogo(i, 'dimensions', $event)" />
-                <input class="form-input" style="font-size:.75rem" [ngModel]="logo.uploaded" (ngModelChange)="patchLogo(i, 'uploaded', $event)" />
-                <div class="tag-row" style="margin-top:.5rem;">
+            @for(logo of filteredLogos; track $index; let i = $index) {
+              <div class="entity-card" style="position:relative">
+                <label style="cursor:pointer;display:block" title="Click to replace this logo file">
+                  <div style="width:100%;height:80px;background:{{ logo.bg }};border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:.75rem;position:relative;overflow:hidden">
+                    @if (logo.dataUrl) {
+                      <div [innerHTML]="logo.dataUrl.startsWith('data:image/svg+xml') ? decodeSvg(logo.dataUrl) : ''" *ngIf="logo.dataUrl.startsWith('data:image/svg+xml')" style="width:100%;height:100%"></div>
+                      <img [src]="logo.dataUrl" *ngIf="!logo.dataUrl.startsWith('data:image/svg+xml')" style="max-width:100%;max-height:100%;object-fit:contain" alt="{{ logo.name }}" />
+                    } @else {
+                      <span style="font-size:2rem">🏢</span>
+                    }
+                    <div style="position:absolute;inset:0;background:rgba(0,0,0,0);display:flex;align-items:center;justify-content:center;transition:background .2s" class="logo-hover-overlay">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" width="24" height="24" style="opacity:0;transition:opacity .2s"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    </div>
+                  </div>
+                  <input type="file" hidden accept=".png,.svg,.pdf,.eps,.ai,.jpg" (change)="onLogoFileReplace($event, i)" />
+                </label>
+                <input class="form-input" style="margin-bottom:.35rem;font-weight:600" [ngModel]="logo.name" (ngModelChange)="patchLogo(i, 'name', $event)" placeholder="Logo name" />
+                <input class="form-input" style="margin-bottom:.25rem;font-size:.75rem" [ngModel]="logo.format" (ngModelChange)="patchLogo(i, 'format', $event)" placeholder="Format (e.g. Horizontal)" />
+                <input class="form-input" style="margin-bottom:.25rem;font-size:.75rem" [ngModel]="logo.dimensions" (ngModelChange)="patchLogo(i, 'dimensions', $event)" placeholder="Dimensions" />
+                <div class="tag-row" style="margin-top:.5rem">
                   <span class="tag">{{ logo.format }}</span>
                   <span class="tag">{{ logo.fileType }}</span>
                 </div>
+                <div style="display:flex;justify-content:space-between;margin-top:.75rem;align-items:center">
+                  <button class="row-upload-btn" (click)="downloadLogo(logo)" style="color:var(--accent-blue)">⬇ Download</button>
+                  <button style="background:none;border:none;color:var(--error);font-size:.75rem;cursor:pointer" (click)="deleteLogo(i)">Delete</button>
+                </div>
               </div>
             }
-            <div class="entity-card" style="border-style:dashed;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:160px;cursor:pointer;">
-              <div style="font-size:2rem;margin-bottom:.5rem;">➕</div>
-              <div style="font-size:.875rem;font-weight:600;color:var(--text-secondary)">Upload Logo</div>
-              <div style="font-size:.75rem;color:var(--text-muted);margin-top:.25rem;">PNG, SVG, PDF, EPS</div>
-            </div>
+            <label class="entity-card" style="border-style:dashed;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:160px;cursor:pointer;transition:border-color .2s">
+              <div style="font-size:2rem;margin-bottom:.5rem">➕</div>
+              <div style="font-size:.875rem;font-weight:600;color:var(--text-secondary)">Upload New Logo</div>
+              <div style="font-size:.75rem;color:var(--text-muted);margin-top:.25rem">PNG, SVG, PDF, EPS, AI</div>
+              <input type="file" hidden accept=".png,.svg,.pdf,.eps,.ai,.jpg" (change)="onLogoUpload($event)" />
+            </label>
           </div>
         </div>
       }
@@ -771,21 +1130,54 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
       <!-- ── SOPs ── -->
       @if (activeTab() === 'sops') {
         <div class="card">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:.75rem">
             <h3 class="section-title" style="margin:0">Standard Operating Procedures</h3>
-            <input type="text" [(ngModel)]="sopFilter" placeholder="Search SOPs..." style="padding:.4rem .75rem;border:1px solid var(--border-color);border-radius:8px;background:var(--background);color:var(--text-primary);font-size:.8125rem;font-family:inherit;width:220px;">
+            <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
+              <select [(ngModel)]="sopCategoryFilter" style="padding:.4rem .6rem;border:1px solid var(--border-color);border-radius:8px;background:var(--background);color:var(--text-secondary);font-size:.8125rem;font-family:inherit">
+                <option value="">All Categories</option>
+                <option value="Finance">Finance & Billing</option>
+                <option value="Publishing">Publishing & Upload</option>
+                <option value="Launch">Launch & Marketing</option>
+                <option value="Contractor">Contractor Management</option>
+                <option value="Direct Sales">Direct Sales</option>
+                <option value="Legal">Legal & Compliance</option>
+              </select>
+              <input type="text" [(ngModel)]="sopFilter" placeholder="Search SOPs..." style="padding:.4rem .75rem;border:1px solid var(--border-color);border-radius:8px;background:var(--background);color:var(--text-primary);font-size:.8125rem;font-family:inherit;width:200px">
+            </div>
           </div>
           <table class="data-table">
-            <thead><tr><th>Document Name</th><th>Description</th><th>Last Updated</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Document Name</th><th>Category</th><th>Description</th><th>Last Updated</th><th>Actions</th></tr></thead>
             <tbody>
               @for(s of filteredSops; track $index; let i = $index) {
                 <tr>
-                  <td><input class="form-input" [ngModel]="s.name" (ngModelChange)="patchSop(i, 'name', $event)" /></td>
-                  <td><input class="form-input" [ngModel]="s.description" (ngModelChange)="patchSop(i, 'description', $event)" /></td>
-                  <td><input class="form-input" [ngModel]="s.updated" (ngModelChange)="patchSop(i, 'updated', $event)" /></td>
+                  <td class="td-primary">{{ s.name }}</td>
+                  <td><span class="tag" style="font-size:.6875rem">{{ s.category || 'General' }}</span></td>
+                  <td style="color:var(--text-muted);font-size:.8125rem">{{ s.description }}</td>
+                  <td style="color:var(--text-muted);font-size:.8125rem">{{ s.updated }}</td>
+                  <td style="white-space:nowrap">
+                    <button style="background:none;border:none;color:var(--accent-blue);cursor:pointer;font-size:.8125rem;font-family:inherit" (click)="viewSop(s)">View</button>
+                    <button style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:.8125rem;font-family:inherit;margin-left:.5rem" (click)="editSop(s, i)">Edit</button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+            <h3 class="section-title" style="margin:0">AI-Generated Sample Templates</h3>
+            <span style="font-size:.75rem;color:var(--text-muted)">Click "Use Template" to add an editable copy to your SOPs</span>
+          </div>
+          <table class="data-table">
+            <thead><tr><th>Template Name</th><th>Category</th><th>Description</th><th>Action</th></tr></thead>
+            <tbody>
+              @for(t of sopSamples; track t.name) {
+                <tr>
+                  <td class="td-primary">{{ t.name }}</td>
+                  <td><span class="tag" style="font-size:.6875rem">{{ t.category }}</span></td>
+                  <td style="color:var(--text-muted);font-size:.8125rem">{{ t.description }}</td>
                   <td>
-                    <button style="background:none;border:none;color:var(--accent-blue);cursor:pointer;font-size:.8125rem;font-family:inherit;">View</button>
-                    <button style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:.8125rem;font-family:inherit;margin-left:.5rem;">Edit</button>
+                    <button style="background:none;border:none;color:var(--accent-blue);cursor:pointer;font-size:.8125rem;font-family:inherit" (click)="addSopFromSample(t)">Use Template</button>
                   </td>
                 </tr>
               }
@@ -797,9 +1189,83 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
     </div><!-- /vault-content -->
   </div><!-- /vault-layout -->
 </div><!-- /page -->
+
+<!-- ═══ CONTRACT EDITOR MODAL ═══ -->
+@if (selectedContractTemplate) {
+  <div class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">Contract Template: {{ selectedContractTemplate.name }}</h3>
+        <button class="modal-close" (click)="closeContractModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Recipient Email</label>
+          <input type="email" class="form-input" [(ngModel)]="contractEmailTo" placeholder="Enter recipient email..." />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Subject</label>
+          <input type="text" class="form-input" [(ngModel)]="contractEmailSubject" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Contract Template Text</label>
+          <textarea class="form-input" style="height:250px;font-family:monospace;font-size:.8rem" [(ngModel)]="contractEditText"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary btn-sm" (click)="closeContractModal()">Cancel</button>
+        <button class="btn-primary btn-sm" (click)="saveEditedContract()">Save to Contracts</button>
+        <a [href]="scEmailHrefWithPrefill(contractEmailTo, contractEmailSubject, contractEditText)" target="_blank" rel="noopener noreferrer" class="btn-primary btn-sm" style="text-decoration:none">
+          📧 Send via SC Email
+        </a>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ═══ SOP VIEWER/EDITOR MODAL ═══ -->
+@if (selectedSop) {
+  <div class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">SOP: {{ selectedSop.name }}</h3>
+        <button class="modal-close" (click)="closeSopModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">SOP Name</label>
+          <input type="text" class="form-input" [(ngModel)]="sopEditName" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Category</label>
+          <select class="form-input" [(ngModel)]="sopEditCategory">
+            <option value="Finance">Finance & Billing</option>
+            <option value="Publishing">Publishing & Upload</option>
+            <option value="Launch">Launch & Marketing</option>
+            <option value="Contractor">Contractor Management</option>
+            <option value="Direct Sales">Direct Sales</option>
+            <option value="Legal">Legal & Compliance</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <input type="text" class="form-input" [(ngModel)]="sopEditDescription" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Instructions / Content</label>
+          <textarea class="form-input" style="height:220px;font-family:inherit" [(ngModel)]="sopEditContent" placeholder="Enter step-by-step instructions..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary btn-sm" (click)="closeSopModal()">Cancel</button>
+        <button class="btn-primary btn-sm" (click)="saveSopContent()">Save SOP Changes</button>
+      </div>
+    </div>
+  </div>
+}
 `
 })
-export class VaultCompanyPageComponent implements OnInit {
+export class VaultCompanyPageComponent implements OnInit, OnDestroy {
   readonly vs = inject(AuthorVaultService);
   private excelImport = inject(ExcelImportService);
   private companyStore = inject(VaultCompanyStoreService);
@@ -833,7 +1299,7 @@ export class VaultCompanyPageComponent implements OnInit {
   get securityNotes() { return this.companyStore.securityNotes(); }
   get taxRegistrations() { return this.companyStore.taxRegistrations(); }
 
-  patchOwner(i: number, key: string, val: string | boolean): void {
+  patchOwner(i: number, key: string, val: any): void {
     const list = [...this.ownerProfiles];
     list[i] = { ...list[i], [key]: val };
     this.companyStore.updateOwners(list);
@@ -930,9 +1396,6 @@ export class VaultCompanyPageComponent implements OnInit {
   newPinInput = '';
   pinChangeError = '';
   pinChangeSuccess = false;
-  showEin = false;
-  einTimer = 0;
-  private einTimerRef: any;
   copyrightCountry = 'US';
   copyrightLinks: Record<string,string> = {
     US: 'https://www.copyright.gov',
@@ -944,9 +1407,354 @@ export class VaultCompanyPageComponent implements OnInit {
     IN: 'https://copyright.gov.in'
   };
   sopFilter = '';
-  private pinTimeoutRef: any;
-  private readonly PIN_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
+  sopCategoryFilter = '';
+  vendorCategoryFilter = '';
+  contractCategoryFilter = '';
+  commsAutomationFilter = '';
 
+  // 60-second general timers map
+  revealTimers: Record<string, number> = {};
+  private timerIntervalRef: any;
+
+  toggleReveal(key: string, duration = 60): void {
+    if (this.isRevealed(key)) {
+      delete this.revealTimers[key];
+    } else {
+      this.revealTimers[key] = duration;
+    }
+  }
+
+  isRevealed(key: string): boolean {
+    return (this.revealTimers[key] ?? 0) > 0;
+  }
+
+  getTimerValue(key: string): number {
+    return this.revealTimers[key] ?? 0;
+  }
+
+  maskSensitive(val: string): string {
+    if (!val || val.length < 6) return '••••••••';
+    return val.slice(0, 3) + '••••••••' + val.slice(-3);
+  }
+
+  // Owner document slots
+  ownerDocSlots = [
+    { key: 'cv', label: 'CV / Resume', hint: 'PDF or DOCX', icon: '📄' },
+    { key: 'avatar', label: 'Avatar Photo', hint: 'JPG or PNG, 1:1', icon: '🖼' },
+    { key: 'signature', label: 'Electronic Signature', hint: 'PNG transparent', icon: '✍️' },
+    { key: 'job-desc', label: 'Job Description', hint: 'PDF or DOCX', icon: '📋' },
+    { key: 'nda', label: 'Signed NDA', hint: 'PDF', icon: '🤝' },
+    { key: 'business-card', label: 'Business Card', hint: 'PNG or PDF', icon: '📇' },
+    { key: 'bio-short', label: 'Bio (Short)', hint: 'DOCX or TXT', icon: '📝' },
+    { key: 'bio-long', label: 'Bio (Long)', hint: 'DOCX or TXT', icon: '📝' },
+    { key: 'letterhead', label: 'Letterhead Template', hint: 'DOCX or PDF', icon: '🖨' },
+  ];
+
+  onOwnerDocUpload(event: Event, ownerIndex: number, slotKey: string): void {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    const list = [...this.ownerProfiles];
+    const docs = { ...(list[ownerIndex].docs || {}) };
+    docs[slotKey] = file.name;
+    list[ownerIndex] = { ...list[ownerIndex], docs };
+    this.companyStore.updateOwners(list);
+    (event.target as HTMLInputElement).value = '';
+  }
+
+  removeOwnerDoc(ownerIndex: number, slotKey: string): void {
+    const list = [...this.ownerProfiles];
+    const docs = { ...(list[ownerIndex].docs || {}) };
+    delete docs[slotKey];
+    list[ownerIndex] = { ...list[ownerIndex], docs };
+    this.companyStore.updateOwners(list);
+  }
+
+  downloadFile(fileName: string | undefined): void {
+    if (!fileName) return;
+    alert(`Opening / Downloading file: ${fileName}\n\n(In production: retrieves download stream from secure cloud bucket)`);
+  }
+
+  // Tax doc uploads
+  onTaxDocUpload(event: Event): void {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    const newDoc = { name: file.name.replace(/\.[^.]+$/, ''), type: 'Other', year: new Date().getFullYear().toString(), status: 'Pending', fileName: file.name };
+    this.companyStore.updateTaxDocs([...this.taxDocs, newDoc]);
+    (event.target as HTMLInputElement).value = '';
+  }
+
+  onTaxDocRowUpload(event: Event, rowIndex: number): void {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    const list = [...this.taxDocs];
+    list[rowIndex] = { ...list[rowIndex], fileName: file.name };
+    this.companyStore.updateTaxDocs(list);
+    (event.target as HTMLInputElement).value = '';
+  }
+
+  removeTaxDocFile(rowIndex: number): void {
+    const list = [...this.taxDocs];
+    list[rowIndex] = { ...list[rowIndex], fileName: '' };
+    this.companyStore.updateTaxDocs(list);
+  }
+
+  // Contract uploads
+  onContractUpload(event: Event): void {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    const newContract = { name: file.name.replace(/\.[^.]+$/, ''), counterparty: 'External Party', type: 'General', date: new Date().toISOString().split('T')[0], status: 'Draft', file: file.name };
+    this.companyStore.updateContracts([...this.contractRecords, newContract]);
+    (event.target as HTMLInputElement).value = '';
+  }
+
+  onContractRowUpload(event: Event, rowIndex: number): void {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    const list = [...this.contractRecords];
+    list[rowIndex] = { ...list[rowIndex], file: file.name };
+    this.companyStore.updateContracts(list);
+    (event.target as HTMLInputElement).value = '';
+  }
+
+  removeContractFile(rowIndex: number): void {
+    const list = [...this.contractRecords];
+    list[rowIndex] = { ...list[rowIndex], file: '' };
+    this.companyStore.updateContracts(list);
+  }
+
+  // Logo uploads
+  onLogoUpload(event: Event): void {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const newLogo = { name: file.name.replace(/\.[^.]+$/, ''), format: 'General', dimensions: '—', fileType: file.name.split('.').pop()?.toUpperCase() || 'PNG', uploaded: new Date().toISOString().split('T')[0], bg: 'var(--primary-light)', dataUrl: reader.result as string };
+      this.companyStore.updateLogos([...this.logos, newLogo]);
+    };
+    reader.readAsDataURL(file);
+    (event.target as HTMLInputElement).value = '';
+  }
+
+  onLogoFileReplace(event: Event, index: number): void {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const list = [...this.logos];
+      list[index] = { ...list[index], dataUrl: reader.result as string, fileType: file.name.split('.').pop()?.toUpperCase() || list[index].fileType };
+      this.companyStore.updateLogos(list);
+    };
+    reader.readAsDataURL(file);
+    (event.target as HTMLInputElement).value = '';
+  }
+
+  decodeSvg(dataUrl: string): string {
+    try {
+      if (dataUrl.startsWith('data:image/svg+xml;utf8,')) {
+        return dataUrl.substring('data:image/svg+xml;utf8,'.length);
+      }
+      return '';
+    } catch {
+      return '';
+    }
+  }
+
+  // Logos search & filters
+  logoSearch = '';
+  logoFormatFilter = '';
+  logoTypeFilter = '';
+
+  get filteredLogos() {
+    return this.logos.filter(l => {
+      const matchSearch = !this.logoSearch || l.name.toLowerCase().includes(this.logoSearch.toLowerCase());
+      const matchFormat = !this.logoFormatFilter || l.format === this.logoFormatFilter;
+      const matchType = !this.logoTypeFilter || l.fileType === this.logoTypeFilter;
+      return matchSearch && matchFormat && matchType;
+    });
+  }
+
+  downloadLogo(logo: any): void {
+    alert(`Downloading logo: ${logo.name} (${logo.fileType})\n\n(In production: initiates download package)`);
+  }
+
+  deleteLogo(index: number): void {
+    if (confirm('Are you sure you want to delete this logo?')) {
+      this.companyStore.updateLogos(this.logos.filter((_, idx) => idx !== index));
+    }
+  }
+
+  // Financial Documents Vault
+  financialCategoryFilter = '';
+  get financialDocs() { return this.companyStore.financialDocs(); }
+  get filteredFinancialDocs() {
+    if (!this.financialCategoryFilter) return this.financialDocs;
+    return this.financialDocs.filter(d => d.category === this.financialCategoryFilter);
+  }
+
+  onFinancialUpload(event: Event): void {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    const newDoc = {
+      month: new Date().toLocaleString('default', { month: 'short' }),
+      year: new Date().getFullYear().toString(),
+      category: this.financialCategoryFilter || '📊 P&L Reports',
+      fileName: file.name,
+      status: 'Approved',
+      fileSize: (file.size / 1024).toFixed(0) + ' KB',
+      uploadedDate: new Date().toISOString().split('T')[0]
+    };
+    this.companyStore.updateFinancialDocs([...this.financialDocs, newDoc]);
+    (event.target as HTMLInputElement).value = '';
+  }
+
+  deleteFinancialDoc(doc: any): void {
+    if (confirm('Are you sure you want to delete this financial report?')) {
+      this.companyStore.updateFinancialDocs(this.financialDocs.filter(d => d.fileName !== doc.fileName));
+    }
+  }
+
+  // Contract templates & editor modal
+  selectedContractTemplate: any = null;
+  contractEditText = '';
+  contractEmailTo = '';
+  contractEmailSubject = '';
+
+  contractTemplates = [
+    { name: 'Author-Publisher Agreement', category: 'Author', updated: '2024-01-01', content: '' },
+    { name: 'Ghostwriter Work-for-Hire', category: 'Ghostwriter', updated: '2024-01-01', content: '' },
+    { name: 'Developmental Editor Agreement', category: 'Editor', updated: '2024-01-01', content: '' },
+    { name: 'Copy Editor Agreement', category: 'Editor', updated: '2024-01-01', content: '' },
+    { name: 'Cover Designer Agreement', category: 'Cover Designer', updated: '2024-01-01', content: '' },
+    { name: 'Narrator Royalty Share Agreement', category: 'Narrator', updated: '2024-01-01', content: '' },
+    { name: 'Narrator Work-for-Hire Agreement', category: 'Narrator', updated: '2024-01-01', content: '' },
+    { name: 'Book Formatter Agreement', category: 'Formatting', updated: '2024-01-01', content: '' },
+    { name: 'Translation Agreement', category: 'Translation', updated: '2024-01-01', content: '' },
+    { name: 'Affiliate Program Agreement', category: 'Affiliate', updated: '2024-01-01', content: '' },
+    { name: 'Advertising Services Agreement', category: 'Advertising', updated: '2024-01-01', content: '' },
+    { name: 'Co-Author Agreement', category: 'Co-Author', updated: '2024-01-01', content: '' },
+    { name: 'Royalty Split Agreement', category: 'Royalty', updated: '2024-01-01', content: '' },
+    { name: 'Non-Disclosure Agreement (NDA)', category: 'NDA', updated: '2024-01-01', content: '' },
+    { name: 'DMCA Takedown Notice Template', category: 'DMCA', updated: '2024-01-01', content: '' },
+  ];
+
+  get filteredContractTemplates() {
+    if (!this.contractCategoryFilter) return this.contractTemplates;
+    return this.contractTemplates.filter(t => t.category === this.contractCategoryFilter);
+  }
+
+  viewContractTemplate(t: any): void {
+    this.selectedContractTemplate = t;
+    this.contractEmailTo = '';
+    this.contractEmailSubject = `Contract Proposal: ${t.name}`;
+    this.contractEditText = `AGREEMENT made this ${new Date().getDate()} day of ${new Date().toLocaleString('default', { month: 'long' })}, ${new Date().getFullYear()}, by and between Vance Publishing LLC (hereinafter "Publisher") and ______________________ (hereinafter "Contractor").
+
+WHEREAS, Contractor agrees to provide services for: ${t.name}.
+
+1. Services: Contractor shall perform services in a professional manner...
+2. Compensation: Publisher shall pay Contractor the sum of $____ upon completion...
+3. Rights: All work product is work-for-hire and assigned to Publisher.
+
+IN WITNESS WHEREOF, the parties hereto have signed this Agreement.
+
+Publisher: Vance Publishing LLC / Eleanor Vance
+Contractor: ____________________________`;
+  }
+
+  closeContractModal(): void {
+    this.selectedContractTemplate = null;
+  }
+
+  saveEditedContract(): void {
+    const newContract = { name: this.selectedContractTemplate.name + ' (Customized)', counterparty: this.contractEmailTo || 'Custom Contractor', type: this.selectedContractTemplate.category, date: new Date().toISOString().split('T')[0], status: 'Draft', file: 'custom-contract.pdf' };
+    this.companyStore.updateContracts([...this.contractRecords, newContract]);
+    this.closeContractModal();
+    alert('Contract customized copy has been saved to your active contracts list!');
+  }
+
+  useContractTemplate(t: any): void {
+    const newContract = { name: t.name, counterparty: '', type: t.category, date: new Date().toISOString().split('T')[0], status: 'Template', file: '' };
+    this.companyStore.updateContracts([...this.contractRecords, newContract]);
+    alert(`Template "${t.name}" added to contracts directory.`);
+  }
+
+  // Vendor filter
+  get filteredTeamMembers() {
+    if (!this.vendorCategoryFilter) return this.teamMembers;
+    return this.teamMembers.filter(m => m.role?.toLowerCase().includes(this.vendorCategoryFilter.toLowerCase()));
+  }
+
+  // SOP samples & interactive SOP editor modal
+  selectedSop: any = null;
+  sopSelectedIndex = -1;
+  sopEditName = '';
+  sopEditCategory = '';
+  sopEditDescription = '';
+  sopEditContent = '';
+
+  sopSamples = [
+    { name: 'Monthly Bookkeeping SOP', category: 'Finance', description: 'Month-end reconciliation, expense categorization, and reporting process', content: `1. Reconcile monthly bills from editors, designers, and web developers.\n2. Confirm tasks are completed and approved.\n3. Open QuickBooks Online / Billing module.\n4. Create invoice matching the contractor rates ($250/hr for CPA, $800/cover for designer).\n5. Send draft invoice to CEO Eleanor Vance for approval.\n6. Issue payment via Chase Checking or PayPal.` },
+    { name: 'Quarterly Tax Prep SOP', category: 'Finance', description: 'Steps for preparing and filing quarterly estimated tax payments', content: `1. Gather income statements and contractor 1099 records.\n2. Calculate estimated federal tax using standard tax schedules.\n3. Submit tax filing on IRS EFTPS platform.\n4. Log estimated payments under company financial logs.` },
+    { name: 'Invoice Template & Process', category: 'Finance', description: 'Standard invoice creation, sending, and follow-up workflow', content: `1. Open standard Invoice layout.\n2. Prefill client details, billing period, and hours/deliverables.\n3. Verify rate compliance.\n4. Email generated invoice to target inbox.` },
+    { name: 'Book Upload Checklist — KDP', category: 'Publishing', description: 'Step-by-step checklist for uploading and publishing on Amazon KDP', content: `1. Prepare final formatted EPUB and high-res cover JPG.\n2. Gather metadata (Title, Subtitle, Description, 7 Keywords, Bisac Categories).\n3. Log in to Amazon KDP.\n4. Upload files and enter metadata details.\n5. Set pricing ($4.99 Ebook, $14.99 Paperback).\n6. Check previewer to verify formatting.` },
+    { name: 'Book Upload Checklist — Draft2Digital', category: 'Publishing', description: 'Complete upload and metadata checklist for Draft2Digital', content: `1. Access Draft2Digital author dashboard.\n2. Create a new book entry.\n3. Provide metadata consistent with Amazon upload.\n4. Choose wide distribution channels.\n5. Confirm royalty split arrangements if applicable.` },
+    { name: 'Metadata Review SOP', category: 'Publishing', description: 'Standard process for reviewing and updating book metadata across platforms', content: `1. Quarterly review of active titles.\n2. Audit cover files, book descriptions, and keyword metrics.\n3. Adjust metadata to reflect current SEO trends.` },
+    { name: '12-Week Book Launch SOP', category: 'Launch', description: 'Complete launch timeline from cover reveal to release day and beyond', content: `1. 12 Weeks Out: Send final manuscript to developmental editor.\n2. 8 Weeks Out: Cover reveal and set up pre-order on KDP.\n3. 4 Weeks Out: Send ARC copies via BookSprout / BookFunnel.\n4. 2 Weeks Out: Schedule newsletter announcement swaps.\n5. Launch Day: Send release email, launch ads (Facebook / BookBub).\n6. Post-Launch: Monitor sales rank and review acquisitions.` },
+    { name: 'ARC Distribution SOP', category: 'Launch', description: 'Process for setting up, distributing, and tracking ARC readers', content: `1. Upload advance reader copy (ARC) EPUB to BookFunnel.\n2. Create secure landing page with review deadline rules.\n3. Submit ARC campaign to BookSprout list (limit 75 reviewers).\n4. Send download link to street team (45 members).\n5. Send follow-up email 1 week before release requesting reviews.\n6. Track posted reviews on Goodreads and Amazon.` },
+    { name: 'BookBub Ad Submission SOP', category: 'Launch', description: 'Submission process, pricing strategy, and post-promo analysis', content: `1. Draft ad graphics (300x250).\n2. Choose comp author targets and bids.\n3. Submit for BookBub Featured Deal or launch self-serve ads.` },
+    { name: 'Contractor Onboarding SOP', category: 'Contractor', description: 'Steps for onboarding new editors, designers, narrators, and VAs', content: `1. Conduct interview and confirm rates / timeline.\n2. Send standard Non-Disclosure Agreement (NDA) via DocuSign.\n3. Collect signed NDA and store in Owner Documents.\n4. Add contractor details to Team Directory.\n5. Create limited-access account in MailerLite or WordPress if needed.\n6. Set up communication channels (Slack / Email).` },
+    { name: 'Contractor Offboarding SOP', category: 'Contractor', description: 'Checklist for offboarding contractors and revoking system access', content: `1. Notify contractor of contract completion.\n2. Revoke platform accounts and shared system passwords.\n3. Remove from communication channels.\n4. Verify all work deliverables are archived.\n5. Request final invoice and process payment.\n6. Send formal offboarding email reminding them of ongoing NDA.` },
+    { name: 'Royalty Split Sheet Template', category: 'Contractor', description: 'Template for documenting and calculating royalty splits', content: `1. Log in to dashboard and export monthly sales statements.\n2. Compute royalties based on custom contract formulas.\n3. Prefill split sheet report.\n4. Email statements and process payouts.` },
+    { name: 'Shopify Direct Sales SOP', category: 'Direct Sales', description: 'Setup, delivery, and customer service process for direct book sales', content: `1. Create a new digital product with cover, description, and pricing.\n2. Link the product to BookFunnel Shopify Integration.\n3. Upload EPUB/PDF to BookFunnel delivery folder.\n4. Test buying process using Stripe test mode.\n5. Confirm delivery email from BookFunnel is received within 5 minutes.` },
+    { name: 'BookFunnel Delivery SOP', category: 'Direct Sales', description: 'Process for setting up and managing BookFunnel delivery workflows', content: `1. Integrate BookFunnel account with WooCommerce/Shopify.\n2. Map book SKUs to BookFunnel delivery items.\n3. Audit email templates for delivery links.` },
+    { name: 'DMCA Takedown SOP', category: 'Legal', description: 'Step-by-step guide for filing DMCA takedown notices for pirated content', content: `1. Identify infringing website URL hosting pirated books.\n2. Use the DMCA Takedown Notice Template under Contract Templates.\n3. Fill in the book title, ASIN, and infringing link details.\n4. Find the hosting provider or domain registrar's abuse email using WHOIS.\n5. Send the completed DMCA notice to the abuse email address.\n6. Monitor URL for removal within 48-72 hours.` },
+    { name: 'Copyright Registration SOP', category: 'Legal', description: 'Process for registering copyright with the U.S. Copyright Office', content: `1. Navigate to USCO portal.\n2. Fill out Literary Work registration form.\n3. Pay registration fee.\n4. Upload digital copy of manuscript.` }
+  ];
+
+  addSopFromSample(sample: any): void {
+    const newSop = { name: sample.name, category: sample.category, description: sample.description, updated: new Date().toISOString().split('T')[0], content: sample.content };
+    this.companyStore.updateSops([...this.sopTemplates, newSop]);
+    alert(`Template "${sample.name}" copied to your active SOPs directory.`);
+  }
+
+  viewSop(s: any): void {
+    this.selectedSop = s;
+    this.sopSelectedIndex = this.sopTemplates.findIndex(x => x.name === s.name);
+    this.sopEditName = s.name;
+    this.sopEditCategory = s.category || 'General';
+    this.sopEditDescription = s.description || '';
+    this.sopEditContent = s.content || '1. Read guidelines.\n2. Complete tasks.\n3. Log reports.';
+  }
+
+  editSop(s: any, index: number): void {
+    this.viewSop(s);
+  }
+
+  closeSopModal(): void {
+    this.selectedSop = null;
+    this.sopSelectedIndex = -1;
+  }
+
+  saveSopContent(): void {
+    const list = [...this.sopTemplates];
+    const updatedSop = {
+      name: this.sopEditName,
+      category: this.sopEditCategory,
+      description: this.sopEditDescription,
+      updated: new Date().toISOString().split('T')[0],
+      content: this.sopEditContent
+    };
+
+    if (this.sopSelectedIndex >= 0) {
+      list[this.sopSelectedIndex] = updatedSop;
+    } else {
+      list.push(updatedSop);
+    }
+    this.companyStore.updateSops(list);
+    this.closeSopModal();
+    alert('SOP has been saved successfully!');
+  }
+
+  private readonly PIN_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
   private readonly PIN_KEY = 'av_company_unlocked';
   private readonly PIN_ACTIVITY_KEY = 'av_company_pin_activity';
   private readonly STORED_PIN_KEY = 'av_company_pin';
@@ -981,9 +1789,13 @@ export class VaultCompanyPageComponent implements OnInit {
   get isbnAvailable(): number { return this.isbnRecords.filter(r => r.status === 'unused').length; }
   get isbnReserved(): number { return this.isbnRecords.filter(r => r.status === 'reserved').length; }
   get filteredSops() {
-    if (!this.sopFilter.trim()) return this.sopTemplates;
-    const q = this.sopFilter.toLowerCase();
-    return this.sopTemplates.filter(s => s.name.toLowerCase().includes(q) || s.description.toLowerCase().includes(q));
+    let list = this.sopTemplates;
+    if (this.sopCategoryFilter) list = list.filter((s: any) => s.category === this.sopCategoryFilter);
+    if (this.sopFilter.trim()) {
+      const q = this.sopFilter.toLowerCase();
+      list = list.filter((s: any) => s.name.toLowerCase().includes(q) || s.description.toLowerCase().includes(q));
+    }
+    return list;
   }
 
   // ── ISBN filter ──
@@ -1002,6 +1814,22 @@ export class VaultCompanyPageComponent implements OnInit {
     this.unlocked = this.isSessionValid();
     if (!this.unlocked) localStorage.removeItem(this.PIN_KEY);
     else this.resetPinTimeout();
+
+    // Start reveal timer ticks
+    this.timerIntervalRef = setInterval(() => {
+      for (const key of Object.keys(this.revealTimers)) {
+        if (this.revealTimers[key] > 0) {
+          this.revealTimers[key]--;
+        } else {
+          delete this.revealTimers[key];
+        }
+      }
+    }, 1000);
+  }
+
+  ngOnDestroy(): void {
+    clearInterval(this.timerIntervalRef);
+    clearTimeout(this.pinTimeoutRef);
   }
 
   private isSessionValid(): boolean {
@@ -1022,22 +1850,11 @@ export class VaultCompanyPageComponent implements OnInit {
     if (this.unlocked && !this.isSessionValid()) this.lockVault();
   }
 
+  private pinTimeoutRef: any;
   /** Reset PIN auto-lock timer (10 minutes) */
   private resetPinTimeout(): void {
     clearTimeout(this.pinTimeoutRef);
     this.pinTimeoutRef = setTimeout(() => this.checkPinExpiry(), this.PIN_TIMEOUT_MS);
-  }
-
-  /** Reveal EIN with auto-hide after 60 seconds */
-  revealEin(): void {
-    if (this.showEin) { this.showEin = false; this.einTimer = 0; clearInterval(this.einTimerRef); return; }
-    this.showEin = true;
-    this.einTimer = 60;
-    clearInterval(this.einTimerRef);
-    this.einTimerRef = setInterval(() => {
-      this.einTimer--;
-      if (this.einTimer <= 0) { this.showEin = false; clearInterval(this.einTimerRef); }
-    }, 1000);
   }
 
   onPinInput(event: Event, index: number): void {
@@ -1112,9 +1929,7 @@ export class VaultCompanyPageComponent implements OnInit {
     this.unlocked = false;
     this.pinDigits = ['', '', '', ''];
     this.pinError = false;
-    this.showEin = false;
-    this.einTimer = 0;
-    clearInterval(this.einTimerRef);
+    this.revealTimers = {};
     clearTimeout(this.pinTimeoutRef);
     localStorage.removeItem(this.PIN_KEY);
     localStorage.removeItem(this.PIN_ACTIVITY_KEY);
@@ -1139,6 +1954,10 @@ export class VaultCompanyPageComponent implements OnInit {
 
   scEmailHref(email: string): string {
     return `https://mail.scribecount.com/compose?to=${encodeURIComponent(email)}`;
+  }
+
+  scEmailHrefWithPrefill(to: string, subject: string, body: string): string {
+    return `https://mail.scribecount.com/compose?to=${encodeURIComponent(to)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   }
 
   async onExcelImport(event: Event): Promise<void> {

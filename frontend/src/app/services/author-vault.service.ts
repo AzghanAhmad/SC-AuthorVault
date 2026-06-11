@@ -1,5 +1,5 @@
 import { Injectable, signal, computed } from '@angular/core';
-import { PublishingCompany, Imprint, PenName, Series, Book, LanguageBranch, BookFormat, BreadcrumbItem, VaultLevel, CompanyIdentity, FinancialTaxRecords, CompanyContractsLegal, CompanyOwnership } from '../models/author-vault.model';
+import { PublishingCompany, Imprint, PenName, Series, Book, LanguageBranch, BookFormat, BreadcrumbItem, VaultLevel, CompanyIdentity, FinancialTaxRecords, CompanyContractsLegal, CompanyOwnership, BoxSetRecord } from '../models/author-vault.model';
 import { COMPANY_FIELD_MAP } from './excel-import.service';
 
 @Injectable({ providedIn: 'root' })
@@ -93,10 +93,40 @@ export class AuthorVaultService {
   }
 
   private mockSeries(id: string, name: string, type: string, genre: string, books: Book[]): Series {
+    const boxSets = id === 'sr1' ? [
+      {
+        id: 'bs1',
+        title: 'Hearts of Manhattan: The Complete Collection',
+        subtitle: 'Books 1-3 Box Set',
+        parentSeriesId: 'sr1',
+        type: 'Digital Omnibus',
+        status: 'Published' as const,
+        publicationDate: '2024-05-01',
+        penName: 'Eleanor Vance',
+        copyrightHolder: 'Vance Publishing LLC',
+        totalWordCount: 230000,
+        totalPageCount: 920,
+        constituentTitles: [
+          { bookId: 'bk1', title: 'The Midnight Library', position: 1, edition: 'First Edition' },
+          { bookId: 'bk2', title: 'Shadow Protocol', position: 2, edition: 'First Edition' },
+          { bookId: 'bk3', title: 'Garden of Stars', position: 3, edition: 'First Edition' }
+        ],
+        exclusiveContent: true,
+        exclusiveDescription: 'Includes a bonus epilogue chapter not available anywhere else.',
+        coverDesigner: 'James Okafor',
+        oneLineHook: 'All three bestselling Hearts of Manhattan contemporary romance novels in one exclusive volume.',
+        shortDescription: 'Get the complete Hearts of Manhattan trilogy in a single volume, plus an exclusive epilogue!',
+        longDescription: 'Escape into the glamorous, emotional, and captivating world of Eleanor Vance\'s Hearts of Manhattan trilogy. Includes all three books.',
+        valueProposition: 'Save 40% compared to buying individual books',
+        bundleRightsConfirmed: true,
+        kdpSelectConflictCheck: 'Enrolled in KDP Select — wide outlets removed'
+      }
+    ] : [];
+
     return { id, identity: { name, internalId: id, parentPenNameId: '', seriesType: type as any, universeName: '', genre, subgenre: '', targetAudience: 'Adult', status: books.every(b => b.coreWork.bookStatus === 'Published') ? 'Active' : 'Active', startDate: '2022-01-15', endDate: '', plannedTotalBooks: type === 'Standalone' ? 1 : 5, currentTotalBooks: books.length, readingOrderNotes: '', interconnectedSeries: '' },
       world: { settingOverview: `The world of ${name}`, timeline: '', characterBibleFile: '', glossary: '', mapsFiles: '', continuityNotes: '', spoilerSummary: '' },
       branding: { logo: '', brandColors: '', tagline: `A ${genre} series`, oneLineHook: `Welcome to ${name}`, websitePage: '', readerMagnet: '', readThroughAssets: '', salesPage: '', compTitles: '', compAuthors: '' },
-      boxSets: [], books };
+      boxSets, books };
   }
 
   private mockBook(id: string, title: string, num: number, status: string): Book {
@@ -207,11 +237,34 @@ export class AuthorVaultService {
     this.persist();
   }
 
+  updatePenNameFull(penNameId: string, partial: Partial<PenName>): void {
+    this._company.update(c => ({
+      ...c,
+      imprints: c.imprints.map(imp => ({
+        ...imp,
+        penNames: imp.penNames.map(pn =>
+          pn.id === penNameId ? { ...pn, ...partial } : pn
+        )
+      }))
+    }));
+    this.persist();
+  }
+
   updateImprint(imprintId: string, partial: Partial<Imprint['identity']>): void {
     this._company.update(c => ({
       ...c,
       imprints: c.imprints.map(imp =>
         imp.id === imprintId ? { ...imp, identity: { ...imp.identity, ...partial } } : imp
+      )
+    }));
+    this.persist();
+  }
+
+  updateImprintLegalIsbn(imprintId: string, partial: Partial<Imprint['legalIsbn']>): void {
+    this._company.update(c => ({
+      ...c,
+      imprints: c.imprints.map(imp =>
+        imp.id === imprintId ? { ...imp, legalIsbn: { ...imp.legalIsbn, ...partial } } : imp
       )
     }));
     this.persist();
@@ -227,6 +280,24 @@ export class AuthorVaultService {
             ...pn,
             series: pn.series.map(sr =>
               sr.id === seriesId ? { ...sr, identity: { ...sr.identity, ...partial } } : sr
+            )
+          }
+        )
+      }))
+    }));
+    this.persist();
+  }
+
+  updateBoxSets(penNameId: string, seriesId: string, boxSets: BoxSetRecord[]): void {
+    this._company.update(c => ({
+      ...c,
+      imprints: c.imprints.map(imp => ({
+        ...imp,
+        penNames: imp.penNames.map(pn =>
+          pn.id !== penNameId ? pn : {
+            ...pn,
+            series: pn.series.map(sr =>
+              sr.id === seriesId ? { ...sr, boxSets } : sr
             )
           }
         )

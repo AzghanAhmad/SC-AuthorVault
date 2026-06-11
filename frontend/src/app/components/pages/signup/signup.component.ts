@@ -14,8 +14,8 @@ import { AuthService } from '../../../services/auth.service';
       <header class="nav" [class.scrolled]="navScrolled">
         <div class="nav-inner">
           <a routerLink="/signup" class="nav-logo">
-            <span class="logo-mark">
-              <img src="assets/logo.png" alt="ScribeCount" class="logo-img" />
+            <span class="logo-mark" style="background:transparent;box-shadow:none;width:32px;height:32px;">
+              <svg viewBox="0 0 36 36" fill="none" style="width:32px;height:32px;"><defs><linearGradient id="lg-signup" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#60a5fa"/><stop offset="50%" stop-color="#818cf8"/><stop offset="100%" stop-color="#a78bfa"/></linearGradient></defs><rect width="36" height="36" rx="10" fill="url(#lg-signup)" opacity="0.15"/><path d="M13 14.5a3.5 3.5 0 0 1 5.25.38l1.75-1.75a3.5 3.5 0 0 0-4.95-4.95l-2 2" stroke="url(#lg-signup)" stroke-width="2.2" stroke-linecap="round"/><path d="M23 21.5a3.5 3.5 0 0 1-5.25-.38l-1.75 1.75a3.5 3.5 0 0 0 4.95 4.95l2-2" stroke="url(#lg-signup)" stroke-width="2.2" stroke-linecap="round"/><line x1="14" y1="22" x2="22" y2="14" stroke="url(#lg-signup)" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="2 3"/></svg>
             </span>
             <span class="logo-text">ScribeCount</span>
           </a>
@@ -114,8 +114,8 @@ import { AuthService } from '../../../services/auth.service';
         <div class="footer-top">
           <div class="footer-brand">
             <a routerLink="/signup" class="nav-logo">
-              <span class="logo-mark">
-                <img src="assets/logo.png" alt="ScribeCount" class="logo-img" />
+              <span class="logo-mark" style="background:transparent;box-shadow:none;width:32px;height:32px;">
+                <svg viewBox="0 0 36 36" fill="none" style="width:32px;height:32px;"><defs><linearGradient id="lg-signup-foot" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#60a5fa"/><stop offset="50%" stop-color="#818cf8"/><stop offset="100%" stop-color="#a78bfa"/></linearGradient></defs><rect width="36" height="36" rx="10" fill="url(#lg-signup-foot)" opacity="0.15"/><path d="M13 14.5a3.5 3.5 0 0 1 5.25.38l1.75-1.75a3.5 3.5 0 0 0-4.95-4.95l-2 2" stroke="url(#lg-signup-foot)" stroke-width="2.2" stroke-linecap="round"/><path d="M23 21.5a3.5 3.5 0 0 1-5.25-.38l-1.75 1.75a3.5 3.5 0 0 0 4.95 4.95l2-2" stroke="url(#lg-signup-foot)" stroke-width="2.2" stroke-linecap="round"/><line x1="14" y1="22" x2="22" y2="14" stroke="url(#lg-signup-foot)" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="2 3"/></svg>
               </span>
               <span class="logo-text">ScribeCount</span>
             </a>

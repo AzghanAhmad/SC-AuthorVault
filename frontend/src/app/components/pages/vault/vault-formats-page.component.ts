@@ -19,7 +19,12 @@ interface FormatWithContext extends BookFormat {
   template: `
     <div class="page">
       <div class="page-header">
-        <h1 class="page-title">📄 Formats</h1>
+        <div class="page-title-wrap">
+          <svg class="header-icon-svg" viewBox="0 0 24 24" aria-hidden="true" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
+          </svg>
+          <h1 class="page-title" style="margin:0;">Formats</h1>
+        </div>
         <p class="page-subtitle">Every format is listed by book. Use the filters to drill down by title, language, format type, or platform.</p>
       </div>
 
@@ -132,7 +137,26 @@ interface FormatWithContext extends BookFormat {
         <div class="vault-layout">
           <nav class="vault-nav">
             @for (t of tabs; track t.id) {
-              <button class="tab-item" [class.active]="tab() === t.id" (click)="tab.set(t.id)">{{ t.label }}</button>
+              <button class="tab-item" [class.active]="tab() === t.id" (click)="tab.set(t.id)">
+                @switch (t.id) {
+                  @case ('specs') {
+                    <svg class="tab-icon-svg" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><path d="M6 6h10M6 10h10"/></svg>
+                  }
+                  @case ('kdpselect') {
+                    <svg class="tab-icon-svg" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
+                  }
+                  @case ('pricing') {
+                    <svg class="tab-icon-svg" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                  }
+                  @case ('variants') {
+                    <svg class="tab-icon-svg" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                  }
+                  @case ('logs') {
+                    <svg class="tab-icon-svg" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                  }
+                }
+                {{ t.label }}
+              </button>
             }
           </nav>
           <div class="vault-content">
@@ -175,7 +199,17 @@ interface FormatWithContext extends BookFormat {
                     <div class="form-group"><span class="form-label">Free Days Used</span><div class="form-value">{{ f.kdpSelect.freeDaysUsed ? 'Yes' : 'No' }}</div></div>
                   </div>
                 } @else {
-                  <div class="empty-state"><div class="empty-icon">📋</div><p>Not enrolled in KDP Select</p></div>
+                  <div class="empty-state">
+                    <div class="empty-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="40" height="40" style="color:var(--text-muted)">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                        <line x1="9" y1="9" x2="15" y2="9"/>
+                        <line x1="9" y1="13" x2="15" y2="13"/>
+                        <line x1="9" y1="17" x2="13" y2="17"/>
+                      </svg>
+                    </div>
+                    <p>Not enrolled in KDP Select</p>
+                  </div>
                 }
               </div>
             }
@@ -223,7 +257,16 @@ interface FormatWithContext extends BookFormat {
                   </div>
                 }
                 @if (!f.platformVariants.length) {
-                  <div class="empty-state"><div class="empty-icon">🖥</div><p>No platform variants yet</p></div>
+                  <div class="empty-state">
+                    <div class="empty-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="40" height="40" style="color:var(--text-muted)">
+                        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                        <line x1="8" y1="21" x2="16" y2="21"/>
+                        <line x1="12" y1="17" x2="12" y2="21"/>
+                      </svg>
+                    </div>
+                    <p>No platform variants yet</p>
+                  </div>
                 }
               </div>
             }
@@ -232,7 +275,17 @@ interface FormatWithContext extends BookFormat {
               <div class="card">
                 <h3 class="section-title">Upload Logs</h3>
                 @if (!f.uploadLogs.length) {
-                  <div class="empty-state"><div class="empty-icon">📋</div><p>No upload events recorded</p></div>
+                  <div class="empty-state">
+                    <div class="empty-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="40" height="40" style="color:var(--text-muted)">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                      </svg>
+                    </div>
+                    <p>No upload events recorded</p>
+                  </div>
                 }
                 @if (f.uploadLogs.length) {
                   <table class="data-table">
@@ -360,11 +413,11 @@ export class VaultFormatsPageComponent {
   selected = signal<FormatWithContext | null>(null);
   tab = signal('specs');
   tabs = [
-    { id: 'specs',     label: '📐 Specs' },
-    { id: 'kdpselect', label: '📋 KDP Select' },
-    { id: 'pricing',   label: '💰 Pricing' },
-    { id: 'variants',  label: '🖥 Platforms' },
-    { id: 'logs',      label: '📝 Upload Logs' },
+    { id: 'specs',     label: 'Specs' },
+    { id: 'kdpselect', label: 'KDP Select' },
+    { id: 'pricing',   label: 'Pricing' },
+    { id: 'variants',  label: 'Platforms' },
+    { id: 'logs',      label: 'Upload Logs' },
   ];
 
   get liveCount() { return this.filteredFormats().filter(f => f.specs.status === 'Live').length; }

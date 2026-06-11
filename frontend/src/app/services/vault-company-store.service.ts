@@ -27,6 +27,7 @@ export interface VaultOwnerProfile {
   canSign: boolean;
   canManageFinances: boolean;
   showNda: boolean;
+  docs?: Record<string, string>;
 }
 
 export interface VaultTeamMember {
@@ -56,6 +57,7 @@ export interface VaultTaxDoc {
   type: string;
   year: string;
   status: string;
+  fileName?: string;
 }
 
 export interface VaultIsbnRecord {
@@ -123,12 +125,15 @@ export interface VaultLogo {
   fileType: string;
   uploaded: string;
   bg: string;
+  dataUrl?: string;
 }
 
 export interface VaultSopTemplate {
   name: string;
   description: string;
   updated: string;
+  category?: string;
+  content?: string;
 }
 
 export interface VaultCorporateDoc {
@@ -146,6 +151,8 @@ export interface VaultCommunications {
   newsletterListSize: string;
   supportInbox: string;
   poBox: string;
+  apiKey: string;
+  smtpPassword: string;
 }
 
 export interface VaultInventoryFulfillment {
@@ -167,12 +174,22 @@ export interface VaultTaxRegistrations {
   resaleCertificates: string;
 }
 
+export interface VaultFinancialDoc {
+  month: string;
+  year: string;
+  category: string;
+  fileName: string;
+  status: string;
+  fileSize?: string;
+  uploadedDate?: string;
+}
+
 const STORAGE_KEY = 'av_vault_company_extras_v1';
 
 @Injectable({ providedIn: 'root' })
 export class VaultCompanyStoreService {
   readonly ownerProfiles = signal<VaultOwnerProfile[]>(this.load('ownerProfiles', [
-    { name: 'Eleanor Vance', role: 'Managing Member / CEO', ownershipPct: '100%', email: 'eleanor@authorvaultpress.com', phone: '+1 (212) 555-0147', canSign: true, canManageFinances: true, showNda: true },
+    { name: 'Eleanor Vance', role: 'Managing Member / CEO', ownershipPct: '100%', email: 'eleanor@authorvaultpress.com', phone: '+1 (212) 555-0147', canSign: true, canManageFinances: true, showNda: true, docs: {} },
   ]));
 
   readonly publishingPlatforms = signal<VaultPlatform[]>(this.load('publishingPlatforms', [
@@ -281,25 +298,25 @@ export class VaultCompanyStoreService {
   ]));
 
   readonly logos = signal<VaultLogo[]>(this.load('logos', [
-    { name: 'Primary Logo — Full Color', format: 'Horizontal', dimensions: '2400x800px', fileType: 'PNG', uploaded: '2021-06-01', bg: 'var(--primary-light)' },
-    { name: 'Primary Logo — White', format: 'Horizontal', dimensions: '2400x800px', fileType: 'PNG', uploaded: '2021-06-01', bg: '#1c2e4a' },
-    { name: 'Icon Mark — Full Color', format: 'Square', dimensions: '800x800px', fileType: 'PNG', uploaded: '2021-06-01', bg: 'var(--primary-light)' },
-    { name: 'Icon Mark — White', format: 'Square', dimensions: '800x800px', fileType: 'PNG', uploaded: '2021-06-01', bg: '#1c2e4a' },
-    { name: 'Vector Master File', format: 'All', dimensions: 'Scalable', fileType: 'SVG', uploaded: '2021-06-01', bg: 'var(--background)' },
-    { name: 'Print-Ready Logo', format: 'Horizontal', dimensions: 'Vector', fileType: 'EPS', uploaded: '2021-06-01', bg: 'var(--background)' },
+    { name: 'Primary Logo — Full Color', format: 'Horizontal', dimensions: '2400x800px', fileType: 'PNG', uploaded: '2021-06-01', bg: 'var(--primary-light)', dataUrl: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 80" width="100%" height="100%"><rect width="300" height="80" rx="10" fill="%230f172a"/><circle cx="50" cy="40" r="22" fill="%2338bdf8"/><text x="50" y="46" font-family="system-ui,sans-serif" font-weight="bold" font-size="20" fill="white" text-anchor="middle">VP</text><text x="90" y="40" font-family="system-ui,sans-serif" font-weight="bold" font-size="18" fill="white">VANCE</text><text x="90" y="55" font-family="system-ui,sans-serif" font-size="10" fill="%2394a3b8" letter-spacing="1.5">PUBLISHING LLC</text></svg>` },
+    { name: 'Primary Logo — White', format: 'Horizontal', dimensions: '2400x800px', fileType: 'PNG', uploaded: '2021-06-01', bg: '#1c2e4a', dataUrl: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 80" width="100%" height="100%"><rect width="300" height="80" rx="10" fill="%231e293b"/><circle cx="50" cy="40" r="22" fill="none" stroke="white" stroke-width="2"/><text x="50" y="46" font-family="system-ui,sans-serif" font-weight="bold" font-size="20" fill="white" text-anchor="middle">VP</text><text x="90" y="40" font-family="system-ui,sans-serif" font-weight="bold" font-size="18" fill="white">VANCE</text><text x="90" y="55" font-family="system-ui,sans-serif" font-size="10" fill="white" letter-spacing="1.5">PUBLISHING LLC</text></svg>` },
+    { name: 'Icon Mark — Full Color', format: 'Square', dimensions: '800x800px', fileType: 'PNG', uploaded: '2021-06-01', bg: 'var(--primary-light)', dataUrl: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="100%" height="100%"><rect width="80" height="80" rx="15" fill="%230f172a"/><circle cx="40" cy="40" r="24" fill="%2338bdf8"/><text x="40" y="47" font-family="system-ui,sans-serif" font-weight="bold" font-size="22" fill="white" text-anchor="middle">VP</text></svg>` },
+    { name: 'Icon Mark — White', format: 'Square', dimensions: '800x800px', fileType: 'PNG', uploaded: '2021-06-01', bg: '#1c2e4a', dataUrl: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="100%" height="100%"><rect width="80" height="80" rx="15" fill="%231e293b"/><circle cx="40" cy="40" r="24" fill="none" stroke="white" stroke-width="2"/><text x="40" y="47" font-family="system-ui,sans-serif" font-weight="bold" font-size="22" fill="white" text-anchor="middle">VP</text></svg>` },
+    { name: 'Vector Master File', format: 'All', dimensions: 'Scalable', fileType: 'SVG', uploaded: '2021-06-01', bg: 'var(--background)', dataUrl: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 80" width="100%" height="100%"><rect width="300" height="80" rx="10" fill="none" stroke="%2338bdf8" stroke-width="2" stroke-dasharray="5 5"/><circle cx="50" cy="40" r="22" fill="%2338bdf8"/><text x="50" y="46" font-family="system-ui,sans-serif" font-weight="bold" font-size="20" fill="white" text-anchor="middle">VP</text><text x="90" y="45" font-family="system-ui,sans-serif" font-weight="bold" font-size="20" fill="%230f172a">VECTOR SVG</text></svg>` },
+    { name: 'Print-Ready Logo', format: 'Horizontal', dimensions: 'Vector', fileType: 'EPS', uploaded: '2021-06-01', bg: 'var(--background)', dataUrl: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 80" width="100%" height="100%"><rect width="300" height="80" rx="10" fill="%230284c7"/><text x="150" y="48" font-family="system-ui,sans-serif" font-weight="bold" font-size="24" fill="white" text-anchor="middle">EPS VECTOR FILE</text></svg>` },
   ]));
 
   readonly sopTemplates = signal<VaultSopTemplate[]>(this.load('sopTemplates', [
-    { name: 'Invoice Template', description: 'Standard invoice for contractor payments and client billing', updated: '2024-01-15' },
-    { name: 'Royalty Split Sheet', description: 'Template for calculating and documenting royalty splits', updated: '2024-02-01' },
-    { name: 'Book Launch Checklist', description: 'Complete 12-week launch checklist for new releases', updated: '2024-03-10' },
-    { name: 'Book Upload Checklist', description: 'Step-by-step checklist for uploading to all platforms', updated: '2024-01-20' },
-    { name: 'Direct Sales Checklist', description: 'Shopify product setup and BookFunnel delivery checklist', updated: '2024-02-15' },
-    { name: 'Contractor Onboarding SOP', description: 'Steps for onboarding new editors, designers, and VAs', updated: '2023-11-01' },
-    { name: 'Contractor Offboarding SOP', description: 'Steps for offboarding contractors and revoking access', updated: '2023-11-01' },
-    { name: 'ARC Distribution SOP', description: 'Process for distributing ARCs via BookSprout and BookFunnel', updated: '2024-01-05' },
-    { name: 'Monthly Bookkeeping SOP', description: 'Monthly reconciliation and expense categorization process', updated: '2024-03-01' },
-    { name: 'DMCA Takedown Process', description: 'Step-by-step guide for filing DMCA takedown notices', updated: '2023-09-15' },
+    { name: 'Invoice Template', description: 'Standard invoice for contractor payments and client billing', updated: '2024-01-15', category: 'Finance', content: `1. Reconcile monthly bills from editors, designers, and web developers.\n2. Confirm tasks are completed and approved.\n3. Open QuickBooks Online / Billing module.\n4. Create invoice matching the contractor rates ($250/hr for CPA, $800/cover for designer).\n5. Send draft invoice to CEO Eleanor Vance for approval.\n6. Issue payment via Chase Checking or PayPal.` },
+    { name: 'Royalty Split Sheet', description: 'Template for calculating and documenting royalty splits', updated: '2024-02-01', category: 'Contractor', content: `1. Retrieve monthly sales reports from Amazon KDP, Apple Books, and Draft2Digital.\n2. Open the Royalty Split Google Sheet template.\n3. Enter raw revenue per title.\n4. Apply contract splits (e.g. 50/50 for co-authored titles).\n5. Calculate net payout for each author/contributor after platform fees.\n6. Generate PDF statement and email to recipients.` },
+    { name: 'Book Launch Checklist', description: 'Complete 12-week launch checklist for new releases', updated: '2024-03-10', category: 'Launch', content: `1. 12 Weeks Out: Send final manuscript to developmental editor.\n2. 8 Weeks Out: Cover reveal and set up pre-order on KDP.\n3. 4 Weeks Out: Send ARC copies via BookSprout / BookFunnel.\n4. 2 Weeks Out: Schedule newsletter announcement swaps.\n5. Launch Day: Send release email, launch ads (Facebook / BookBub).\n6. Post-Launch: Monitor sales rank and review acquisitions.` },
+    { name: 'Book Upload Checklist', description: 'Step-by-step checklist for uploading to all platforms', updated: '2024-01-20', category: 'Publishing', content: `1. Prepare final formatted EPUB and high-res cover JPG.\n2. Gather metadata (Title, Subtitle, Description, 7 Keywords, Bisac Categories).\n3. Log in to Amazon KDP, Draft2Digital, IngramSpark, and Kobo.\n4. Upload files and enter metadata details consistently.\n5. Set prices ($4.99 Ebook, $14.99 Paperback).\n6. Check previewer tools to verify layout and formatting are correct.` },
+    { name: 'Direct Sales Checklist', description: 'Shopify product setup and BookFunnel delivery checklist', updated: '2024-02-15', category: 'Direct Sales', content: `1. Log in to Shopify admin dashboard.\n2. Create a new digital product with book cover, description, and pricing.\n3. Link the product to BookFunnel Shopify Integration.\n4. Upload EPUB/PDF to BookFunnel delivery folder.\n5. Test buying process using Stripe test mode.\n6. Confirm delivery email from BookFunnel is received within 5 minutes.` },
+    { name: 'Contractor Onboarding SOP', description: 'Steps for onboarding new editors, designers, and VAs', updated: '2023-11-01', category: 'Contractor', content: `1. Conduct interview and confirm rates / timeline.\n2. Send standard Non-Disclosure Agreement (NDA) via DocuSign.\n3. Collect signed NDA and store in Owner Documents / Contractor records.\n4. Add contractor details (Name, Role, Rate, Contact) to Team Directory.\n5. Create limited-access account in MailerLite or WordPress if needed.\n6. Set up communication channels (Slack / Email).` },
+    { name: 'Contractor Offboarding SOP', description: 'Steps for offboarding contractors and revoking access', updated: '2023-11-01', category: 'Contractor', content: `1. Notify contractor of contract completion or termination.\n2. Revoke platform accounts and shared system passwords.\n3. Remove from Slack channels and email lists.\n4. Verify all work deliverables are archived in the drive.\n5. Request final invoice and process payment through Chase Checking.\n6. Send formal offboarding email reminding them of ongoing NDA obligations.` },
+    { name: 'ARC Distribution SOP', description: 'Process for distributing ARCs via BookSprout and BookFunnel', updated: '2024-01-05', category: 'Launch', content: `1. Upload advance reader copy (ARC) EPUB to BookFunnel.\n2. Create secure landing page with review deadline rules.\n3. Submit ARC campaign to BookSprout list (limit 75 reviewers).\n4. Send download link to street team (45 members).\n5. Send follow-up email 1 week before release requesting reviews.\n6. Track posted reviews on Goodreads and Amazon.` },
+    { name: 'Monthly Bookkeeping SOP', description: 'Monthly reconciliation and expense categorization process', updated: '2024-03-01', category: 'Finance', content: `1. Download Chase bank statements and Stripe/PayPal transaction histories.\n2. Upload all digital receipts to ScribeCount Receipt repository.\n3. Match receipts to bank card transactions.\n4. Categorize expenses in QuickBooks Online (Ads, Design, Software, Legal).\n5. Generate Monthly P&L and Balance Sheet reports.\n6. Submit reports to accountant Sandra Mitchell, CPA.` },
+    { name: 'DMCA Takedown Process', description: 'Step-by-step guide for filing DMCA takedown notices', updated: '2023-09-15', category: 'Legal', content: `1. Identify infringing website URL hosting pirated books.\n2. Use the DMCA Takedown Notice Template under Contract Templates.\n3. Fill in the book title, ASIN, and infringing link details.\n4. Find the hosting provider or domain registrar's abuse email using WHOIS.\n5. Send the completed DMCA notice to the abuse email address.\n6. Monitor URL for removal within 48-72 hours.` },
   ]));
 
   readonly corporateDocs = signal<VaultCorporateDoc[]>(this.load('corporateDocs', [
@@ -322,6 +339,8 @@ export class VaultCompanyStoreService {
     newsletterListSize: '12,400 subscribers',
     supportInbox: 'support@authorvaultpress.com',
     poBox: 'PO Box 1234, New York, NY 10001',
+    apiKey: 'ml_sk_US_9283749a1bc82d3f9e8a7162b3c',
+    smtpPassword: 'smtp_pwd_8237s92a1bc82d3'
   }));
 
   readonly inventoryFulfillment = signal<VaultInventoryFulfillment>(this.load('inventoryFulfillment', {
@@ -342,6 +361,15 @@ export class VaultCompanyStoreService {
     vatGst: 'N/A — US only',
     resaleCertificates: 'resale-cert-ny.pdf',
   }));
+
+  readonly financialDocs = signal<VaultFinancialDoc[]>(this.load('financialDocs', [
+    { month: 'Jan', year: '2024', category: '📊 P&L Reports', fileName: 'pnl-jan-2024.pdf', status: 'Approved', fileSize: '1.2 MB', uploadedDate: '2024-02-01' },
+    { month: 'Feb', year: '2024', category: '📊 P&L Reports', fileName: 'pnl-feb-2024.pdf', status: 'Approved', fileSize: '1.1 MB', uploadedDate: '2024-03-01' },
+    { month: 'Mar', year: '2024', category: '📊 P&L Reports', fileName: 'pnl-mar-2024.pdf', status: 'Approved', fileSize: '1.4 MB', uploadedDate: '2024-04-01' },
+    { month: 'Jan', year: '2024', category: '🧾 Receipts', fileName: 'receipts-office-supplies-jan.pdf', status: 'Reviewed', fileSize: '450 KB', uploadedDate: '2024-01-28' },
+    { month: 'Feb', year: '2024', category: '🧾 Receipts', fileName: 'receipts-travel-feb.pdf', status: 'Reviewed', fileSize: '850 KB', uploadedDate: '2024-02-25' },
+    { month: 'Mar', year: '2024', category: '🧾 Receipts', fileName: 'receipts-software-subscriptions-mar.pdf', status: 'Reviewed', fileSize: '320 KB', uploadedDate: '2024-03-29' }
+  ]));
 
   readonly vendorCategoryFilter = signal('');
 
@@ -377,6 +405,7 @@ export class VaultCompanyStoreService {
       inventoryFulfillment: this.inventoryFulfillment(),
       securityNotes: this.securityNotes(),
       taxRegistrations: this.taxRegistrations(),
+      financialDocs: this.financialDocs(),
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   }
@@ -400,4 +429,6 @@ export class VaultCompanyStoreService {
   updateInventoryFulfillment(v: VaultInventoryFulfillment): void { this.inventoryFulfillment.set(v); this.persist(); }
   updateSecurityNotes(v: VaultSecurityNotes): void { this.securityNotes.set(v); this.persist(); }
   updateTaxRegistrations(v: VaultTaxRegistrations): void { this.taxRegistrations.set(v); this.persist(); }
+  updateFinancialDocs(v: VaultFinancialDoc[]): void { this.financialDocs.set(v); this.persist(); }
+  updateBoxSets(penNameId: string, seriesId: string, boxSets: any[]): void { this.persist(); }
 }

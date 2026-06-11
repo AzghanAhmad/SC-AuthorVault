@@ -1,4 +1,4 @@
-﻿import { Component, computed, signal, OnInit } from '@angular/core';
+import { Component, computed, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -43,7 +43,21 @@ const DEFAULT_DATES: ImportantDate[] = [
     <div class="page">
       <div class="page-header">
         <div>
-          <h1 class="page-title">Important Dates</h1>
+          <div class="page-title-wrap">
+            <svg class="header-icon-svg" viewBox="0 0 24 24" aria-hidden="true" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2.5 21h19"/>
+              <path d="M4.5 21V11.5h3.5V21"/>
+              <path d="M6.25 13.5v5"/>
+              <path d="M8.5 21V6h7V21"/>
+              <path d="M12 6V2.75"/>
+              <path d="M9.75 8h4.5"/><path d="M9.75 9.75h4.5"/><path d="M9.75 11.5h4.5"/>
+              <path d="M9.75 13.25h4.5"/><path d="M9.75 15h4.5"/><path d="M9.75 16.75h4.5"/>
+              <path d="M9.75 18.5h4.5"/>
+              <path d="M16 21V11.5h3.5V21"/>
+              <path d="M17.75 13.5v5"/>
+            </svg>
+            <h1 class="page-title" style="margin:0;">Important Dates</h1>
+          </div>
           <p class="page-subtitle">Tax deadlines, renewals, filings, and contract dates — all in one place</p>
         </div>
         <div class="header-actions">
@@ -57,7 +71,7 @@ const DEFAULT_DATES: ImportantDate[] = [
         </div>
       </div>
 
-      <div class="toolbar">
+      <div class="toolbar" style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;">
         <select [(ngModel)]="filterCat" class="filter-select">
           <option value="">All Categories</option>
           <option value="Tax">Tax Deadlines</option>
@@ -68,8 +82,19 @@ const DEFAULT_DATES: ImportantDate[] = [
           <option value="Contract">Contract Renewals</option>
           <option value="Filing">Annual Filings</option>
         </select>
+        
+        <div class="date-range-filter" style="display:flex;align-items:center;gap:.35rem;font-size:.8125rem;color:var(--text-secondary);">
+          <span>From:</span>
+          <input type="date" [(ngModel)]="filterStartDate" style="padding:.5rem;border:1.5px solid var(--border-color);border-radius:8px;background:var(--surface);color:var(--text-primary);font-size:.8125rem;" />
+          <span>To:</span>
+          <input type="date" [(ngModel)]="filterEndDate" style="padding:.5rem;border:1.5px solid var(--border-color);border-radius:8px;background:var(--surface);color:var(--text-primary);font-size:.8125rem;" />
+          @if (filterStartDate || filterEndDate) {
+            <button type="button" (click)="clearDateRange()" style="background:none;border:none;color:#ef4444;cursor:pointer;font-weight:600;padding:.2rem .4rem;">Clear Range</button>
+          }
+        </div>
+
         @if (viewMode() === 'list') {
-          <div class="legend">
+          <div class="legend" style="margin-left:auto;">
             <span class="legend-dot red"></span><span>Due within 30 days</span>
             <span class="legend-dot amber"></span><span>Due within 90 days</span>
             <span class="legend-dot green"></span><span>90+ days away</span>
@@ -89,6 +114,7 @@ const DEFAULT_DATES: ImportantDate[] = [
               </div>
               <div class="view-segment">
                 <button type="button" [class.active]="calView() === 'month'" (click)="calView.set('month')">Monthly</button>
+                <button type="button" [class.active]="calView() === 'quarter'" (click)="calView.set('quarter')">Quarterly</button>
                 <button type="button" [class.active]="calView() === 'year'" (click)="calView.set('year')">Yearly</button>
               </div>
             </div>
@@ -121,13 +147,82 @@ const DEFAULT_DATES: ImportantDate[] = [
                 }
               </div>
             </div>
-          } @else {
-            <div class="year-grid">
-              @for (m of yearMonths(); track m.index) {
-                <button type="button" class="year-month-card" (click)="jumpToMonth(m.index)">
-                  <span class="year-month-name">{{ m.label }}</span>
-                  <span class="year-month-count">{{ m.count }} date{{ m.count === 1 ? '' : 's' }}</span>
-                </button>
+          }
+
+          @if (calView() === 'quarter') {
+            <div class="quarter-view-container" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1.5rem;padding:0 1.5rem 1.5rem;">
+              @for (m of quarterMonths(); track m.monthIndex) {
+                <div class="quarter-month-box" style="background:var(--background);border:1px solid var(--border-color);border-radius:12px;padding:.75rem;box-sizing:border-box;">
+                  <h3 style="text-align:center;font-size:1rem;font-weight:700;color:var(--text-primary);margin:0 0 .5rem;">{{ m.name }} {{ m.year }}</h3>
+                  
+                  <div class="cal-weekdays" style="grid-template-columns:repeat(7, 1fr);border-bottom:1px solid var(--border-color);">
+                    @for (wd of ['M','T','W','T','F','S','S']; track $index) {
+                      <span style="font-size:.65rem;font-weight:700;text-align:center;display:block;padding:.25rem 0;">{{ wd }}</span>
+                    }
+                  </div>
+                  
+                  <div class="mini-cal-grid" style="display:grid;grid-template-columns:repeat(7, 1fr);grid-auto-rows:2.8rem;gap:1px;background:var(--border-color);margin-top:.25rem;">
+                    @for (day of getMonthDays(m.year, m.monthIndex); track day.date.getTime()) {
+                      <div class="mini-cal-cell" 
+                           [style.background]="day.isToday ? 'rgba(56,189,248,.15)' : (day.inMonth ? 'var(--surface)' : 'var(--background-subtle)')"
+                           [style.opacity]="day.inMonth ? '1' : '.4'"
+                           style="position:relative;padding:.2rem;display:flex;flex-direction:column;justify-content:space-between;box-sizing:border-box;min-width:0;height:2.8rem;">
+                        <span style="font-size:.7rem;font-weight:500;color:var(--text-secondary);align-self:flex-end;" [style.color]="day.isToday ? 'var(--accent-blue)' : 'inherit'">{{ day.date.getDate() }}</span>
+                        
+                        <div class="mini-cal-dots" style="display:flex;gap:2px;justify-content:center;margin-top:auto;overflow:hidden;width:100%;">
+                          @for (ev of day.events.slice(0, 3); track ev.id) {
+                            <span [class]="'legend-dot ' + ev.category.toLowerCase()" 
+                                  style="width:5px;height:5px;border-radius:50%;display:inline-block;cursor:pointer;"
+                                  [title]="ev.title"
+                                  (click)="selectEvent(ev)"></span>
+                          }
+                          @if (day.events.length > 3) {
+                            <span style="font-size:.5rem;line-height:1;color:var(--text-muted);">+</span>
+                          }
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          }
+
+          @if (calView() === 'year') {
+            <div class="yearly-view-container" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:1rem;padding:0 1.5rem 1.5rem;">
+              @for (m of yearMonthsGrid(); track m.monthIndex) {
+                <div class="quarter-month-box" style="background:var(--background);border:1px solid var(--border-color);border-radius:10px;padding:.5rem;box-sizing:border-box;">
+                  <h3 style="text-align:center;font-size:.85rem;font-weight:700;color:var(--text-primary);margin:0 0 .35rem;cursor:pointer;" (click)="jumpToMonth(m.monthIndex)">{{ m.name }} {{ m.year }}</h3>
+                  
+                  <div class="cal-weekdays" style="grid-template-columns:repeat(7, 1fr);border-bottom:1px solid var(--border-color);">
+                    @for (wd of ['M','T','W','T','F','S','S']; track $index) {
+                      <span style="font-size:.55rem;font-weight:700;text-align:center;display:block;padding:.15rem 0;">{{ wd }}</span>
+                    }
+                  </div>
+                  
+                  <div class="mini-cal-grid" style="display:grid;grid-template-columns:repeat(7, 1fr);grid-auto-rows:1.8rem;gap:1px;background:var(--border-color);margin-top:.15rem;">
+                    @for (day of getMonthDays(m.year, m.monthIndex); track day.date.getTime()) {
+                      <div class="mini-cal-cell" 
+                           [style.background]="day.isToday ? 'rgba(56,189,248,.1)' : (day.inMonth ? 'var(--surface)' : 'var(--background-subtle)')"
+                           [style.opacity]="day.inMonth ? '1' : '.3'"
+                           style="position:relative;padding:.1rem;display:flex;flex-direction:column;justify-content:space-between;box-sizing:border-box;min-width:0;height:1.8rem;">
+                        <span style="font-size:.6rem;font-weight:500;color:var(--text-secondary);align-self:flex-end;">{{ day.date.getDate() }}</span>
+                        
+                        <div class="mini-cal-dots" style="display:flex;gap:1.5px;justify-content:center;margin-top:auto;overflow:hidden;width:100%;">
+                          @for (ev of day.events.slice(0, 2); track ev.id) {
+                            <span [class]="'legend-dot ' + ev.category.toLowerCase()" 
+                                  style="width:4px;height:4px;border-radius:50%;display:inline-block;cursor:pointer;"
+                                  [title]="ev.title"
+                                  (click)="selectEvent(ev)"></span>
+                          }
+                          @if (day.events.length > 2) {
+                            <span style="font-size:.45rem;line-height:1;color:var(--text-muted);">+</span>
+                          }
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </div>
               }
             </div>
           }
@@ -242,6 +337,13 @@ const DEFAULT_DATES: ImportantDate[] = [
     .legend-dot.red { background: #ef4444; }
     .legend-dot.amber { background: #f59e0b; }
     .legend-dot.green { background: #10b981; }
+    .legend-dot.tax { background: #ef4444; }
+    .legend-dot.domain { background: #3b82f6; }
+    .legend-dot.isbn { background: #8b5cf6; }
+    .legend-dot.software { background: #14b8a6; }
+    .legend-dot.trademark { background: #f59e0b; }
+    .legend-dot.contract { background: #6366f1; }
+    .legend-dot.filing { background: #10b981; }
 
     /* Calendar card */
     .cal-card {
@@ -456,8 +558,10 @@ const DEFAULT_DATES: ImportantDate[] = [
 })
 export class CompanyCalendarComponent implements OnInit {
   filterCat = '';
+  filterStartDate = '';
+  filterEndDate = '';
   viewMode = signal<'list' | 'calendar'>('calendar');
-  calView = signal<'month' | 'year'>('month');
+  calView = signal<'month' | 'quarter' | 'year'>('month');
   viewMonth = signal(new Date());
   showAddModal = signal(false);
   editingId = signal<string | null>(null);
@@ -474,10 +578,19 @@ export class CompanyCalendarComponent implements OnInit {
 
   readonly weekDays = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
 
+  clearDateRange(): void {
+    this.filterStartDate = '';
+    this.filterEndDate = '';
+  }
+
   filtered = computed(() => {
     const cat = this.filterCat;
+    const start = this.filterStartDate;
+    const end = this.filterEndDate;
     return [...this.dates()]
       .filter(d => !cat || d.category === cat)
+      .filter(d => !start || d.dueDate >= start)
+      .filter(d => !end || d.dueDate <= end)
       .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
   });
 
@@ -509,6 +622,52 @@ export class CompanyCalendarComponent implements OnInit {
     }
     return days;
   });
+
+  quarterMonths = computed(() => {
+    const activeDate = this.viewMonth();
+    const activeYear = activeDate.getFullYear();
+    const currentMonth = activeDate.getMonth();
+    const quarterStartMonth = Math.floor(currentMonth / 3) * 3;
+    
+    return [
+      { year: activeYear, monthIndex: quarterStartMonth, name: new Date(activeYear, quarterStartMonth, 1).toLocaleDateString('en-US', { month: 'long' }) },
+      { year: activeYear, monthIndex: quarterStartMonth + 1, name: new Date(activeYear, quarterStartMonth + 1, 1).toLocaleDateString('en-US', { month: 'long' }) },
+      { year: activeYear, monthIndex: quarterStartMonth + 2, name: new Date(activeYear, quarterStartMonth + 2, 1).toLocaleDateString('en-US', { month: 'long' }) }
+    ];
+  });
+
+  yearMonthsGrid = computed(() => {
+    const year = this.viewMonth().getFullYear();
+    return Array.from({ length: 12 }, (_, i) => {
+      return {
+        year,
+        monthIndex: i,
+        name: new Date(year, i, 1).toLocaleDateString('en-US', { month: 'long' })
+      };
+    });
+  });
+
+  getMonthDays(year: number, monthIndex: number): CalendarDay[] {
+    const first = new Date(year, monthIndex, 1);
+    const startOffset = (first.getDay() + 6) % 7;
+    const start = new Date(year, monthIndex, 1 - startOffset);
+    const today = this.dateKey(new Date());
+    const events = this.filtered();
+
+    const days: CalendarDay[] = [];
+    for (let i = 0; i < 42; i++) {
+      const date = new Date(start);
+      date.setDate(start.getDate() + i);
+      const key = this.dateKey(date);
+      days.push({
+        date,
+        inMonth: date.getMonth() === monthIndex,
+        isToday: key === today,
+        events: events.filter(e => e.dueDate === key),
+      });
+    }
+    return days;
+  }
 
   yearMonths = computed(() => {
     const year = this.viewMonth().getFullYear();

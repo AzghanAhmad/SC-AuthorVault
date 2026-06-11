@@ -11,7 +11,12 @@ import { Series } from '../../../models/author-vault.model';
   template: `
     <div class="page">
       <div class="page-header">
-        <h1 class="page-title">📖 Series</h1>
+        <div class="page-title-wrap">
+          <svg class="header-icon-svg" viewBox="0 0 24 24" aria-hidden="true" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
+          </svg>
+          <h1 class="page-title" style="margin:0;">Series</h1>
+        </div>
         <p class="page-subtitle">All series across pen names — click any series to explore its books</p>
       </div>
       <div class="stats-row">
@@ -27,7 +32,10 @@ import { Series } from '../../../models/author-vault.model';
           @for (sr of allSeries(); track sr.id) {
             <div class="entity-card" (click)="selectItem(sr)">
               <div class="entity-card-header">
-                <h3 class="entity-name">📖 {{ sr.identity.name }}</h3>
+                <h3 class="entity-name" style="display:flex;align-items:center;gap:.35rem">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" style="color:var(--text-muted);"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+                  {{ sr.identity.name }}
+                </h3>
                 <span class="status" [ngClass]="sr.identity.status==='Active'?'status-green':sr.identity.status==='Complete'?'status-blue':'status-amber'">{{ sr.identity.status }}</span>
               </div>
               <p class="entity-meta">{{ sr.identity.seriesType }} · {{ sr.identity.genre }} · {{ sr.identity.targetAudience }}</p>
@@ -48,7 +56,26 @@ import { Series } from '../../../models/author-vault.model';
         <div class="vault-layout" style="margin-top:1rem">
           <nav class="vault-nav">
             @for (t of tabs; track t.id) {
-              <button class="tab-item" [class.active]="tab() === t.id" (click)="tab.set(t.id)">{{ t.label }}</button>
+              <button class="tab-item" [class.active]="tab() === t.id" (click)="tab.set(t.id)">
+                @switch (t.id) {
+                  @case ('identity') {
+                    <svg class="tab-icon-svg" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+                  }
+                  @case ('books') {
+                    <svg class="tab-icon-svg" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><path d="M6 6h10M6 10h10M6 14h10"/></svg>
+                  }
+                  @case ('world') {
+                    <svg class="tab-icon-svg" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20M2 12h20"/></svg>
+                  }
+                  @case ('branding') {
+                    <svg class="tab-icon-svg" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z"/><circle cx="7.5" cy="10.5" r="1.5"/><circle cx="11.5" cy="7.5" r="1.5"/><circle cx="16.5" cy="9.5" r="1.5"/><circle cx="15.5" cy="14.5" r="1.5"/></svg>
+                  }
+                  @case ('boxsets') {
+                    <svg class="tab-icon-svg" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+                  }
+                }
+                {{ t.label }}
+              </button>
             }
           </nav>
 
@@ -172,11 +199,11 @@ export class VaultSeriesPageComponent {
   selected = signal<Series | null>(null);
   tab = signal('identity');
   tabs = [
-    { id: 'identity', label: '📖 Series Name' },
-    { id: 'books',    label: '📚 Books' },
-    { id: 'world',    label: '🌍 World' },
-    { id: 'branding', label: '🎨 Branding' },
-    { id: 'boxsets',  label: '📦 Box Sets' },
+    { id: 'identity', label: 'Series Name' },
+    { id: 'books',    label: 'Books' },
+    { id: 'world',    label: 'World' },
+    { id: 'branding', label: 'Branding' },
+    { id: 'boxsets',  label: 'Box Sets' },
   ];
   get totalBooks() { return this.allSeries().reduce((a, s) => a + s.books.length, 0); }
   get activeSeries() { return this.allSeries().filter(s => s.identity.status === 'Active').length; }

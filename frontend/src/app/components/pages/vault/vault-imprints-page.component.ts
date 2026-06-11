@@ -4,11 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthorVaultService } from '../../../services/author-vault.service';
 import { Imprint } from '../../../models/author-vault.model';
+import { EditableFieldComponent } from '../../shared/editable-field/editable-field.component';
 
 @Component({
   selector: 'app-vault-imprints-page',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, EditableFieldComponent],
   styleUrls: ['../company-vault/company-vault.component.css'],
   template: `
     <div class="page">
@@ -16,7 +17,21 @@ import { Imprint } from '../../../models/author-vault.model';
       <!-- ── IMPRINT LIST (no selection) ── -->
       @if (!selected()) {
         <div class="page-header">
-          <h1 class="page-title">📚 Imprints</h1>
+          <div class="page-title-wrap">
+            <svg class="header-icon-svg" viewBox="0 0 24 24" aria-hidden="true" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2.5 21h19"/>
+              <path d="M4.5 21V11.5h3.5V21"/>
+              <path d="M6.25 13.5v5"/>
+              <path d="M8.5 21V6h7V21"/>
+              <path d="M12 6V2.75"/>
+              <path d="M9.75 8h4.5"/><path d="M9.75 9.75h4.5"/><path d="M9.75 11.5h4.5"/>
+              <path d="M9.75 13.25h4.5"/><path d="M9.75 15h4.5"/><path d="M9.75 16.75h4.5"/>
+              <path d="M9.75 18.5h4.5"/>
+              <path d="M16 21V11.5h3.5V21"/>
+              <path d="M17.75 13.5v5"/>
+            </svg>
+            <h1 class="page-title" style="margin:0;">Imprints</h1>
+          </div>
           <p class="page-subtitle">Publishing brands under {{ company().identity.legalName }}</p>
         </div>
 
@@ -34,13 +49,20 @@ import { Imprint } from '../../../models/author-vault.model';
             <div class="imprint-hero-card" (click)="selectImprint(imp)">
               <!-- Logo area -->
               <div class="imprint-logo-area">
-                <div class="imprint-logo-placeholder">
-                  <svg viewBox="0 0 48 48" fill="none">
-                    <rect width="48" height="48" rx="14" fill="rgba(139,92,246,0.12)"/>
-                    <path d="M12 38V18l12-10 12 10v20H12z" stroke="#8b5cf6" stroke-width="2" stroke-linejoin="round"/>
-                    <path d="M20 38V28h8v10" stroke="#8b5cf6" stroke-width="2" stroke-linejoin="round"/>
-                  </svg>
-                </div>
+                <label class="entity-avatar-upload" title="Upload imprint avatar (Click to change)" (click)="$event.stopPropagation()" style="margin-right:.5rem;">
+                  @if (imp.identity.avatarUrl) {
+                    <img [src]="imp.identity.avatarUrl" alt="" class="entity-avatar-img" style="width:48px;height:48px;border-radius:12px;" />
+                  } @else {
+                    <div class="imprint-logo-placeholder" style="margin:0;">
+                      <svg viewBox="0 0 48 48" fill="none" style="width:48px;height:48px;">
+                        <rect width="48" height="48" rx="14" fill="rgba(139,92,246,0.12)"/>
+                        <path d="M12 38V18l12-10 12 10v20H12z" stroke="#8b5cf6" stroke-width="2" stroke-linejoin="round"/>
+                        <path d="M20 38V28h8v10" stroke="#8b5cf6" stroke-width="2" stroke-linejoin="round"/>
+                      </svg>
+                    </div>
+                  }
+                  <input type="file" accept="image/*" hidden (change)="onImprintAvatarUpload($event, imp.id)" />
+                </label>
                 <div class="imprint-hero-info">
                   <h2 class="imprint-hero-name">{{ imp.identity.name }}</h2>
                   <p class="imprint-hero-focus">{{ imp.identity.purposeGenreFocus }}</p>
@@ -75,13 +97,20 @@ import { Imprint } from '../../../models/author-vault.model';
         <div class="imprint-detail-header">
           <button class="back-btn" (click)="selected.set(null); activeTab.set('identity')">← All Imprints</button>
           <div class="imprint-logo-area" style="margin-top:.75rem">
-            <div class="imprint-logo-placeholder">
-              <svg viewBox="0 0 48 48" fill="none">
-                <rect width="48" height="48" rx="14" fill="rgba(139,92,246,0.12)"/>
-                <path d="M12 38V18l12-10 12 10v20H12z" stroke="#8b5cf6" stroke-width="2" stroke-linejoin="round"/>
-                <path d="M20 38V28h8v10" stroke="#8b5cf6" stroke-width="2" stroke-linejoin="round"/>
-              </svg>
-            </div>
+            <label class="entity-avatar-upload imprint-avatar-lg" title="Upload imprint avatar (Click to change)" style="margin-right:.5rem;">
+              @if (imp.identity.avatarUrl) {
+                <img [src]="imp.identity.avatarUrl" alt="" class="entity-avatar-img" style="width:60px;height:60px;border-radius:16px;" />
+              } @else {
+                <div class="imprint-logo-placeholder" style="margin:0;">
+                  <svg viewBox="0 0 48 48" fill="none" style="width:60px;height:60px;">
+                    <rect width="48" height="48" rx="14" fill="rgba(139,92,246,0.12)"/>
+                    <path d="M12 38V18l12-10 12 10v20H12z" stroke="#8b5cf6" stroke-width="2" stroke-linejoin="round"/>
+                    <path d="M20 38V28h8v10" stroke="#8b5cf6" stroke-width="2" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+              }
+              <input type="file" accept="image/*" hidden (change)="onImprintAvatarUpload($event, imp.id)" />
+            </label>
             <div>
               <h1 class="page-title" style="margin:0 0 .25rem">{{ imp.identity.name }}</h1>
               <p class="page-subtitle" style="margin:0">{{ imp.identity.purposeGenreFocus }} · <span class="status status-green">{{ imp.identity.status }}</span></p>
@@ -121,15 +150,22 @@ import { Imprint } from '../../../models/author-vault.model';
               <div class="card">
                 <h3 class="section-title">Imprint Identity</h3>
                 <div class="form-grid">
-                  <div class="form-group"><span class="form-label">Name</span><div class="form-value">{{ imp.identity.name }}</div></div>
+                  <app-editable-field label="Name" [value]="imp.identity.name" (valueChange)="vs.updateImprint(imp.id, { name: $event })" />
                   <div class="form-group"><span class="form-label">Parent Company</span><div class="form-value">{{ company().identity.legalName }}</div></div>
-                  <div class="form-group"><span class="form-label">Genre Focus</span><div class="form-value">{{ imp.identity.purposeGenreFocus }}</div></div>
-                  <div class="form-group"><span class="form-label">Status</span><div class="form-value"><span class="status status-green">{{ imp.identity.status }}</span></div></div>
-                  <div class="form-group"><span class="form-label">Date Established</span><div class="form-value">{{ imp.identity.dateEstablished }}</div></div>
-                  <div class="form-group"><span class="form-label">Website</span><div class="form-value"><a [href]="imp.identity.website" target="_blank" style="color:var(--accent-blue)">{{ imp.identity.website }}</a></div></div>
-                  <div class="form-group"><span class="form-label">Email</span><div class="form-value">{{ imp.identity.email }}</div></div>
-                  <div class="form-group"><span class="form-label">DBA Registration</span><div class="form-value">{{ imp.legalIsbn.dbaRegistration || '—' }}</div></div>
-                  <div class="form-group"><span class="form-label">Trademark</span><div class="form-value">{{ imp.legalIsbn.trademark }}</div></div>
+                  <app-editable-field label="Genre Focus" [value]="imp.identity.purposeGenreFocus" (valueChange)="vs.updateImprint(imp.id, { purposeGenreFocus: $event })" />
+                  <div class="form-group">
+                    <span class="form-label">Status</span>
+                    <select class="form-input" [ngModel]="imp.identity.status" (ngModelChange)="vs.updateImprint(imp.id, { status: $event })" style="width:100%;height:38px;padding:.55rem .75rem;border:1.5px solid var(--border-color);border-radius:8px;background:var(--surface);color:var(--text-primary);font-size:.875rem;font-family:inherit;">
+                      <option value="Active">Active</option>
+                      <option value="Inactive">Inactive</option>
+                      <option value="Retired">Retired</option>
+                    </select>
+                  </div>
+                  <app-editable-field label="Date Established" [value]="imp.identity.dateEstablished" (valueChange)="vs.updateImprint(imp.id, { dateEstablished: $event })" />
+                  <app-editable-field label="Website" type="url" [value]="imp.identity.website" (valueChange)="vs.updateImprint(imp.id, { website: $event })" />
+                  <app-editable-field label="Email" type="email" [value]="imp.identity.email" (valueChange)="vs.updateImprint(imp.id, { email: $event })" />
+                  <app-editable-field label="DBA Registration" [value]="imp.legalIsbn.dbaRegistration || ''" (valueChange)="vs.updateImprintLegalIsbn(imp.id, { dbaRegistration: $event })" />
+                  <app-editable-field label="Trademark" [value]="imp.legalIsbn.trademark || ''" (valueChange)="vs.updateImprintLegalIsbn(imp.id, { trademark: $event })" />
                 </div>
               </div>
               <div class="card">
@@ -146,11 +182,12 @@ import { Imprint } from '../../../models/author-vault.model';
               <div class="card">
                 <h3 class="section-title">Templates</h3>
                 <div class="form-grid">
-                  <div class="form-group"><span class="form-label">Copyright Page Template</span><div class="form-value">{{ imp.legalIsbn.copyrightPageTemplate }}</div></div>
+                  <app-editable-field label="Copyright Page Template" [value]="imp.legalIsbn.copyrightPageTemplate" (valueChange)="vs.updateImprintLegalIsbn(imp.id, { copyrightPageTemplate: $event })" />
                   <div class="form-group"><span class="form-label">Contract Template</span><div class="form-value">contract-template-{{ imp.identity.name | lowercase }}.docx</div></div>
                 </div>
               </div>
             }
+
 
             <!-- Pen Names -->
             @if (activeTab() === 'pennames') {
@@ -268,13 +305,23 @@ import { Imprint } from '../../../models/author-vault.model';
   `]
 })
 export class VaultImprintsPageComponent {
-  private vs = inject(AuthorVaultService);
+  readonly vs = inject(AuthorVaultService);
   private router = inject(Router);
   company = this.vs.company;
   allImprints = computed(() => this.company().imprints);
   selected = signal<Imprint | null>(null);
   activeTab = signal('identity');
   isbnFilter = '';
+
+  onImprintAvatarUpload(event: Event, imprintId: string): void {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      this.vs.setImprintAvatar(imprintId, reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  }
 
   tabs = [
     { id: 'identity', label: '🏢 Identity' },

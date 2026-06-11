@@ -24,7 +24,7 @@ import { FormsModule } from '@angular/forms';
           (ngModelChange)="onChange($event)"
           [placeholder]="placeholder || label" />
       }
-      @if (type === 'email' && value?.trim()) {
+      @if (type === 'email' && value.trim()) {
         <a class="sc-email-link" [href]="scEmailUrl(value)" target="_blank" rel="noopener noreferrer">
           Open in SC Email
         </a>
