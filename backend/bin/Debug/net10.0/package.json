@@ -1,0 +1,13 @@
+{
+  "name": "authorvault-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AuthorVault .NET 10 API — run with npm start",
+  "scripts": {
+    "start": "dotnet run",
+    "dev": "dotnet watch run",
+    "build": "dotnet build",
+    "db:migrate": "dotnet ef database update",
+    "db:add-migration": "dotnet ef migrations add"
+  }
+}

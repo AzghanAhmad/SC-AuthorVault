@@ -296,7 +296,7 @@ export class LoginComponent {
         this.router.navigate(['/dashboard']);
       },
       error: (err) => {
-        this.generalError.set(err.message);
+        this.generalError.set(err?.message || 'Invalid email or password.');
         this.isSubmitting.set(false);
       }
     });

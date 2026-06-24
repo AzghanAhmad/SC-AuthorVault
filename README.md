@@ -5,7 +5,7 @@ A centralized book asset management platform for authors. Manage your entire cat
 ## Tech Stack
 
 - **Frontend** — Angular 21, TypeScript 5.9, RxJS
-- **Backend** — (in progress)
+- **Backend** — .NET 10 Web API, MySQL (XAMPP), EF Core migrations
 - **Styling** — Custom CSS with CSS variables, responsive design
 
 ## Project Structure
@@ -22,7 +22,7 @@ project/
 │   │       ├── models/           # TypeScript interfaces (Book, BookFile, etc.)
 │   │       └── services/         # BookService, AuthService, ThemeService, etc.
 │   └── reference file/           # UI reference components
-└── backend/           # API server (in progress)
+└── backend/           # .NET 10 API — run with `npm start` from this folder
 ```
 
 ## Features

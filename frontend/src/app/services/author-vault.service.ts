@@ -1,15 +1,18 @@
-import { Injectable, signal, computed } from '@angular/core';
+import { Injectable, signal, computed, inject } from '@angular/core';
 import { PublishingCompany, Imprint, PenName, Series, Book, LanguageBranch, BookFormat, BreadcrumbItem, VaultLevel, CompanyIdentity, FinancialTaxRecords, CompanyContractsLegal, CompanyOwnership, BoxSetRecord } from '../models/author-vault.model';
 import { COMPANY_FIELD_MAP } from './excel-import.service';
+import { ApiService } from './api.service';
+import { Observable, tap, catchError, of } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class AuthorVaultService {
-  private readonly STORAGE_KEY = 'av_publishing_company_v1';
-  private _company = signal<PublishingCompany>(this.loadPersisted() ?? this.buildMock());
+  private readonly api = inject(ApiService);
+  private _company = signal<PublishingCompany>(this.createEmptyCompany());
   readonly company = this._company.asReadonly();
+  readonly isLoaded = signal(false);
 
   // Navigation state
-  readonly breadcrumb = signal<BreadcrumbItem[]>([{ level: 'company', id: 'c1', label: 'Vance Publishing LLC' }]);
+  readonly breadcrumb = signal<BreadcrumbItem[]>([{ level: 'company', id: '', label: 'Company' }]);
   readonly currentLevel = computed(() => this.breadcrumb().at(-1)?.level ?? 'company');
   readonly currentId = computed(() => this.breadcrumb().at(-1)?.id ?? 'c1');
 
@@ -41,6 +44,59 @@ export class AuthorVaultService {
   totalImprints = computed(() => this._company().imprints.length);
   totalPenNames = computed(() => { let c = 0; for (const i of this._company().imprints) c += i.penNames.length; return c; });
   totalSeries = computed(() => { let c = 0; for (const i of this._company().imprints) for (const p of i.penNames) c += p.series.length; return c; });
+
+  pipelineStats = computed(() => {
+    let draft = 0, editing = 0, preorder = 0, published = 0;
+    for (const imp of this._company().imprints) {
+      for (const pn of imp.penNames) {
+        for (const s of pn.series) {
+          for (const b of s.books) {
+            switch (b.coreWork.bookStatus) {
+              case 'Draft': draft++; break;
+              case 'Editing': editing++; break;
+              case 'Pre-order': preorder++; break;
+              case 'Published': published++; break;
+            }
+          }
+        }
+      }
+    }
+    const total = published + draft + editing + preorder || 1;
+    return {
+      draft, editing, preorder, published, total,
+      draftPct: (draft / total) * 100,
+      editingPct: (editing / total) * 100,
+      preorderPct: (preorder / total) * 100,
+      publishedPct: (published / total) * 100,
+    };
+  });
+
+  private createEmptyCompany(): PublishingCompany {
+    return {
+      id: '',
+      identity: {
+        legalName: '', dbaNames: '', entityType: '', stateOfIncorporation: '', dateOfFormation: '',
+        einTaxId: '', registeredAgent: '', fiscalYearEnd: '', companyStatus: 'Active',
+        primaryAddress: '', mailingAddress: '', phone: '', primaryEmail: '', website: ''
+      },
+      ownership: { owners: [], operatingAgreementFile: '', sCorpElectionFile: '' },
+      financial: {
+        bankNames: '', businessChecking: '', businessSavings: '', paymentProcessors: '',
+        accountingSoftware: '', cpaName: '', cpaContact: '', payrollProvider: '',
+        reasonableSalary: '', quarterlyTaxSchedule: '', stateTaxRegistrations: ''
+      },
+      contractsLegal: {
+        operatingAgreement: '', shareholderAgreement: '', trademarkRegistrations: '',
+        copyrightAssignments: '', insurancePolicies: '', attorneyName: '', attorneyContact: ''
+      },
+      imprints: []
+    };
+  }
+
+  private syncBreadcrumb(company: PublishingCompany): void {
+    const label = company.identity?.legalName || company.identity?.dbaNames || 'Company';
+    this.breadcrumb.set([{ level: 'company', id: company.id || 'company', label }]);
+  }
 
   private buildMock(): PublishingCompany {
     return {
@@ -166,17 +222,87 @@ export class AuthorVaultService {
     };
   }
 
-  private loadPersisted(): PublishingCompany | null {
-    try {
-      const raw = localStorage.getItem(this.STORAGE_KEY);
-      return raw ? JSON.parse(raw) as PublishingCompany : null;
-    } catch {
-      return null;
-    }
+  loadFromApi(): Observable<PublishingCompany> {
+    return this.api.get<PublishingCompany>('/company').pipe(
+      tap(company => {
+        const data = company?.identity ? company : this.createEmptyCompany();
+        this._company.set(data);
+        this.syncBreadcrumb(data);
+        this.isLoaded.set(true);
+      }),
+      catchError(err => {
+        console.error('Failed to load company', err);
+        const empty = this.createEmptyCompany();
+        this._company.set(empty);
+        this.syncBreadcrumb(empty);
+        this.isLoaded.set(true);
+        return of(empty);
+      })
+    );
+  }
+
+  private deferPersist = false;
+
+  setDeferPersist(defer: boolean): void {
+    this.deferPersist = defer;
+  }
+
+  flush(): void {
+    this.deferPersist = false;
+    this.persist();
   }
 
   private persist(): void {
-    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this._company()));
+    if (this.deferPersist) return;
+    this.api.put('/company', this._company()).subscribe({
+      error: err => console.error('Failed to save company', err)
+    });
+  }
+
+  resetCompany(): void {
+    const empty = this.createEmptyCompany();
+    this._company.set(empty);
+    this.syncBreadcrumb(empty);
+    this.persist();
+  }
+
+  clearImprints(): void {
+    this._company.update(c => ({ ...c, imprints: [] }));
+    this.syncBreadcrumb(this._company());
+    this.persist();
+  }
+
+  clearAllSeries(): void {
+    this._company.update(c => ({
+      ...c,
+      imprints: c.imprints.map(imp => ({
+        ...imp,
+        penNames: imp.penNames.map(pn => ({ ...pn, series: [] }))
+      }))
+    }));
+    this.persist();
+  }
+
+  clearAllBoxSets(): void {
+    this._company.update(c => ({
+      ...c,
+      imprints: c.imprints.map(imp => ({
+        ...imp,
+        penNames: imp.penNames.map(pn => ({
+          ...pn,
+          series: pn.series.map(sr => ({ ...sr, boxSets: [] }))
+        }))
+      }))
+    }));
+    this.persist();
+  }
+
+  clearAllPenNames(): void {
+    this._company.update(c => ({
+      ...c,
+      imprints: c.imprints.map(imp => ({ ...imp, penNames: [] }))
+    }));
+    this.persist();
   }
 
   patchIdentity(partial: Partial<CompanyIdentity>): void {

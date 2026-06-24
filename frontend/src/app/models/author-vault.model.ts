@@ -16,6 +16,7 @@ export interface CompanyIdentity {
   companyStatus: 'Active' | 'Inactive' | 'Dissolved';
   primaryAddress: string;
   mailingAddress: string;
+  sameMailingAsBusiness?: boolean;
   phone: string;
   primaryEmail: string;
   website: string;
@@ -33,6 +34,10 @@ export interface CompanyOwnership {
   owners: OwnerRecord[];
   operatingAgreementFile: string;
   sCorpElectionFile: string;
+  operatingAgreementFileUrl?: string;
+  sCorpElectionFileUrl?: string;
+  operatingAgreementFileId?: number;
+  sCorpElectionFileId?: number;
 }
 
 export interface FinancialTaxRecords {
@@ -57,6 +62,7 @@ export interface CompanyContractsLegal {
   insurancePolicies: string;
   attorneyName: string;
   attorneyContact: string;
+  attorneyEmail?: string;
 }
 
 export interface PublishingCompany {

@@ -5,14 +5,20 @@ import { Router } from '@angular/router';
 import { AuthorVaultService } from '../../../services/author-vault.service';
 import { PenName, BoxSetRecord } from '../../../models/author-vault.model';
 import { EditableFieldComponent } from '../../shared/editable-field/editable-field.component';
+import { PageActionBarComponent } from '../../shared/page-action-bar/page-action-bar.component';
 
 @Component({
   selector: 'app-vault-pennames-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, EditableFieldComponent],
+  imports: [CommonModule, FormsModule, EditableFieldComponent, PageActionBarComponent],
   styleUrls: ['../company-vault/company-vault.component.css'],
   template: `
     <div class="page">
+      <app-page-action-bar
+        [editing]="editMode()"
+        deleteLabel="Delete all pen names"
+        (editToggle)="editMode.update(v => !v)"
+        (deleteAll)="deleteAllPenNames()" />
 
       <!-- ── PEN NAME LIST ── -->
       @if (!selected()) {
@@ -135,10 +141,10 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
               <div class="card">
                 <h3 class="section-title">Pen Name Identity</h3>
                 <div class="form-grid">
-                  <app-editable-field label="Display Name" [value]="pn.identity.displayName" (valueChange)="vs.updatePenName(pn.id, { displayName: $event })" />
-                  <app-editable-field label="Legal Name Linked" [value]="pn.identity.legalNameLinked" (valueChange)="vs.updatePenName(pn.id, { legalNameLinked: $event })" />
-                  <app-editable-field label="Primary Genre" [value]="pn.identity.genre" (valueChange)="vs.updatePenName(pn.id, { genre: $event })" />
-                  <app-editable-field label="Subgenre" [value]="pn.identity.subgenre || ''" (valueChange)="vs.updatePenName(pn.id, { subgenre: $event })" />
+                  <app-editable-field [readOnly]="!editMode()" label="Display Name" [value]="pn.identity.displayName" (valueChange)="vs.updatePenName(pn.id, { displayName: $event })" />
+                  <app-editable-field [readOnly]="!editMode()" label="Legal Name Linked" [value]="pn.identity.legalNameLinked" (valueChange)="vs.updatePenName(pn.id, { legalNameLinked: $event })" />
+                  <app-editable-field [readOnly]="!editMode()" label="Primary Genre" [value]="pn.identity.genre" (valueChange)="vs.updatePenName(pn.id, { genre: $event })" />
+                  <app-editable-field [readOnly]="!editMode()" label="Subgenre" [value]="pn.identity.subgenre || ''" (valueChange)="vs.updatePenName(pn.id, { subgenre: $event })" />
                   
                   <!-- Genres Tag chips -->
                   <div class="form-group full"><span class="form-label">Genres & Sub-genres</span>
@@ -196,9 +202,9 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
                       <option value="Paused">Paused</option>
                     </select>
                   </div>
-                  <app-editable-field label="Date Created" [value]="pn.identity.dateCreated" (valueChange)="vs.updatePenName(pn.id, { dateCreated: $event })" />
-                  <app-editable-field label="Reason / Purpose" [value]="pn.identity.reason" (valueChange)="vs.updatePenName(pn.id, { reason: $event })" [full]="true" />
-                  <app-editable-field label="Private Notes" [value]="pn.identity.notes || ''" (valueChange)="vs.updatePenName(pn.id, { notes: $event })" [full]="true" />
+                  <app-editable-field [readOnly]="!editMode()" label="Date Created" [value]="pn.identity.dateCreated" (valueChange)="vs.updatePenName(pn.id, { dateCreated: $event })" />
+                  <app-editable-field [readOnly]="!editMode()" label="Reason / Purpose" [value]="pn.identity.reason" (valueChange)="vs.updatePenName(pn.id, { reason: $event })" [full]="true" />
+                  <app-editable-field [readOnly]="!editMode()" label="Private Notes" [value]="pn.identity.notes || ''" (valueChange)="vs.updatePenName(pn.id, { notes: $event })" [full]="true" />
                 </div>
               </div>
             }
@@ -209,15 +215,15 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
                 <h3 class="section-title">Branding & Visual Identity</h3>
                 <p class="section-subtitle">Everything here relates to {{ pn.identity.displayName }} specifically — not the company or imprint</p>
                 <div class="form-grid">
-                  <app-editable-field label="Tagline" [value]="pn.branding.tagline" (valueChange)="updateBranding(pn, 'tagline', $event)" [full]="true" />
-                  <app-editable-field label="Bio — Short" [value]="pn.branding.bioShort" (valueChange)="updateBranding(pn, 'bioShort', $event)" [full]="true" />
-                  <app-editable-field label="Bio — Medium" [value]="pn.branding.bioMedium" (valueChange)="updateBranding(pn, 'bioMedium', $event)" [full]="true" />
-                  <app-editable-field label="Bio — Long" [value]="pn.branding.bioLong || ''" (valueChange)="updateBranding(pn, 'bioLong', $event)" [full]="true" />
-                  <app-editable-field label="Bio — First Person" [value]="pn.branding.bioFirstPerson || ''" (valueChange)="updateBranding(pn, 'bioFirstPerson', $event)" [full]="true" />
-                  <app-editable-field label="Bio — Third Person" [value]="pn.branding.bioThirdPerson || ''" (valueChange)="updateBranding(pn, 'bioThirdPerson', $event)" [full]="true" />
-                  <app-editable-field label="Brand Colors" [value]="pn.branding.brandColors" (valueChange)="updateBranding(pn, 'brandColors', $event)" />
-                  <app-editable-field label="Brand Fonts" [value]="pn.branding.brandFonts" (valueChange)="updateBranding(pn, 'brandFonts', $event)" />
-                  <app-editable-field label="Cover Style Notes" [value]="pn.branding.coverStyleNotes || ''" (valueChange)="updateBranding(pn, 'coverStyleNotes', $event)" [full]="true" />
+                  <app-editable-field [readOnly]="!editMode()" label="Tagline" [value]="pn.branding.tagline" (valueChange)="updateBranding(pn, 'tagline', $event)" [full]="true" />
+                  <app-editable-field [readOnly]="!editMode()" label="Bio — Short" [value]="pn.branding.bioShort" (valueChange)="updateBranding(pn, 'bioShort', $event)" [full]="true" />
+                  <app-editable-field [readOnly]="!editMode()" label="Bio — Medium" [value]="pn.branding.bioMedium" (valueChange)="updateBranding(pn, 'bioMedium', $event)" [full]="true" />
+                  <app-editable-field [readOnly]="!editMode()" label="Bio — Long" [value]="pn.branding.bioLong || ''" (valueChange)="updateBranding(pn, 'bioLong', $event)" [full]="true" />
+                  <app-editable-field [readOnly]="!editMode()" label="Bio — First Person" [value]="pn.branding.bioFirstPerson || ''" (valueChange)="updateBranding(pn, 'bioFirstPerson', $event)" [full]="true" />
+                  <app-editable-field [readOnly]="!editMode()" label="Bio — Third Person" [value]="pn.branding.bioThirdPerson || ''" (valueChange)="updateBranding(pn, 'bioThirdPerson', $event)" [full]="true" />
+                  <app-editable-field [readOnly]="!editMode()" label="Brand Colors" [value]="pn.branding.brandColors" (valueChange)="updateBranding(pn, 'brandColors', $event)" />
+                  <app-editable-field [readOnly]="!editMode()" label="Brand Fonts" [value]="pn.branding.brandFonts" (valueChange)="updateBranding(pn, 'brandFonts', $event)" />
+                  <app-editable-field [readOnly]="!editMode()" label="Cover Style Notes" [value]="pn.branding.coverStyleNotes || ''" (valueChange)="updateBranding(pn, 'coverStyleNotes', $event)" [full]="true" />
                 </div>
               </div>
 
@@ -403,7 +409,7 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
               <div class="card">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
                   <h3 class="section-title" style="margin:0">Box Sets / Omnibus Collections</h3>
-                  <button class="btn-primary" (click)="openAddBoxSet(pn)">+ Create Box Set</button>
+                  <button class="btn-primary" [disabled]="!editMode()" (click)="openAddBoxSet(pn)">+ Create Box Set</button>
                 </div>
                 
                 @for (sr of pn.series; track sr.id) {
@@ -414,7 +420,12 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
                         @for (bs of sr.boxSets; track bs.id) {
                           <div class="entity-card" (click)="openEditBoxSet(pn, sr.id, bs)" style="cursor:pointer;">
                             <div class="entity-card-header" style="display:flex;justify-content:space-between;align-items:flex-start;">
-                              <h5 style="margin:0;font-size:.95rem;font-weight:700;">📦 {{ bs.title }}</h5>
+                              <h5 class="boxset-card-title">
+                                <svg class="entity-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                  <polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/>
+                                </svg>
+                                {{ bs.title }}
+                              </h5>
                               <span class="status" [class]="bs.status === 'Published' ? 'status-green' : 'status-amber'">{{ bs.status }}</span>
                             </div>
                             <p style="font-size:.8rem;color:var(--text-muted);margin:.2rem 0;">{{ bs.subtitle || 'No subtitle' }} · {{ bs.type }}</p>
@@ -431,7 +442,9 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
                 
                 @if (pnSeriesBoxSetsCount(pn) === 0) {
                   <div class="empty-state">
-                    <div class="empty-icon">📦</div>
+                    <svg class="empty-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/>
+                    </svg>
                     <p>No box sets created yet for this pen name.</p>
                   </div>
                 }
@@ -446,7 +459,12 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
                   @for (sr of pn.series; track sr.id) {
                     <div class="entity-card" (click)="goTo('/vault/series')">
                       <div class="entity-card-header">
-                        <h3 class="entity-name">📖 {{ sr.identity.name }}</h3>
+                        <h3 class="entity-name entity-name-with-icon">
+                          <svg class="entity-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
+                          </svg>
+                          {{ sr.identity.name }}
+                        </h3>
                         <span class="status" [ngClass]="sr.identity.status==='Active'?'status-green':'status-blue'">{{ sr.identity.status }}</span>
                       </div>
                       <p class="entity-meta">{{ sr.identity.seriesType }} · {{ sr.identity.genre }} · {{ sr.identity.targetAudience }}</p>
@@ -630,11 +648,15 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
     .asset-icon { font-size: 1.5rem; }
     .asset-label { font-size: .8125rem; font-weight: 600; color: var(--text-primary); }
     .asset-sub { font-size: .6875rem; color: var(--text-muted); }
+    .empty-icon-svg { width: 40px; height: 40px; color: var(--text-muted); margin-bottom: 0.5rem; }
+    .entity-icon-svg { width: 18px; height: 18px; flex-shrink: 0; color: var(--accent-blue, #6366f1); }
+    .entity-name-with-icon, .boxset-card-title { display: flex; align-items: center; gap: 0.5rem; margin: 0; font-size: .95rem; font-weight: 700; }
   `]
 })
 export class VaultPenNamesPageComponent {
   readonly vs = inject(AuthorVaultService);
   private router = inject(Router);
+  editMode = signal(false);
 
   allPenNames = computed(() => {
     const pns: PenName[] = [];
@@ -981,9 +1003,17 @@ export class VaultPenNamesPageComponent {
   }
 
   deleteBoxSet(pn: PenName, seriesId: string, boxSetId: string): void {
+    if (!this.editMode()) return;
     const series = pn.series.find(s => s.id === seriesId);
     if (!series) return;
     const updated = (series.boxSets ?? []).filter(b => b.id !== boxSetId);
     this.vs.updateBoxSets(pn.id, seriesId, updated);
+  }
+
+  deleteAllPenNames(): void {
+    if (!confirm('Delete all pen names (and their series, books, and box sets)? This cannot be undone.')) return;
+    this.vs.clearAllPenNames();
+    this.selected.set(null);
+    this.editMode.set(false);
   }
 }

@@ -298,7 +298,7 @@ export class SignupComponent {
         if (err.status === 409) {
           this.errors.set({ email: err.message || 'This email is already registered' });
         } else {
-          this.generalError.set(err.message);
+          this.generalError.set(err?.message || 'Registration failed.');
         }
         this.isSubmitting.set(false);
       }

@@ -1,15 +1,8 @@
-import { Component, computed, signal, OnInit } from '@angular/core';
+import { Component, computed, signal, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-
-export interface ImportantDate {
-  id: string;
-  title: string;
-  category: 'Tax' | 'Domain' | 'ISBN' | 'Software' | 'Trademark' | 'Contract' | 'Filing';
-  dueDate: string;
-  notes: string;
-  recurring: boolean;
-}
+import { ImportantDatesService, ImportantDate } from '../../../services/important-dates.service';
+import { PageActionBarComponent } from '../../shared/page-action-bar/page-action-bar.component';
 
 interface CalendarDay {
   date: Date;
@@ -18,29 +11,20 @@ interface CalendarDay {
   events: ImportantDate[];
 }
 
-const STORAGE_KEY = 'av_important_dates_v1';
-
-const DEFAULT_DATES: ImportantDate[] = [
-  { id: '1', title: 'Q2 Estimated Tax Payment', category: 'Tax', dueDate: '2026-06-15', notes: 'Federal estimated tax — Form 1040-ES', recurring: true },
-  { id: '2', title: 'authorvaultpress.com Domain Renewal', category: 'Domain', dueDate: '2026-05-28', notes: 'Registrar: Namecheap — auto-renew enabled', recurring: true },
-  { id: '3', title: 'Delaware Annual Report Filing', category: 'Filing', dueDate: '2026-06-01', notes: 'File via Delaware Division of Corporations', recurring: true },
-  { id: '4', title: 'AuthorVault Press™ Trademark Renewal', category: 'Trademark', dueDate: '2026-07-15', notes: 'USPTO Section 8 & 15 Declaration due', recurring: false },
-  { id: '5', title: 'ISBN Block Purchase (next 100)', category: 'ISBN', dueDate: '2026-08-01', notes: 'Current block running low', recurring: false },
-  { id: '6', title: 'QuickBooks Online Subscription', category: 'Software', dueDate: '2026-05-20', notes: '$30/mo — annual renewal option available', recurring: true },
-  { id: '7', title: 'Editor Contract Renewal', category: 'Contract', dueDate: '2026-06-30', notes: 'Review rates and terms before renewal', recurring: false },
-  { id: '8', title: 'Q3 Estimated Tax Payment', category: 'Tax', dueDate: '2026-09-15', notes: 'Federal estimated tax — Form 1040-ES', recurring: true },
-  { id: '9', title: 'eleanorvanc.com SSL Renewal', category: 'Domain', dueDate: '2026-05-15', notes: "Let's Encrypt — auto-renew via hosting", recurring: true },
-  { id: '10', title: 'BookFunnel Subscription Renewal', category: 'Software', dueDate: '2026-07-01', notes: 'Mid-level plan — $20/mo', recurring: true },
-  { id: '11', title: 'NY State Business Registration', category: 'Filing', dueDate: '2026-09-01', notes: 'Biennial statement due', recurring: true },
-  { id: '12', title: 'Narrator Contract — Crown of Thorns', category: 'Contract', dueDate: '2026-10-15', notes: 'Royalty share agreement expires', recurring: false },
-];
+const STORAGE_KEY = 'av_important_dates_v1'; // legacy — persisted via API
 
 @Component({
   selector: 'app-company-calendar',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, PageActionBarComponent],
   template: `
     <div class="page">
+      <app-page-action-bar
+        [editing]="editMode()"
+        deleteLabel="Delete all dates"
+        (editToggle)="editMode.update(v => !v)"
+        (deleteAll)="deleteAllDates()" />
+
       <div class="page-header">
         <div>
           <div class="page-title-wrap">
@@ -61,7 +45,7 @@ const DEFAULT_DATES: ImportantDate[] = [
           <p class="page-subtitle">Tax deadlines, renewals, filings, and contract dates — all in one place</p>
         </div>
         <div class="header-actions">
-          <button type="button" class="btn-secondary" (click)="openAddModal()">+ Add date</button>
+          <button type="button" class="btn-secondary" [disabled]="!editMode()" (click)="openAddModal()">+ Add date</button>
           <button type="button" class="btn-primary" [class.active]="viewMode() === 'calendar'" (click)="viewMode.set('calendar')">
             Calendar
           </button>
@@ -557,6 +541,9 @@ const DEFAULT_DATES: ImportantDate[] = [
   `]
 })
 export class CompanyCalendarComponent implements OnInit {
+  private readonly datesService = inject(ImportantDatesService);
+  editMode = signal(false);
+
   filterCat = '';
   filterStartDate = '';
   filterEndDate = '';
@@ -690,16 +677,18 @@ export class CompanyCalendarComponent implements OnInit {
   }
 
   private loadDates(): void {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      this.dates.set(raw ? JSON.parse(raw) : [...DEFAULT_DATES]);
-    } catch {
-      this.dates.set([...DEFAULT_DATES]);
-    }
+    this.datesService.load().subscribe({
+      next: dates => {
+        this.dates.set(Array.isArray(dates) ? dates : []);
+      },
+      error: () => this.dates.set([])
+    });
   }
 
   private persist(): void {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(this.dates()));
+    this.datesService.save(this.dates()).subscribe({
+      error: err => console.error('Failed to save dates', err)
+    });
   }
 
   private todayKey(): string {
@@ -821,7 +810,19 @@ export class CompanyCalendarComponent implements OnInit {
   }
 
   deleteDate(id: string): void {
+    if (!this.editMode()) return;
     this.dates.update(list => list.filter(d => d.id !== id));
     this.persist();
+  }
+
+  deleteAllDates(): void {
+    if (!confirm('Delete all important dates? This cannot be undone.')) return;
+    this.datesService.clearAll().subscribe({
+      next: () => {
+        this.dates.set([]);
+        this.editMode.set(false);
+      },
+      error: err => console.error('Failed to clear dates', err)
+    });
   }
 }

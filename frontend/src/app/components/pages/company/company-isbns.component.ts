@@ -1,6 +1,8 @@
-import { Component, signal, computed } from '@angular/core';
+import { Component, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { VaultCompanyStoreService, VaultIsbnRecord } from '../../../services/vault-company-store.service';
+import { PageActionBarComponent } from '../../shared/page-action-bar/page-action-bar.component';
 
 interface IsbnRecord {
   isbn: string;
@@ -12,12 +14,36 @@ interface IsbnRecord {
   notes: string;
 }
 
+function mapVaultStatus(status: VaultIsbnRecord['status']): IsbnRecord['status'] {
+  if (status === 'used') return 'Used';
+  if (status === 'reserved') return 'Reserved';
+  return 'Available';
+}
+
+function toDisplayRecord(r: VaultIsbnRecord): IsbnRecord {
+  return {
+    isbn: r.isbn,
+    format: r.format,
+    title: r.title,
+    imprint: r.imprint,
+    status: mapVaultStatus(r.status),
+    assignedDate: r.pubDate || '',
+    notes: r.series ? `Series: ${r.series}` : ''
+  };
+}
+
 @Component({
   selector: 'app-company-isbns',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, PageActionBarComponent],
   template: `
     <div class="page">
+      <app-page-action-bar
+        [editing]="editMode()"
+        deleteLabel="Delete all ISBNs"
+        (editToggle)="editMode.update(v => !v)"
+        (deleteAll)="deleteAllIsbns()" />
+
       <div class="page-header">
         <div>
           <div class="page-title-wrap">
@@ -41,7 +67,7 @@ interface IsbnRecord {
 
       <!-- Stats -->
       <div class="stats-row">
-        <div class="stat-card"><span class="stat-value">{{ isbns.length }}</span><span class="stat-label">Total ISBNs</span></div>
+        <div class="stat-card"><span class="stat-value">{{ isbns().length }}</span><span class="stat-label">Total ISBNs</span></div>
         <div class="stat-card green"><span class="stat-value">{{ usedCount() }}</span><span class="stat-label">Used</span></div>
         <div class="stat-card amber"><span class="stat-value">{{ availableCount() }}</span><span class="stat-label">Available</span></div>
         <div class="stat-card blue"><span class="stat-value">{{ reservedCount() }}</span><span class="stat-label">Reserved</span></div>
@@ -145,36 +171,21 @@ interface IsbnRecord {
   `]
 })
 export class CompanyIsbnsComponent {
+  private readonly vaultStore = inject(VaultCompanyStoreService);
+  editMode = signal(false);
+
   searchQuery = '';
   filterStatus = '';
   filterFormat = '';
 
-  isbns: IsbnRecord[] = [
-    { isbn: '979-8-888-00001-0', format: 'Ebook', title: 'The Midnight Library', imprint: 'AuthorVault Press', status: 'Used', assignedDate: '2023-01-10', notes: 'KDP + wide' },
-    { isbn: '979-8-888-00001-1', format: 'Paperback 6x9', title: 'The Midnight Library', imprint: 'AuthorVault Press', status: 'Used', assignedDate: '2023-01-10', notes: 'IngramSpark' },
-    { isbn: '979-8-888-00001-2', format: 'Hardcover', title: 'The Midnight Library', imprint: 'AuthorVault Press', status: 'Used', assignedDate: '2023-01-10', notes: '' },
-    { isbn: '979-8-888-00001-3', format: 'Audiobook', title: 'The Midnight Library', imprint: 'AuthorVault Press', status: 'Used', assignedDate: '2023-03-05', notes: 'ACX' },
-    { isbn: '979-8-888-00002-0', format: 'Ebook', title: 'Shadow Protocol', imprint: 'AuthorVault Press', status: 'Used', assignedDate: '2024-04-10', notes: '' },
-    { isbn: '979-8-888-00002-1', format: 'Paperback 6x9', title: 'Shadow Protocol', imprint: 'AuthorVault Press', status: 'Used', assignedDate: '2024-04-10', notes: '' },
-    { isbn: '979-8-888-00003-0', format: 'Ebook', title: 'Garden of Stars', imprint: 'AuthorVault Press', status: 'Reserved', assignedDate: '2025-04-05', notes: 'Pending pub' },
-    { isbn: '979-8-888-00003-1', format: 'Paperback 5.5x8.5', title: 'Garden of Stars', imprint: 'AuthorVault Press', status: 'Reserved', assignedDate: '2025-04-05', notes: '' },
-    { isbn: '979-8-888-00004-0', format: 'Ebook', title: 'The Quantified Self', imprint: 'Vance Nonfiction', status: 'Used', assignedDate: '2025-03-20', notes: '' },
-    { isbn: '979-8-888-00004-1', format: 'Paperback 6x9', title: 'The Quantified Self', imprint: 'Vance Nonfiction', status: 'Used', assignedDate: '2025-03-20', notes: '' },
-    { isbn: '979-8-888-00004-2', format: 'Hardcover', title: 'The Quantified Self', imprint: 'Vance Nonfiction', status: 'Used', assignedDate: '2025-03-22', notes: '' },
-    { isbn: '979-8-888-00005-0', format: 'Box Set', title: 'Hearts of Manhattan Box Set', imprint: 'AuthorVault Press', status: 'Reserved', assignedDate: '', notes: 'Planned Q3 2026' },
-    { isbn: '979-8-888-00006-0', format: 'Ebook', title: '', imprint: '', status: 'Available', assignedDate: '', notes: '' },
-    { isbn: '979-8-888-00006-1', format: 'Paperback 6x9', title: '', imprint: '', status: 'Available', assignedDate: '', notes: '' },
-    { isbn: '979-8-888-00006-2', format: 'Large Print', title: '', imprint: '', status: 'Available', assignedDate: '', notes: '' },
-  ];
+  isbns = computed(() => this.vaultStore.isbnRecords().map(toDisplayRecord));
 
-  filteredList = signal<IsbnRecord[]>(this.isbns);
-
-  usedCount = computed(() => this.isbns.filter(i => i.status === 'Used').length);
-  availableCount = computed(() => this.isbns.filter(i => i.status === 'Available').length);
-  reservedCount = computed(() => this.isbns.filter(i => i.status === 'Reserved').length);
+  usedCount = computed(() => this.isbns().filter(i => i.status === 'Used').length);
+  availableCount = computed(() => this.isbns().filter(i => i.status === 'Available').length);
+  reservedCount = computed(() => this.isbns().filter(i => i.status === 'Reserved').length);
 
   filtered() {
-    return this.isbns.filter(i => {
+    return this.isbns().filter(i => {
       const q = this.searchQuery.toLowerCase();
       const matchQ = !q || i.isbn.includes(q) || i.title.toLowerCase().includes(q);
       const matchS = !this.filterStatus || i.status === this.filterStatus;
@@ -183,5 +194,11 @@ export class CompanyIsbnsComponent {
     });
   }
 
-  applyFilters() { this.filteredList.set(this.filtered()); }
+  applyFilters() {}
+
+  deleteAllIsbns(): void {
+    if (!confirm('Delete all ISBN records? This cannot be undone.')) return;
+    this.vaultStore.clearIsbnRecords();
+    this.editMode.set(false);
+  }
 }

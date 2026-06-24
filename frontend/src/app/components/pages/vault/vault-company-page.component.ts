@@ -5,13 +5,20 @@ import { RouterModule } from '@angular/router';
 import { AuthorVaultService } from '../../../services/author-vault.service';
 import { CompanyIdentity } from '../../../models/author-vault.model';
 import { ExcelImportService } from '../../../services/excel-import.service';
-import { VaultCompanyStoreService } from '../../../services/vault-company-store.service';
+import { VaultCompanyStoreService, VaultOwnerProfile, OwnerDocRef } from '../../../services/vault-company-store.service';
+import { CompanyPinService } from '../../../services/company-pin.service';
+import { FileUploadService } from '../../../services/file-upload.service';
 import { EditableFieldComponent } from '../../shared/editable-field/editable-field.component';
+import { RevealToggleComponent } from '../../shared/reveal-toggle/reveal-toggle.component';
+import { PageActionBarComponent } from '../../shared/page-action-bar/page-action-bar.component';
+import { StatusSelectComponent } from '../../shared/status-select/status-select.component';
+import { VaultTableFooterComponent } from '../../shared/vault-table-footer/vault-table-footer.component';
+import { vaultStatusClass, vaultStatusOptions } from '../../../utils/vault-status.util';
 
 @Component({
   selector: 'app-vault-company-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, EditableFieldComponent],
+  imports: [CommonModule, FormsModule, RouterModule, EditableFieldComponent, RevealToggleComponent, PageActionBarComponent, StatusSelectComponent, VaultTableFooterComponent],
   styleUrls: ['../company-vault/company-vault.component.css'],
   template: `
 <!-- ═══ PIN LOCK OVERLAY ═══ -->
@@ -115,6 +122,12 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
 
 <!-- ═══ MAIN PAGE ═══ -->
 <div class="page">
+  <app-page-action-bar
+    [editing]="editMode()"
+    deleteLabel="Delete all company file data"
+    (editToggle)="onEditToggle()"
+    (deleteAll)="deleteAllVaultData()" />
+
   <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.25rem;">
     <div>
       <label class="entity-avatar-upload" title="Upload company avatar (Click to change)" style="margin-right:.5rem;">
@@ -140,7 +153,7 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
         </svg>
         <h1 class="page-title" style="margin: 0 0 0 0.5rem; display: inline-block;">{{ company().identity.legalName }}</h1>
       </div>
-      <p class="page-subtitle">{{ company().identity.entityType }} · {{ company().identity.stateOfIncorporation }} · <span class="status status-green">{{ company().identity.companyStatus }}</span></p>
+      <p class="page-subtitle">{{ company().identity.entityType }} · {{ company().identity.stateOfIncorporation }} · <span class="status" [ngClass]="companyStatusClass">{{ company().identity.companyStatus }}</span></p>
     </div>
     <button (click)="lockVault()" style="display:inline-flex;align-items:center;gap:.4rem;padding:.4rem .85rem;background:var(--surface);border:1.5px solid var(--border-color);border-radius:8px;font-size:.8125rem;font-weight:500;color:var(--text-secondary);cursor:pointer;font-family:inherit;">
       🔒 Lock Vault
@@ -157,11 +170,91 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
     @if (importMessage) { <p [style.color]="importError ? '#ef4444' : '#10b981'" style="margin:.75rem 0 0;font-size:.875rem;">{{ importMessage }}</p> }
   </div>
 
-  <div class="stats-row">
-    <div class="stat-card"><div class="stat-value">{{ company().imprints.length }}</div><div class="stat-label">Imprints</div></div>
-    <div class="stat-card"><div class="stat-value">{{ penNameCount }}</div><div class="stat-label">Pen Names</div></div>
-    <div class="stat-card"><div class="stat-value">{{ bookCount }}</div><div class="stat-label">Total Books</div></div>
-    <div class="stat-card"><div class="stat-value">{{ company().identity.companyStatus }}</div><div class="stat-label">Status</div></div>
+  <div class="vault-hero-panel">
+    <div class="vault-hero-copy">
+      <h2 class="vault-hero-title">Company at a glance</h2>
+      <p class="section-hint">Your publishing structure, catalog size, and operating status in one view.</p>
+      <div class="vault-metric-grid">
+        <div class="vault-metric-card teal">
+          <div class="vault-metric-icon" aria-hidden="true">
+            <svg class="vault-metric-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          </div>
+          <div class="vault-metric-body">
+            <span class="vault-metric-value">{{ company().imprints.length }}</span>
+            <span class="vault-metric-label">Imprints</span>
+          </div>
+        </div>
+        <div class="vault-metric-card purple">
+          <div class="vault-metric-icon" aria-hidden="true">
+            <svg class="vault-metric-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+          </div>
+          <div class="vault-metric-body">
+            <span class="vault-metric-value">{{ penNameCount }}</span>
+            <span class="vault-metric-label">Pen Names</span>
+          </div>
+        </div>
+        <div class="vault-metric-card indigo">
+          <div class="vault-metric-icon" aria-hidden="true">
+            <svg class="vault-metric-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+          </div>
+          <div class="vault-metric-body">
+            <span class="vault-metric-value">{{ bookCount }}</span>
+            <span class="vault-metric-label">Total Books</span>
+          </div>
+        </div>
+        <div class="vault-metric-card status-metric" [class.is-active]="company().identity.companyStatus === 'Active'">
+          <div class="vault-metric-icon" aria-hidden="true">
+            <svg class="vault-metric-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          </div>
+          <div class="vault-metric-body">
+            <app-status-select kind="company" [readOnly]="!editMode()" [value]="company().identity.companyStatus" (valueChange)="onCompanyStatus($event)" />
+            <span class="vault-metric-label">Company Status</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="vault-hero-chart card">
+      <h3 class="vault-chart-title">Catalog composition</h3>
+      <div class="vault-chart-wrap">
+        <svg viewBox="0 0 120 120" class="vault-donut" aria-hidden="true">
+          <circle cx="60" cy="60" r="46" fill="none" stroke="var(--border-light)" stroke-width="14" />
+          @if (catalogChartTotal > 0) {
+            <circle cx="60" cy="60" r="46" fill="none" stroke="#14b8a6" stroke-width="14"
+              [attr.stroke-dasharray]="catalogSegment(company().imprints.length)"
+              stroke-dashoffset="0" transform="rotate(-90 60 60)" />
+            <circle cx="60" cy="60" r="46" fill="none" stroke="#8b5cf6" stroke-width="14"
+              [attr.stroke-dasharray]="catalogSegment(penNameCount)"
+              [attr.stroke-dashoffset]="-catalogOffset(company().imprints.length)"
+              transform="rotate(-90 60 60)" />
+            <circle cx="60" cy="60" r="46" fill="none" stroke="#6366f1" stroke-width="14"
+              [attr.stroke-dasharray]="catalogSegment(bookCount)"
+              [attr.stroke-dashoffset]="-catalogOffset(company().imprints.length + penNameCount)"
+              transform="rotate(-90 60 60)" />
+          }
+          <text x="60" y="56" text-anchor="middle" class="vault-donut-total">{{ catalogChartTotal }}</text>
+          <text x="60" y="72" text-anchor="middle" class="vault-donut-sub">items</text>
+        </svg>
+        <div class="vault-chart-legend">
+          <div class="vault-legend-row"><span class="vault-legend-dot teal"></span> Imprints <strong>{{ company().imprints.length }}</strong></div>
+          <div class="vault-legend-row"><span class="vault-legend-dot purple"></span> Pen Names <strong>{{ penNameCount }}</strong></div>
+          <div class="vault-legend-row"><span class="vault-legend-dot indigo"></span> Books <strong>{{ bookCount }}</strong></div>
+        </div>
+      </div>
+      <div class="vault-bar-chart">
+        <div class="vault-bar-row">
+          <span class="vault-bar-label">Imprints</span>
+          <div class="vault-bar-track"><div class="vault-bar-fill teal" [style.width.%]="catalogBarPct(company().imprints.length)"></div></div>
+        </div>
+        <div class="vault-bar-row">
+          <span class="vault-bar-label">Pen Names</span>
+          <div class="vault-bar-track"><div class="vault-bar-fill purple" [style.width.%]="catalogBarPct(penNameCount)"></div></div>
+        </div>
+        <div class="vault-bar-row">
+          <span class="vault-bar-label">Books</span>
+          <div class="vault-bar-track"><div class="vault-bar-fill indigo" [style.width.%]="catalogBarPct(bookCount)"></div></div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="vault-layout">
@@ -233,23 +326,46 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
         <div class="card">
           <h3 class="section-title">Company Overview</h3>
           <div class="form-grid">
-            <app-editable-field label="Legal Name" [value]="company().identity.legalName" (valueChange)="vs.patchIdentity({ legalName: $event })"  />
-            <app-editable-field label="DBA Names" [value]="company().identity.dbaNames" (valueChange)="vs.patchIdentity({ dbaNames: $event })"  />
-            <app-editable-field label="Entity Type" [value]="company().identity.entityType" (valueChange)="vs.patchIdentity({ entityType: $event })"  />
-            <app-editable-field label="State of Incorporation" [value]="company().identity.stateOfIncorporation" (valueChange)="vs.patchIdentity({ stateOfIncorporation: $event })"  />
-            <app-editable-field label="Date of Formation" [value]="company().identity.dateOfFormation" (valueChange)="vs.patchIdentity({ dateOfFormation: $event })"  />
-            <app-editable-field label="Fiscal Year End" [value]="company().identity.fiscalYearEnd" (valueChange)="vs.patchIdentity({ fiscalYearEnd: $event })"  />
-            <div class="form-group"><span class="form-label">Status</span><div class="form-value"><span class="status status-green">{{ company().identity.companyStatus }}</span></div></div>
-            <app-editable-field label="Website" type="url" [value]="company().identity.website" (valueChange)="vs.patchIdentity({ website: $event })" />
+            <app-editable-field [readOnly]="!editMode()" label="Legal Name" [value]="company().identity.legalName" (valueChange)="vs.patchIdentity({ legalName: $event })"  />
+            <app-editable-field [readOnly]="!editMode()" label="DBA Names" [value]="company().identity.dbaNames" (valueChange)="vs.patchIdentity({ dbaNames: $event })"  />
+            <app-editable-field [readOnly]="!editMode()" label="Entity Type" [value]="company().identity.entityType" (valueChange)="vs.patchIdentity({ entityType: $event })"  />
+            <app-editable-field [readOnly]="!editMode()" label="State of Incorporation" [value]="company().identity.stateOfIncorporation" (valueChange)="vs.patchIdentity({ stateOfIncorporation: $event })"  />
+            <app-editable-field [readOnly]="!editMode()" label="Date of Formation" type="date" [value]="company().identity.dateOfFormation" (valueChange)="vs.patchIdentity({ dateOfFormation: $event })"  />
+            <app-editable-field [readOnly]="!editMode()" label="Fiscal Year End" type="select" [options]="fiscalYearEndOptions" [value]="company().identity.fiscalYearEnd" (valueChange)="vs.patchIdentity({ fiscalYearEnd: $event })"  />
+            <div class="form-group">
+              <span class="form-label">Status</span>
+              <app-status-select kind="company" [readOnly]="!editMode()" [value]="company().identity.companyStatus" (valueChange)="onCompanyStatus($event)" />
+            </div>
+            <app-editable-field [readOnly]="!editMode()" label="Website" type="url" [value]="company().identity.website" (valueChange)="vs.patchIdentity({ website: $event })" />
           </div>
         </div>
-        <div class="card">
-          <h3 class="section-title">Quick Stats</h3>
-          <div class="stats-row" style="margin-bottom:0">
-            <div class="stat-card"><div class="stat-value">{{ company().imprints.length }}</div><div class="stat-label">Imprints</div></div>
-            <div class="stat-card"><div class="stat-value">{{ penNameCount }}</div><div class="stat-label">Pen Names</div></div>
-            <div class="stat-card"><div class="stat-value">{{ bookCount }}</div><div class="stat-label">Books</div></div>
-            <div class="stat-card"><div class="stat-value">{{ isbnUsed }}</div><div class="stat-label">ISBNs Used</div></div>
+        <div class="card vault-overview-visual">
+          <h3 class="section-title">Publishing footprint</h3>
+          <div class="vault-overview-grid">
+            <div class="vault-overview-stat">
+              <span class="vault-overview-num">{{ company().imprints.length }}</span>
+              <span class="vault-overview-lbl">Imprints</span>
+            </div>
+            <div class="vault-overview-stat">
+              <span class="vault-overview-num">{{ penNameCount }}</span>
+              <span class="vault-overview-lbl">Pen Names</span>
+            </div>
+            <div class="vault-overview-stat">
+              <span class="vault-overview-num">{{ bookCount }}</span>
+              <span class="vault-overview-lbl">Books in catalog</span>
+            </div>
+            <div class="vault-overview-stat">
+              <span class="vault-overview-num">{{ isbnUsed }}</span>
+              <span class="vault-overview-lbl">ISBNs assigned</span>
+            </div>
+            <div class="vault-overview-stat">
+              <span class="vault-overview-num">{{ activeContractCount }}</span>
+              <span class="vault-overview-lbl">Active contracts</span>
+            </div>
+            <div class="vault-overview-stat vault-overview-status">
+              <app-status-select kind="company" [readOnly]="!editMode()" [value]="company().identity.companyStatus" (valueChange)="onCompanyStatus($event)" />
+              <span class="vault-overview-lbl">Company status</span>
+            </div>
           </div>
         </div>
       }
@@ -259,20 +375,33 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
         <div class="card">
           <h3 class="section-title">Business Identity</h3>
           <div class="form-grid">
-            <app-editable-field label="Legal Name" [value]="company().identity.legalName" (valueChange)="vs.patchIdentity({ legalName: $event })"  />
-            <app-editable-field label="DBA / Trade Names" [value]="company().identity.dbaNames" (valueChange)="vs.patchIdentity({ dbaNames: $event })"  />
-            <app-editable-field label="Business Structure" [value]="company().identity.entityType" (valueChange)="vs.patchIdentity({ entityType: $event })"  />
-            <app-editable-field label="State of Registration" [value]="company().identity.stateOfIncorporation" (valueChange)="vs.patchIdentity({ stateOfIncorporation: $event })"  />
-            <app-editable-field label="Country" [value]="company().identity.country || 'United States'" (valueChange)="vs.patchIdentity({ country: $event })" />
-            <app-editable-field label="Date of Formation" [value]="company().identity.dateOfFormation" (valueChange)="vs.patchIdentity({ dateOfFormation: $event })"  />
-            <app-editable-field label="Business Address" [value]="company().identity.primaryAddress" (valueChange)="vs.patchIdentity({ primaryAddress: $event })" [full]="true" />
-            <app-editable-field label="Mailing Address" [value]="company().identity.mailingAddress || company().identity.primaryAddress" (valueChange)="vs.patchIdentity({ mailingAddress: $event })" [full]="true" />
-            <app-editable-field label="Website" type="url" [value]="company().identity.website" (valueChange)="vs.patchIdentity({ website: $event })" />
-            <app-editable-field label="Main Business Email" [value]="company().identity.primaryEmail" (valueChange)="vs.patchIdentity({ primaryEmail: $event })" type="email" />
-            <app-editable-field label="Business Phone" [value]="company().identity.phone" (valueChange)="vs.patchIdentity({ phone: $event })" type="tel" />
-            <app-editable-field label="Registered Agent" [value]="company().identity.registeredAgent" (valueChange)="vs.patchIdentity({ registeredAgent: $event })"  />
-            <app-editable-field label="Fiscal Year End" [value]="company().identity.fiscalYearEnd" (valueChange)="vs.patchIdentity({ fiscalYearEnd: $event })"  />
-            <app-editable-field label="Company Status" [value]="company().identity.companyStatus" (valueChange)="onCompanyStatus($event)" />
+            <app-editable-field [readOnly]="!editMode()" label="Legal Name" [value]="company().identity.legalName" (valueChange)="vs.patchIdentity({ legalName: $event })"  />
+            <app-editable-field [readOnly]="!editMode()" label="DBA / Trade Names" [value]="company().identity.dbaNames" (valueChange)="vs.patchIdentity({ dbaNames: $event })"  />
+            <app-editable-field [readOnly]="!editMode()" label="Business Structure" [value]="company().identity.entityType" (valueChange)="vs.patchIdentity({ entityType: $event })"  />
+            <app-editable-field [readOnly]="!editMode()" label="State of Registration" [value]="company().identity.stateOfIncorporation" (valueChange)="vs.patchIdentity({ stateOfIncorporation: $event })"  />
+            <app-editable-field [readOnly]="!editMode()" label="Country" [value]="company().identity.country ?? ''" placeholder="e.g. United States" (valueChange)="vs.patchIdentity({ country: $event })" />
+            <app-editable-field [readOnly]="!editMode()" label="Date of Formation" type="date" [value]="company().identity.dateOfFormation" (valueChange)="vs.patchIdentity({ dateOfFormation: $event })"  />
+            @if (editMode()) {
+              <label class="address-same-row">
+                <input type="checkbox" [ngModel]="sameMailingAddress()" (ngModelChange)="onSameMailingChange($event)" />
+                Mailing address is the same as business address
+              </label>
+            }
+            <app-editable-field [readOnly]="!editMode()" label="Business Address" [value]="company().identity.primaryAddress" (valueChange)="onPrimaryAddressChange($event)" [full]="true" />
+            @if (!sameMailingAddress()) {
+              <app-editable-field [readOnly]="!editMode()" label="Mailing Address" [value]="company().identity.mailingAddress" (valueChange)="vs.patchIdentity({ mailingAddress: $event, sameMailingAsBusiness: false })" [full]="true" />
+            } @else if (!editMode()) {
+              <div class="form-group full">
+                <span class="form-label">Mailing Address</span>
+                <div class="form-value">Same as business address</div>
+              </div>
+            }
+            <app-editable-field [readOnly]="!editMode()" label="Website" type="url" [value]="company().identity.website" (valueChange)="vs.patchIdentity({ website: $event })" />
+            <app-editable-field [readOnly]="!editMode()" label="Main Business Email" [value]="company().identity.primaryEmail" (valueChange)="vs.patchIdentity({ primaryEmail: $event })" type="email" />
+            <app-editable-field [readOnly]="!editMode()" label="Business Phone" [value]="company().identity.phone" (valueChange)="vs.patchIdentity({ phone: $event })" type="tel" placeholder="+1 555 123 4567" />
+            <app-editable-field [readOnly]="!editMode()" label="Registered Agent" [value]="company().identity.registeredAgent" (valueChange)="vs.patchIdentity({ registeredAgent: $event })"  />
+            <app-editable-field [readOnly]="!editMode()" label="Fiscal Year End" type="select" [options]="fiscalYearEndOptions" [value]="company().identity.fiscalYearEnd" (valueChange)="vs.patchIdentity({ fiscalYearEnd: $event })" />
+            <app-editable-field [readOnly]="!editMode()" label="Company Status" type="select" [options]="companyStatusOptions" [value]="company().identity.companyStatus" (valueChange)="onCompanyStatus($event)" />
           </div>
         </div>
       }
@@ -284,29 +413,29 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
           <table class="data-table">
             <thead><tr><th>Name</th><th>Role</th><th>Ownership %</th><th>Email</th><th>Phone</th><th>Can Sign</th><th>Manage Finances</th></tr></thead>
             <tbody>
-              @for(o of ownerProfiles; track $index; let i = $index) {
+              @for(row of pageSliceIndexed('owners', ownerProfiles); track row.index) {
                 <tr>
-                  <td><input class="form-input" [ngModel]="o.name" (ngModelChange)="patchOwner(i, 'name', $event)" /></td>
-                  <td><input class="form-input" [ngModel]="o.role" (ngModelChange)="patchOwner(i, 'role', $event)" /></td>
-                  <td><input class="form-input" [ngModel]="o.ownershipPct" (ngModelChange)="patchOwner(i, 'ownershipPct', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!editMode()" [title]="cellTitle(row.item.name)" [ngModel]="row.item.name" (ngModelChange)="patchOwner(row.index, 'name', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!editMode()" [title]="cellTitle(row.item.role)" [ngModel]="row.item.role" (ngModelChange)="patchOwner(row.index, 'role', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!editMode()" [title]="cellTitle(row.item.ownershipPct)" [ngModel]="row.item.ownershipPct" (ngModelChange)="patchOwner(row.index, 'ownershipPct', $event)" /></td>
                   <td>
                     <div style="display:flex;align-items:center;gap:.35rem">
-                      <input class="form-input" style="flex:1" [ngModel]="o.email" (ngModelChange)="patchOwner(i, 'email', $event)" />
-                      @if (o.email) {
-                        <a [href]="scEmailHref(o.email)" target="_blank" rel="noopener noreferrer" title="Compose email in SC Email" style="color:var(--accent-blue);flex-shrink:0">
+                      <input class="form-input table-cell-field" style="flex:1" [disabled]="!editMode()" [title]="cellTitle(row.item.email)" [ngModel]="row.item.email" (ngModelChange)="patchOwner(row.index, 'email', $event)" />
+                      @if (row.item.email) {
+                        <a [href]="scEmailHref(row.item.email)" target="_blank" rel="noopener noreferrer" title="Open in SC Email" style="color:var(--accent-blue);flex-shrink:0">
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
                         </a>
                       }
                     </div>
                   </td>
-                  <td><input class="form-input" [ngModel]="o.phone" (ngModelChange)="patchOwner(i, 'phone', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!editMode()" [title]="cellTitle(row.item.phone)" [ngModel]="row.item.phone" (ngModelChange)="patchOwner(row.index, 'phone', $event)" /></td>
                   <td>
-                    <select class="form-input" [ngModel]="o.canSign" (ngModelChange)="patchOwner(i, 'canSign', $event)">
+                    <select class="form-input table-cell-field" [disabled]="!editMode()" [ngModel]="row.item.canSign" (ngModelChange)="patchOwner(row.index, 'canSign', $event)">
                       <option [ngValue]="true">Yes</option><option [ngValue]="false">No</option>
                     </select>
                   </td>
                   <td>
-                    <select class="form-input" [ngModel]="o.canManageFinances" (ngModelChange)="patchOwner(i, 'canManageFinances', $event)">
+                    <select class="form-input table-cell-field" [disabled]="!editMode()" [ngModel]="row.item.canManageFinances" (ngModelChange)="patchOwner(row.index, 'canManageFinances', $event)">
                       <option [ngValue]="true">Yes</option><option [ngValue]="false">No</option>
                     </select>
                   </td>
@@ -314,6 +443,13 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
               }
             </tbody>
           </table>
+          <app-vault-table-footer
+            [totalItems]="ownerProfiles.length"
+            [page]="tablePage('owners')"
+            [pageSize]="TABLE_PAGE_SIZE"
+            [editMode]="editMode()"
+            (pageChange)="setTablePage('owners', $event)"
+            (addRow)="addOwnerRow()" />
         </div>
         <div class="card">
           <h3 class="section-title">Documents per Person</h3>
@@ -323,14 +459,47 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
               <div class="record-header"><h4 class="record-title">{{ o.name }} — {{ o.role }}</h4></div>
               <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:.625rem;margin-top:.75rem">
                 @for(slot of ownerDocSlots; track slot.key) {
-                  <div class="doc-upload-slot" [class.has-file]="o.docs?.[slot.key]" [title]="o.docs?.[slot.key] ? 'Click to view ' + slot.label : 'Upload ' + slot.label">
-                    <span class="doc-slot-icon">{{ slot.icon }}</span>
-                    <div class="doc-slot-body" (click)="o.docs?.[slot.key] ? downloadFile(o.docs?.[slot.key]) : null">
-                      <span class="doc-slot-name" [style.text-decoration]="o.docs?.[slot.key] ? 'underline' : 'none'">{{ slot.label }}</span>
-                      <span class="doc-slot-hint">{{ o.docs?.[slot.key] ? '✓ ' + o.docs?.[slot.key] : slot.hint }}</span>
+                  <div class="doc-upload-slot" [class.has-file]="hasOwnerDoc(o, slot.key)" [class.is-uploading]="uploadingOwnerDoc() === oi + ':' + slot.key"
+                    [title]="hasOwnerDoc(o, slot.key) ? 'Click to view ' + slot.label : 'Upload ' + slot.label">
+                    <span class="doc-slot-icon">
+                      @switch (slot.key) {
+                        @case ('cv') {
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                        }
+                        @case ('avatar') {
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-6 8-6s8 2 8 6"/></svg>
+                        }
+                        @case ('signature') {
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17c3-2 5-6 8-6s5 4 8 6"/><path d="M12 3v4"/><path d="M8 7l8-2"/></svg>
+                        }
+                        @case ('job-desc') {
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><line x1="8" y1="11" x2="16" y2="11"/><line x1="8" y1="15" x2="13" y2="15"/></svg>
+                        }
+                        @case ('nda') {
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12c1.5-1.5 3.5-2 5-2s3.5.5 5 2"/><path d="M4 16c1.5 1.5 3.5 2 5 2s3.5-.5 5-2"/><path d="M8 10V8a2 2 0 0 1 2-2h1"/><path d="M16 10V8a2 2 0 0 0-2-2h-1"/></svg>
+                        }
+                        @case ('business-card') {
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="6" y1="10" x2="14" y2="10"/><line x1="6" y1="14" x2="11" y2="14"/><circle cx="17" cy="12" r="2"/></svg>
+                        }
+                        @case ('bio-short') {
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/></svg>
+                        }
+                        @case ('bio-long') {
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="11" x2="16" y2="11"/><line x1="8" y1="15" x2="16" y2="15"/><line x1="8" y1="19" x2="14" y2="19"/></svg>
+                        }
+                        @case ('letterhead') {
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                        }
+                      }
+                    </span>
+                    <div class="doc-slot-body" (click)="hasOwnerDoc(o, slot.key) ? downloadOwnerDoc(o, slot.key) : null">
+                      <span class="doc-slot-name" [style.text-decoration]="hasOwnerDoc(o, slot.key) ? 'underline' : 'none'">{{ slot.label }}</span>
+                      <span class="doc-slot-hint">{{ getOwnerDocHint(o, slot.key, slot.hint) }}</span>
                     </div>
-                    @if (o.docs?.[slot.key]) {
+                    @if (hasOwnerDoc(o, slot.key)) {
                       <span class="doc-slot-btn-delete" title="Delete document" (click)="$event.stopPropagation(); removeOwnerDoc(oi, slot.key)">✕</span>
+                    } @else if (uploadingOwnerDoc() === oi + ':' + slot.key) {
+                      <span class="doc-slot-btn" style="opacity:.6;cursor:wait;">Uploading…</span>
                     } @else {
                       <label style="margin:0;cursor:pointer;" class="doc-slot-btn">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
@@ -347,8 +516,56 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
         <div class="card">
           <h3 class="section-title">Operating Agreement</h3>
           <div class="form-grid">
-            <app-editable-field label="Operating Agreement File" [value]="company().ownership.operatingAgreementFile" (valueChange)="vs.patchOwnership({ operatingAgreementFile: $event })" />
-            <app-editable-field label="S-Corp Election File" [value]="company().ownership.sCorpElectionFile || ''" (valueChange)="vs.patchOwnership({ sCorpElectionFile: $event })" />
+            <div class="ownership-file-slot">
+              <span class="ownership-file-label">Operating Agreement File</span>
+              @if (company().ownership.operatingAgreementFile) {
+                <div class="doc-upload-slot has-file">
+                  <span class="doc-slot-body" (click)="openOwnershipFile('operating')" style="cursor:pointer">
+                    <span class="doc-slot-name">{{ company().ownership.operatingAgreementFile }}</span>
+                    <span class="doc-slot-hint">Click to view</span>
+                  </span>
+                  @if (editMode()) {
+                    <button type="button" class="doc-slot-btn-delete" (click)="removeOwnershipFile('operating')">✕</button>
+                  }
+                </div>
+              } @else if (editMode()) {
+                <label class="doc-upload-slot" [class.is-uploading]="uploadingOwnershipFile() === 'operating'">
+                  <span class="doc-slot-body">
+                    <span class="doc-slot-name">Upload operating agreement</span>
+                    <span class="doc-slot-hint">PDF or DOCX</span>
+                  </span>
+                  <span class="doc-slot-btn">{{ uploadingOwnershipFile() === 'operating' ? 'Uploading…' : 'Attach' }}</span>
+                  <input type="file" hidden accept=".pdf,.doc,.docx" (change)="onOwnershipFileUpload($event, 'operating')" />
+                </label>
+              } @else {
+                <div class="form-value">—</div>
+              }
+            </div>
+            <div class="ownership-file-slot">
+              <span class="ownership-file-label">S-Corp Election File</span>
+              @if (company().ownership.sCorpElectionFile) {
+                <div class="doc-upload-slot has-file">
+                  <span class="doc-slot-body" (click)="openOwnershipFile('scorp')" style="cursor:pointer">
+                    <span class="doc-slot-name">{{ company().ownership.sCorpElectionFile }}</span>
+                    <span class="doc-slot-hint">Click to view</span>
+                  </span>
+                  @if (editMode()) {
+                    <button type="button" class="doc-slot-btn-delete" (click)="removeOwnershipFile('scorp')">✕</button>
+                  }
+                </div>
+              } @else if (editMode()) {
+                <label class="doc-upload-slot" [class.is-uploading]="uploadingOwnershipFile() === 'scorp'">
+                  <span class="doc-slot-body">
+                    <span class="doc-slot-name">Upload S-Corp election</span>
+                    <span class="doc-slot-hint">PDF or DOCX</span>
+                  </span>
+                  <span class="doc-slot-btn">{{ uploadingOwnershipFile() === 'scorp' ? 'Uploading…' : 'Attach' }}</span>
+                  <input type="file" hidden accept=".pdf,.doc,.docx" (change)="onOwnershipFileUpload($event, 'scorp')" />
+                </label>
+              } @else {
+                <div class="form-value">—</div>
+              }
+            </div>
           </div>
         </div>
       }
@@ -358,44 +575,82 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
         <div class="card">
           <h3 class="section-title">Tax & Registration</h3>
           <div class="form-grid">
-            <div class="form-group"><span class="form-label">EIN / Tax ID</span>
-              <div style="display:flex;align-items:center;gap:.5rem;">
-                <div class="form-value" style="flex:1">{{ isRevealed('legal-ein') ? company().identity.einTaxId : '**-*******' }}</div>
-                <button (click)="toggleReveal('legal-ein')" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:.875rem;">
-                  {{ isRevealed('legal-ein') ? '🙈 Hide (' + getTimerValue('legal-ein') + 's)' : '👁 Reveal' }}
-                </button>
+            @if (editMode()) {
+              <app-editable-field [readOnly]="false" label="EIN / Tax ID" [value]="company().identity.einTaxId" (valueChange)="vs.patchIdentity({ einTaxId: $event })" />
+            } @else {
+              <div class="form-group"><span class="form-label">EIN / Tax ID</span>
+                <div style="display:flex;align-items:center;gap:.5rem;">
+                  <div class="form-value" style="flex:1">{{ isRevealed('legal-ein') ? (company().identity.einTaxId || '—') : (company().identity.einTaxId ? '**-*******' : '—') }}</div>
+                  @if (company().identity.einTaxId) {
+                    <app-reveal-toggle [revealed]="isRevealed('legal-ein')" [timer]="getTimerValue('legal-ein')" label="Reveal" (toggle)="toggleReveal('legal-ein')" />
+                  }
+                </div>
               </div>
-            </div>
-            <app-editable-field label="Registered Agent" [value]="company().identity.registeredAgent" (valueChange)="vs.patchIdentity({ registeredAgent: $event })"  />
+            }
+            <app-editable-field [readOnly]="!editMode()" label="Registered Agent" [value]="company().identity.registeredAgent" (valueChange)="vs.patchIdentity({ registeredAgent: $event })"  />
           </div>
         </div>
         <div class="card">
           <h3 class="section-title">Formation & Corporate Documents</h3>
           <table class="data-table">
-            <thead><tr><th>Document</th><th>File / Reference</th><th>Status</th></tr></thead>
+            <thead><tr><th>Document Name</th><th>File / Reference</th><th>Status</th></tr></thead>
             <tbody>
-              @for(doc of corporateDocs; track $index; let i = $index) {
+              @for(row of pageSliceIndexed('corporateDocs', corporateDocs); track row.index) {
                 <tr>
-                  <td><input class="form-input" [ngModel]="doc.document" (ngModelChange)="patchCorpDoc(i, 'document', $event)" /></td>
-                  <td><input class="form-input" [ngModel]="doc.fileRef" (ngModelChange)="patchCorpDoc(i, 'fileRef', $event)" /></td>
-                  <td><input class="form-input" [ngModel]="doc.status" (ngModelChange)="patchCorpDoc(i, 'status', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!editMode()" [title]="cellTitle(row.item.document)" [ngModel]="row.item.document" (ngModelChange)="patchCorpDoc(row.index, 'document', $event)" /></td>
+                  <td>
+                    @if (row.item.fileRef) {
+                      <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
+                        <span class="file-link" (click)="openCorpDocFile(row.index)" [title]="row.item.fileRef">{{ row.item.fileRef }}</span>
+                        @if (editMode()) {
+                          <button type="button" class="row-upload-btn" style="padding:.2rem .4rem" (click)="removeCorpDocFile(row.index)">✕</button>
+                        }
+                      </div>
+                    } @else if (editMode()) {
+                      <label class="row-upload-btn" [title]="'Attach file for: ' + row.item.document">
+                        Upload File
+                        <input type="file" hidden accept=".pdf,.doc,.docx,.png,.jpg" (change)="onCorpDocFileUpload($event, row.index)" />
+                      </label>
+                    } @else {
+                      <span class="table-cell-text">—</span>
+                    }
+                  </td>
+                  <td><app-status-select kind="corporateDoc" [readOnly]="!editMode()" [value]="row.item.status" (valueChange)="patchCorpDoc(row.index, 'status', $event)" /></td>
                 </tr>
               }
             </tbody>
           </table>
+          <app-vault-table-footer
+            [totalItems]="corporateDocs.length"
+            [page]="tablePage('corporateDocs')"
+            [pageSize]="TABLE_PAGE_SIZE"
+            [editMode]="editMode()"
+            (pageChange)="setTablePage('corporateDocs', $event)"
+            (addRow)="addCorpDocRow()" />
         </div>
         <div class="card">
           <h3 class="section-title">Trademarks, Copyrights & Insurance</h3>
           <div class="form-grid">
-            <app-editable-field label="Trademark Registrations" [value]="company().contractsLegal.trademarkRegistrations" (valueChange)="vs.patchContractsLegal({ trademarkRegistrations: $event })" />
-            <app-editable-field label="Copyright Assignments" [value]="company().contractsLegal.copyrightAssignments" (valueChange)="vs.patchContractsLegal({ copyrightAssignments: $event })" />
-            <app-editable-field label="Insurance Policies" [value]="company().contractsLegal.insurancePolicies" (valueChange)="vs.patchContractsLegal({ insurancePolicies: $event })" />
-            <app-editable-field label="Attorney Name" [value]="company().contractsLegal.attorneyName" (valueChange)="vs.patchContractsLegal({ attorneyName: $event })" />
-            <app-editable-field label="Attorney Contact" [value]="company().contractsLegal.attorneyContact" (valueChange)="vs.patchContractsLegal({ attorneyContact: $event })" type="email" />
+            <app-editable-field [readOnly]="!editMode()" label="Trademark Registrations" [value]="company().contractsLegal.trademarkRegistrations" (valueChange)="vs.patchContractsLegal({ trademarkRegistrations: $event })" />
+            <app-editable-field [readOnly]="!editMode()" label="Copyright Assignments" [value]="company().contractsLegal.copyrightAssignments" (valueChange)="vs.patchContractsLegal({ copyrightAssignments: $event })" />
+            <app-editable-field [readOnly]="!editMode()" label="Insurance Policies" [value]="company().contractsLegal.insurancePolicies" (valueChange)="vs.patchContractsLegal({ insurancePolicies: $event })" />
+            <app-editable-field [readOnly]="!editMode()" label="Attorney Name" [value]="company().contractsLegal.attorneyName" (valueChange)="vs.patchContractsLegal({ attorneyName: $event })" />
+            <app-editable-field [readOnly]="!editMode()" label="Attorney Phone" type="tel" [value]="company().contractsLegal.attorneyContact" (valueChange)="vs.patchContractsLegal({ attorneyContact: $event })" placeholder="+1 555 123 4567" />
+            <app-editable-field [readOnly]="!editMode()" label="Attorney Email" type="email" [value]="company().contractsLegal.attorneyEmail || ''" (valueChange)="vs.patchContractsLegal({ attorneyEmail: $event })" />
           </div>
-          <div style="margin-top:1rem;padding:.75rem;background:var(--primary-light);border-radius:8px;font-size:.8125rem;color:var(--text-secondary);display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;">
-            <span>📄 Copyright Office:</span>
-            <select [(ngModel)]="copyrightCountry" style="padding:.3rem .5rem;border:1px solid var(--border-color);border-radius:6px;background:var(--background);color:var(--text-secondary);font-size:.8125rem;font-family:inherit;">
+          <div class="copyright-office-panel">
+            <span class="copyright-office-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M3 21h18"/><path d="M6 21V9l6-3.5L18 9v12"/><path d="M9 13h6"/><path d="M9 17h6"/>
+                <circle cx="12" cy="7" r="2.5"/><path d="M10.5 7h3"/>
+              </svg>
+              Copyright Office:
+            </span>
+            <select
+              class="form-input copyright-office-select"
+              [ngModel]="copyrightOffice().country"
+              (ngModelChange)="patchCopyrightCountry($event)"
+              [disabled]="!editMode()">
               <option value="US">United States</option>
               <option value="UK">United Kingdom</option>
               <option value="CA">Canada</option>
@@ -403,8 +658,19 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
               <option value="DE">Germany</option>
               <option value="FR">France</option>
               <option value="IN">India</option>
+              <option value="OTHER">Other</option>
             </select>
-            <a [href]="copyrightLinks[copyrightCountry]" target="_blank" style="color:var(--accent-blue)">{{ copyrightLinks[copyrightCountry] }}</a>
+            @if (copyrightOffice().country === 'OTHER') {
+              <input
+                type="url"
+                class="form-input copyright-office-custom"
+                placeholder="https://your-copyright-office.gov"
+                [disabled]="!editMode()"
+                [ngModel]="copyrightOffice().customUrl || ''"
+                (ngModelChange)="patchCopyrightCustomUrl($event)" />
+            } @else if (copyrightOfficeUrl) {
+              <a [href]="copyrightOfficeUrl" target="_blank" rel="noopener noreferrer" class="copyright-office-link">{{ copyrightOfficeUrl }}</a>
+            }
           </div>
         </div>
       }
@@ -416,38 +682,41 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
           <table class="data-table">
             <thead><tr><th>Bank</th><th>Nickname</th><th>Account #</th><th>Routing #</th><th>Wire #</th><th>SWIFT</th></tr></thead>
             <tbody>
-              @for(b of bankAccounts; track $index; let i = $index) {
+              @for(row of pageSliceIndexed('banks', bankAccounts); track row.index) {
                 <tr>
-                  <td><input class="form-input" [ngModel]="b.bank" (ngModelChange)="patchBank(i, 'bank', $event)" /></td>
-                  <td><input class="form-input" [ngModel]="b.nickname" (ngModelChange)="patchBank(i, 'nickname', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!editMode()" [title]="cellTitle(row.item.bank)" [ngModel]="row.item.bank" (ngModelChange)="patchBank(row.index, 'bank', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!editMode()" [title]="cellTitle(row.item.nickname)" [ngModel]="row.item.nickname" (ngModelChange)="patchBank(row.index, 'nickname', $event)" /></td>
                   <td>
-                    <span style="font-family:monospace">{{ isRevealed('bank-account-' + i) ? b.account : '****' + b.account.slice(-4) }}</span>
-                    <button (click)="toggleReveal('bank-account-' + i)" style="background:none;border:none;cursor:pointer;color:var(--text-muted);margin-left:.35rem;">
-                      {{ isRevealed('bank-account-' + i) ? '🙈' + ' (' + getTimerValue('bank-account-' + i) + 's)' : '👁' }}
-                    </button>
+                    <span style="font-family:monospace" [title]="cellTitle(row.item.account)">{{ isRevealed('bank-account-' + row.index) ? row.item.account : '****' + row.item.account.slice(-4) }}</span>
+                    <app-reveal-toggle [revealed]="isRevealed('bank-account-' + row.index)" [timer]="getTimerValue('bank-account-' + row.index)" (toggle)="toggleReveal('bank-account-' + row.index)" />
                   </td>
                   <td>
-                    <span style="font-family:monospace">{{ isRevealed('bank-routing-' + i) ? b.routing : '****' + b.routing.slice(-4) }}</span>
-                    <button (click)="toggleReveal('bank-routing-' + i)" style="background:none;border:none;cursor:pointer;color:var(--text-muted);margin-left:.35rem;">
-                      {{ isRevealed('bank-routing-' + i) ? '🙈' + ' (' + getTimerValue('bank-routing-' + i) + 's)' : '👁' }}
-                    </button>
+                    <span style="font-family:monospace" [title]="cellTitle(row.item.routing)">{{ isRevealed('bank-routing-' + row.index) ? row.item.routing : '****' + row.item.routing.slice(-4) }}</span>
+                    <app-reveal-toggle [revealed]="isRevealed('bank-routing-' + row.index)" [timer]="getTimerValue('bank-routing-' + row.index)" (toggle)="toggleReveal('bank-routing-' + row.index)" />
                   </td>
-                  <td style="font-family:monospace">{{ b.wire || '—' }}</td>
-                  <td style="font-family:monospace">{{ b.swift || '—' }}</td>
+                  <td><input class="form-input table-cell-field" [disabled]="!editMode()" [title]="cellTitle(row.item.wire)" [ngModel]="row.item.wire" (ngModelChange)="patchBank(row.index, 'wire', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!editMode()" [title]="cellTitle(row.item.swift)" [ngModel]="row.item.swift" (ngModelChange)="patchBank(row.index, 'swift', $event)" /></td>
                 </tr>
               }
             </tbody>
           </table>
+          <app-vault-table-footer
+            [totalItems]="bankAccounts.length"
+            [page]="tablePage('banks')"
+            [pageSize]="TABLE_PAGE_SIZE"
+            [editMode]="editMode()"
+            (pageChange)="setTablePage('banks', $event)"
+            (addRow)="addBankRow()" />
         </div>
         <div class="card">
           <h3 class="section-title">Payment Processors & Payout Destinations</h3>
           <div class="form-grid">
-            <app-editable-field label="Payment Processors" [value]="company().financial.paymentProcessors" (valueChange)="vs.patchFinancial({ paymentProcessors: $event })" />
-            <app-editable-field label="Accounting Software" [value]="company().financial.accountingSoftware" (valueChange)="vs.patchFinancial({ accountingSoftware: $event })" />
-            <app-editable-field label="CPA Name" [value]="company().financial.cpaName" (valueChange)="vs.patchFinancial({ cpaName: $event })" />
-            <app-editable-field label="CPA Contact" [value]="company().financial.cpaContact" (valueChange)="vs.patchFinancial({ cpaContact: $event })" type="email" />
-            <app-editable-field label="Tax Schedule" [value]="company().financial.quarterlyTaxSchedule" (valueChange)="vs.patchFinancial({ quarterlyTaxSchedule: $event })" />
-            <app-editable-field label="State Tax Registrations" [value]="company().financial.stateTaxRegistrations" (valueChange)="vs.patchFinancial({ stateTaxRegistrations: $event })" />
+            <app-editable-field [readOnly]="!editMode()" label="Payment Processors" [value]="company().financial.paymentProcessors" (valueChange)="vs.patchFinancial({ paymentProcessors: $event })" />
+            <app-editable-field [readOnly]="!editMode()" label="Accounting Software" [value]="company().financial.accountingSoftware" (valueChange)="vs.patchFinancial({ accountingSoftware: $event })" />
+            <app-editable-field [readOnly]="!editMode()" label="CPA Name" [value]="company().financial.cpaName" (valueChange)="vs.patchFinancial({ cpaName: $event })" />
+            <app-editable-field [readOnly]="!editMode()" label="CPA Contact" [value]="company().financial.cpaContact" (valueChange)="vs.patchFinancial({ cpaContact: $event })" type="email" />
+            <app-editable-field [readOnly]="!editMode()" label="Tax Schedule" [value]="company().financial.quarterlyTaxSchedule" (valueChange)="vs.patchFinancial({ quarterlyTaxSchedule: $event })" />
+            <app-editable-field [readOnly]="!editMode()" label="State Tax Registrations" [value]="company().financial.stateTaxRegistrations" (valueChange)="vs.patchFinancial({ stateTaxRegistrations: $event })" />
           </div>
         </div>
         <div class="card">
@@ -456,27 +725,30 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
           <table class="data-table">
             <thead><tr><th>Platform</th><th>Username / Email</th><th>Password</th><th>Recovery</th><th>Notes</th></tr></thead>
             <tbody>
-              @for(p of paymentPlatforms; track p.name) {
+              @for(row of pageSliceIndexed('paymentPlatforms', paymentPlatforms); track row.index) {
                 <tr>
-                  <td class="td-primary">{{ p.name }}</td>
+                  <td class="td-primary" [title]="cellTitle(row.item.name)">{{ row.item.name }}</td>
                   <td>
-                    <span>{{ isRevealed('payment-user-' + p.name) ? p.username : maskValue(p.username) }}</span>
-                    <button (click)="toggleReveal('payment-user-' + p.name)" style="background:none;border:none;cursor:pointer;color:var(--text-muted);margin-left:.35rem;">
-                      {{ isRevealed('payment-user-' + p.name) ? '🙈 (' + getTimerValue('payment-user-' + p.name) + 's)' : '👁' }}
-                    </button>
+                    <span [title]="cellTitle(row.item.username)">{{ isRevealed('payment-user-' + row.item.name) ? row.item.username : maskValue(row.item.username) }}</span>
+                    <app-reveal-toggle [revealed]="isRevealed('payment-user-' + row.item.name)" [timer]="getTimerValue('payment-user-' + row.item.name)" (toggle)="toggleReveal('payment-user-' + row.item.name)" />
                   </td>
                   <td>
-                    <span style="font-family:monospace">{{ isRevealed('payment-pass-' + p.name) ? p.password : '••••••••' }}</span>
-                    <button (click)="toggleReveal('payment-pass-' + p.name)" style="background:none;border:none;cursor:pointer;color:var(--text-muted);margin-left:.35rem;">
-                      {{ isRevealed('payment-pass-' + p.name) ? '🙈 (' + getTimerValue('payment-pass-' + p.name) + 's)' : '👁' }}
-                    </button>
+                    <span style="font-family:monospace" [title]="cellTitle(row.item.password)">{{ isRevealed('payment-pass-' + row.item.name) ? row.item.password : '••••••••' }}</span>
+                    <app-reveal-toggle [revealed]="isRevealed('payment-pass-' + row.item.name)" [timer]="getTimerValue('payment-pass-' + row.item.name)" (toggle)="toggleReveal('payment-pass-' + row.item.name)" />
                   </td>
-                  <td>{{ p.phone }}</td>
-                  <td>{{ p.notes }}</td>
+                  <td><span class="table-cell-text" [title]="cellTitle(row.item.phone)">{{ row.item.phone || '—' }}</span></td>
+                  <td><span class="table-cell-text" [title]="cellTitle(row.item.notes)">{{ row.item.notes || '—' }}</span></td>
                 </tr>
               }
             </tbody>
           </table>
+          <app-vault-table-footer
+            [totalItems]="paymentPlatforms.length"
+            [page]="tablePage('paymentPlatforms')"
+            [pageSize]="TABLE_PAGE_SIZE"
+            [editMode]="editMode()"
+            [allowAdd]="false"
+            (pageChange)="setTablePage('paymentPlatforms', $event)" />
         </div>
       }
 
@@ -497,30 +769,41 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
           <table class="data-table">
             <thead><tr><th>Document</th><th>Type</th><th>Year</th><th>Status</th><th>File</th></tr></thead>
             <tbody>
-              @for(d of taxDocs; track $index; let i = $index) {
+              @for(row of pageSliceIndexed('taxDocs', taxDocs); track row.index) {
                 <tr>
-                  <td><input class="form-input" [ngModel]="d.name" (ngModelChange)="patchTaxDoc(i, 'name', $event)" /></td>
-                  <td><input class="form-input" [ngModel]="d.type" (ngModelChange)="patchTaxDoc(i, 'type', $event)" /></td>
-                  <td><input class="form-input" [ngModel]="d.year" (ngModelChange)="patchTaxDoc(i, 'year', $event)" /></td>
-                  <td><input class="form-input" [ngModel]="d.status" (ngModelChange)="patchTaxDoc(i, 'status', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!editMode()" [title]="cellTitle(row.item.name)" [ngModel]="row.item.name" (ngModelChange)="patchTaxDoc(row.index, 'name', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!editMode()" [title]="cellTitle(row.item.type)" [ngModel]="row.item.type" (ngModelChange)="patchTaxDoc(row.index, 'type', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!editMode()" [title]="cellTitle(row.item.year)" [ngModel]="row.item.year" (ngModelChange)="patchTaxDoc(row.index, 'year', $event)" /></td>
+                  <td><app-status-select kind="taxDoc" [readOnly]="!editMode()" [value]="row.item.status" (valueChange)="patchTaxDoc(row.index, 'status', $event)" /></td>
                   <td>
-                    @if (d.fileName) {
+                    @if (row.item.fileName) {
                       <div style="display:flex;align-items:center;gap:.5rem">
-                        <span style="color:var(--success);cursor:pointer;font-weight:600;text-decoration:underline" (click)="downloadFile(d.fileName)" title="Click to view file">📄 {{ d.fileName }}</span>
-                        <button class="row-upload-btn" style="padding:.2rem .4rem;border-color:var(--text-muted);color:var(--text-secondary)" (click)="removeTaxDocFile(i)" title="Remove file">✕</button>
+                        <span style="color:var(--success);cursor:pointer;font-weight:600;text-decoration:underline" [title]="row.item.fileName" (click)="downloadFile(row.item.fileName)">📄 {{ row.item.fileName }}</span>
+                        @if (editMode()) {
+                          <button class="row-upload-btn" style="padding:.2rem .4rem;border-color:var(--text-muted);color:var(--text-secondary)" (click)="removeTaxDocFile(row.index)" title="Remove file">✕</button>
+                        }
                       </div>
-                    } @else {
-                      <label class="row-upload-btn" [title]="'Upload file for: ' + d.name">
+                    } @else if (editMode()) {
+                      <label class="row-upload-btn" [title]="'Upload file for: ' + row.item.name">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M21.44 11.05 12.25 20.24a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
                         Upload File
-                        <input type="file" hidden accept=".pdf,.docx,.xlsx,.png,.jpg" (change)="onTaxDocRowUpload($event, i)" />
+                        <input type="file" hidden accept=".pdf,.docx,.xlsx,.png,.jpg" (change)="onTaxDocRowUpload($event, row.index)" />
                       </label>
+                    } @else {
+                      <span class="table-cell-text">—</span>
                     }
                   </td>
                 </tr>
               }
             </tbody>
           </table>
+          <app-vault-table-footer
+            [totalItems]="taxDocs.length"
+            [page]="tablePage('taxDocs')"
+            [pageSize]="TABLE_PAGE_SIZE"
+            [editMode]="editMode()"
+            (pageChange)="setTablePage('taxDocs', $event)"
+            (addRow)="addTaxDocRow()" />
         </div>
         <div class="card">
           <h3 class="section-title">Tax Registrations & Contacts</h3>
@@ -564,31 +847,27 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
             <div class="record-card" style="margin-bottom:.75rem;">
               <div class="record-header">
                 <h4 class="record-title">{{ p.name }}</h4>
-                <span class="status status-green">Active</span>
+                <app-status-select kind="platform" [readOnly]="!editMode()" [value]="platformStatus(p)" (valueChange)="patchPlatform('publishing', i, 'status', $event)" />
               </div>
               <div class="record-grid" style="grid-template-columns:1fr 1fr 1fr;gap:.5rem .85rem;">
-                <app-editable-field label="Account Owner" [value]="p.owner" (valueChange)="patchPlatform('publishing', i, 'owner', $event)" />
-                <app-editable-field label="Account Email" type="email" [value]="p.email" (valueChange)="patchPlatform('publishing', i, 'email', $event)" />
-                <app-editable-field label="Recovery Phone" type="tel" [value]="p.phone" (valueChange)="patchPlatform('publishing', i, 'phone', $event)" />
-                <app-editable-field label="Payout Method" [value]="p.payout" (valueChange)="patchPlatform('publishing', i, 'payout', $event)" />
-                <app-editable-field label="Tax Profile Name" [value]="p.taxProfile" (valueChange)="patchPlatform('publishing', i, 'taxProfile', $event)" />
-                <app-editable-field label="Account ID" [value]="p.accountId" (valueChange)="patchPlatform('publishing', i, 'accountId', $event)" />
+                <app-editable-field [readOnly]="!editMode()" label="Account Owner" [value]="p.owner" (valueChange)="patchPlatform('publishing', i, 'owner', $event)" />
+                <app-editable-field [readOnly]="!editMode()" label="Account Email" type="email" [value]="p.email" (valueChange)="patchPlatform('publishing', i, 'email', $event)" />
+                <app-editable-field [readOnly]="!editMode()" label="Recovery Phone" type="tel" [value]="p.phone" (valueChange)="patchPlatform('publishing', i, 'phone', $event)" />
+                <app-editable-field [readOnly]="!editMode()" label="Payout Method" [value]="p.payout" (valueChange)="patchPlatform('publishing', i, 'payout', $event)" />
+                <app-editable-field [readOnly]="!editMode()" label="Tax Profile Name" [value]="p.taxProfile" (valueChange)="patchPlatform('publishing', i, 'taxProfile', $event)" />
+                <app-editable-field [readOnly]="!editMode()" label="Account ID" [value]="p.accountId" (valueChange)="patchPlatform('publishing', i, 'accountId', $event)" />
                 <div class="record-field">
                   <span class="label">Username</span>
                   <span class="value" style="display:flex;align-items:center;gap:.35rem;">
                     {{ isRevealed('platform-user-' + p.name) ? p.username : maskValue(p.username) }}
-                    <button (click)="toggleReveal('platform-user-' + p.name)" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:.75rem;">
-                      {{ isRevealed('platform-user-' + p.name) ? '🙈 (' + getTimerValue('platform-user-' + p.name) + 's)' : '👁' }}
-                    </button>
+                    <app-reveal-toggle [revealed]="isRevealed('platform-user-' + p.name)" [timer]="getTimerValue('platform-user-' + p.name)" (toggle)="toggleReveal('platform-user-' + p.name)" />
                   </span>
                 </div>
                 <div class="record-field">
                   <span class="label">Password</span>
                   <span class="value" style="display:flex;align-items:center;gap:.35rem;font-family:monospace;">
                     {{ isRevealed('platform-pass-' + p.name) ? p.password : '••••••••' }}
-                    <button (click)="toggleReveal('platform-pass-' + p.name)" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:.75rem;">
-                      {{ isRevealed('platform-pass-' + p.name) ? '🙈 (' + getTimerValue('platform-pass-' + p.name) + 's)' : '👁' }}
-                    </button>
+                    <app-reveal-toggle [revealed]="isRevealed('platform-pass-' + p.name)" [timer]="getTimerValue('platform-pass-' + p.name)" (toggle)="toggleReveal('platform-pass-' + p.name)" />
                   </span>
                 </div>
               </div>
@@ -598,7 +877,7 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
                   <div><span style="color:var(--text-muted);">Rep Email:</span> @if(p.repEmail) { <a [href]="'mailto:'+p.repEmail" style="color:var(--accent-blue);">{{ p.repEmail }}</a> } @else { <span style="color:var(--text-secondary)">—</span> }</div>
                 </div>
               </div>
-              <app-editable-field label="Notes" [value]="p.notes" (valueChange)="patchPlatform('publishing', i, 'notes', $event)" [full]="true" />
+              <app-editable-field [readOnly]="!editMode()" label="Notes" [value]="p.notes" (valueChange)="patchPlatform('publishing', i, 'notes', $event)" [full]="true" />
             </div>
           }
         </div>
@@ -636,23 +915,28 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
           <table class="data-table">
             <thead><tr><th>ISBN</th><th>Format</th><th>Book Title</th><th>Imprint</th><th>Series</th><th>Assigned Date</th><th>Status</th></tr></thead>
             <tbody>
-              @for(r of filteredIsbns; track $index; let i = $index) {
+              @for(row of pageSliceFilteredIndexed('isbns', filteredIsbns, isbnRecords); track row.index) {
                 <tr>
-                  <td><input class="form-input" style="font-family:monospace" [ngModel]="r.isbn" (ngModelChange)="patchIsbn(i, 'isbn', $event)" /></td>
-                  <td><input class="form-input" [ngModel]="r.format" (ngModelChange)="patchIsbn(i, 'format', $event)" /></td>
-                  <td><input class="form-input" [ngModel]="r.title" (ngModelChange)="patchIsbn(i, 'title', $event)" /></td>
-                  <td><input class="form-input" [ngModel]="r.imprint" (ngModelChange)="patchIsbn(i, 'imprint', $event)" /></td>
-                  <td><input class="form-input" [ngModel]="r.series" (ngModelChange)="patchIsbn(i, 'series', $event)" /></td>
-                  <td><input class="form-input" [ngModel]="r.pubDate" (ngModelChange)="patchIsbn(i, 'pubDate', $event)" /></td>
+                  <td><input class="form-input table-cell-field" style="font-family:monospace" [disabled]="!editMode()" [title]="cellTitle(row.item.isbn)" [ngModel]="row.item.isbn" (ngModelChange)="patchIsbn(row.index, 'isbn', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!editMode()" [title]="cellTitle(row.item.format)" [ngModel]="row.item.format" (ngModelChange)="patchIsbn(row.index, 'format', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!editMode()" [title]="cellTitle(row.item.title)" [ngModel]="row.item.title" (ngModelChange)="patchIsbn(row.index, 'title', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!editMode()" [title]="cellTitle(row.item.imprint)" [ngModel]="row.item.imprint" (ngModelChange)="patchIsbn(row.index, 'imprint', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!editMode()" [title]="cellTitle(row.item.series)" [ngModel]="row.item.series" (ngModelChange)="patchIsbn(row.index, 'series', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!editMode()" [title]="cellTitle(row.item.pubDate)" [ngModel]="row.item.pubDate" (ngModelChange)="patchIsbn(row.index, 'pubDate', $event)" /></td>
                   <td>
-                    <select class="form-input" [ngModel]="r.status" (ngModelChange)="patchIsbn(i, 'status', $event)">
-                      <option value="used">Used</option><option value="unused">Available</option><option value="reserved">Reserved</option>
-                    </select>
+                    <app-status-select kind="isbn" [readOnly]="!editMode()" [value]="row.item.status" (valueChange)="onIsbnStatusChange(row.item, $event)" />
                   </td>
                 </tr>
               }
             </tbody>
           </table>
+          <app-vault-table-footer
+            [totalItems]="filteredIsbns.length"
+            [page]="tablePage('isbns')"
+            [pageSize]="TABLE_PAGE_SIZE"
+            [editMode]="editMode()"
+            (pageChange)="setTablePage('isbns', $event)"
+            (addRow)="addIsbnRow()" />
         </div>
         <div class="card">
           <h3 class="section-title">ISBN Block Details</h3>
@@ -685,31 +969,45 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
           <table class="data-table">
             <thead><tr><th>Contract Name</th><th>Counterparty</th><th>Type</th><th>Date</th><th>Status</th><th>File</th></tr></thead>
             <tbody>
-              @for(c of contractRecords; track $index; let i = $index) {
+              @for(row of pageSliceIndexed('contracts', contractRecords); track row.index) {
                 <tr>
-                  <td><input class="form-input" [ngModel]="c.name" (ngModelChange)="patchContract(i, 'name', $event)" /></td>
-                  <td><input class="form-input" [ngModel]="c.counterparty" (ngModelChange)="patchContract(i, 'counterparty', $event)" /></td>
-                  <td><input class="form-input" [ngModel]="c.type" (ngModelChange)="patchContract(i, 'type', $event)" /></td>
-                  <td><input class="form-input" [ngModel]="c.date" (ngModelChange)="patchContract(i, 'date', $event)" /></td>
-                  <td><input class="form-input" [ngModel]="c.status" (ngModelChange)="patchContract(i, 'status', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!editMode()" [title]="cellTitle(row.item.name)" [ngModel]="row.item.name" (ngModelChange)="patchContract(row.index, 'name', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!editMode()" [title]="cellTitle(row.item.counterparty)" [ngModel]="row.item.counterparty" (ngModelChange)="patchContract(row.index, 'counterparty', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!editMode()" [title]="cellTitle(row.item.type)" [ngModel]="row.item.type" (ngModelChange)="patchContract(row.index, 'type', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!editMode()" [title]="cellTitle(row.item.date)" [ngModel]="row.item.date" (ngModelChange)="patchContract(row.index, 'date', $event)" /></td>
+                  <td><app-status-select kind="contract" [readOnly]="!editMode()" [value]="row.item.status" (valueChange)="onContractStatusChange(row.index, $event)" /></td>
                   <td>
-                    @if (c.file) {
+                    @if (row.item.file) {
                       <div style="display:flex;align-items:center;gap:.5rem">
-                        <span style="color:var(--accent-blue);cursor:pointer;font-weight:600;text-decoration:underline" (click)="downloadFile(c.file)" title="Click to view file">📄 {{ c.file }}</span>
-                        <button class="row-upload-btn" style="padding:.2rem .4rem;border-color:var(--text-muted);color:var(--text-secondary)" (click)="removeContractFile(i)" title="Remove file">✕</button>
+                        <span class="file-link" (click)="downloadFile(row.item.file)" [title]="row.item.file">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                          {{ row.item.file }}
+                        </span>
+                        @if (editMode()) {
+                          <button class="row-upload-btn" style="padding:.2rem .4rem;border-color:var(--text-muted);color:var(--text-secondary)" (click)="removeContractFile(row.index)" title="Remove file">✕</button>
+                        }
                       </div>
-                    } @else {
-                      <label class="row-upload-btn" [title]="'Attach file to: ' + c.name">
+                    } @else if (editMode()) {
+                      <label class="row-upload-btn" [title]="'Attach file to: ' + row.item.name">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M21.44 11.05 12.25 20.24a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
                         Upload Contract
-                        <input type="file" hidden accept=".pdf,.docx" (change)="onContractRowUpload($event, i)" />
+                        <input type="file" hidden accept=".pdf,.docx" (change)="onContractRowUpload($event, row.index)" />
                       </label>
+                    } @else {
+                      <span class="table-cell-text">—</span>
                     }
                   </td>
                 </tr>
               }
             </tbody>
           </table>
+          <app-vault-table-footer
+            [totalItems]="contractRecords.length"
+            [page]="tablePage('contracts')"
+            [pageSize]="TABLE_PAGE_SIZE"
+            [editMode]="editMode()"
+            (pageChange)="setTablePage('contracts', $event)"
+            (addRow)="addContractRow()" />
         </div>
         <div class="card">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
@@ -737,11 +1035,11 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
           <table class="data-table">
             <thead><tr><th>Template Name</th><th>Category</th><th>Last Updated</th><th>Actions</th></tr></thead>
             <tbody>
-              @for(t of filteredContractTemplates; track t.name) {
+              @for(t of pageSlice('contractTemplates', filteredContractTemplates); track t.name) {
                 <tr>
-                  <td class="td-primary">{{ t.name }}</td>
-                  <td><span class="tag">{{ t.category }}</span></td>
-                  <td class="td-muted">{{ t.updated }}</td>
+                  <td class="td-primary" [title]="cellTitle(t.name)">{{ t.name }}</td>
+                  <td><span class="tag" [title]="cellTitle(t.category)">{{ t.category }}</span></td>
+                  <td class="td-muted table-cell-text" [title]="cellTitle(t.updated)">{{ t.updated }}</td>
                   <td style="display:flex;gap:.5rem;align-items:center">
                     <button style="background:none;border:none;color:var(--accent-blue);cursor:pointer;font-size:.8125rem;font-family:inherit" (click)="viewContractTemplate(t)">View & Edit</button>
                     <button style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:.8125rem;font-family:inherit" (click)="useContractTemplate(t)">Quick Use</button>
@@ -750,6 +1048,13 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
               }
             </tbody>
           </table>
+          <app-vault-table-footer
+            [totalItems]="filteredContractTemplates.length"
+            [page]="tablePage('contractTemplates')"
+            [pageSize]="TABLE_PAGE_SIZE"
+            [editMode]="editMode()"
+            [allowAdd]="false"
+            (pageChange)="setTablePage('contractTemplates', $event)" />
         </div>
       }
 
@@ -760,16 +1065,23 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
           <table class="data-table">
             <thead><tr><th>Month</th><th>Revenue</th><th>Expenses</th><th>Net</th></tr></thead>
             <tbody>
-              @for(r of financialRecords; track $index; let i = $index) {
+              @for(row of pageSliceIndexed('financial', financialRecords); track row.index) {
                 <tr>
-                  <td><input class="form-input" [ngModel]="r.month" (ngModelChange)="patchFinancial(i, 'month', $event)" /></td>
-                  <td><input class="form-input" [ngModel]="r.revenue" (ngModelChange)="patchFinancial(i, 'revenue', $event)" /></td>
-                  <td><input class="form-input" [ngModel]="r.expenses" (ngModelChange)="patchFinancial(i, 'expenses', $event)" /></td>
-                  <td><input class="form-input" [ngModel]="r.net" (ngModelChange)="patchFinancial(i, 'net', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!editMode()" [title]="cellTitle(row.item.month)" [ngModel]="row.item.month" (ngModelChange)="patchFinancial(row.index, 'month', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!editMode()" [title]="cellTitle(row.item.revenue)" [ngModel]="row.item.revenue" (ngModelChange)="patchFinancial(row.index, 'revenue', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!editMode()" [title]="cellTitle(row.item.expenses)" [ngModel]="row.item.expenses" (ngModelChange)="patchFinancial(row.index, 'expenses', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!editMode()" [title]="cellTitle(row.item.net)" [ngModel]="row.item.net" (ngModelChange)="patchFinancial(row.index, 'net', $event)" /></td>
                 </tr>
               }
             </tbody>
           </table>
+          <app-vault-table-footer
+            [totalItems]="financialRecords.length"
+            [page]="tablePage('financial')"
+            [pageSize]="TABLE_PAGE_SIZE"
+            [editMode]="editMode()"
+            (pageChange)="setTablePage('financial', $event)"
+            (addRow)="addFinancialRow()" />
         </div>
 
         <div class="card">
@@ -778,41 +1090,69 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
             <div style="display:flex;gap:.5rem;align-items:center">
               <select [(ngModel)]="financialCategoryFilter" style="padding:.4rem .6rem;border:1px solid var(--border-color);border-radius:8px;background:var(--background);color:var(--text-secondary);font-size:.8125rem;font-family:inherit">
                 <option value="">All Categories</option>
-                <option value="📊 P&L Reports">📊 P&L Reports</option>
-                <option value="📋 Chart of Accounts">📋 Chart of Accounts</option>
-                <option value="🧾 Receipts">🧾 Receipts</option>
-                <option value="📄 Invoices">📄 Invoices</option>
-                <option value="💸 Contractor Payments">💸 Contractor Payments</option>
-                <option value="📦 Subscription Costs">📦 Subscription Costs</option>
-                <option value="📈 Royalty Statements">📈 Royalty Statements</option>
-                <option value="📣 Ad Spend by Platform">📣 Ad Spend by Platform</option>
-                <option value="💰 Expense Logs">💰 Expense Logs</option>
+                @for (cat of financialCategories; track cat.id) {
+                  <option [value]="cat.id">{{ cat.label }}</option>
+                }
               </select>
-              <label class="btn-primary btn-sm" style="cursor:pointer">
+              <label class="btn-primary btn-sm" [class.disabled-upload]="!editMode()" style="cursor:pointer">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                 Upload Report
-                <input type="file" hidden accept=".pdf,.xlsx,.csv,.png" (change)="onFinancialUpload($event)" />
+                <input type="file" hidden accept=".pdf,.xlsx,.csv,.png" [disabled]="!editMode()" (change)="onFinancialUpload($event)" />
               </label>
             </div>
           </div>
           <table class="data-table">
             <thead><tr><th>File Name</th><th>Category</th><th>Period</th><th>Size</th><th>Date Uploaded</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody>
-              @for(f of filteredFinancialDocs; track $index) {
+              @for(row of pageSliceFilteredIndexed('financialDocs', filteredFinancialDocs, financialDocs); track row.index) {
                 <tr>
-                  <td class="td-primary" style="cursor:pointer;color:var(--accent-blue);text-decoration:underline" (click)="downloadFile(f.fileName)">📄 {{ f.fileName }}</td>
-                  <td><span class="tag">{{ f.category }}</span></td>
-                  <td>{{ f.month }} {{ f.year }}</td>
-                  <td style="color:var(--text-muted)">{{ f.fileSize || 'N/A' }}</td>
-                  <td style="color:var(--text-muted)">{{ f.uploadedDate || 'N/A' }}</td>
-                  <td><span class="status status-green">{{ f.status }}</span></td>
+                  <td class="td-primary file-name-cell" [class.clickable]="editMode()" [title]="cellTitle(row.item.fileName)" (click)="editMode() && downloadFile(row.item.fileName)">
+                    <svg class="inline-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+                    </svg>
+                    {{ row.item.fileName }}
+                  </td>
                   <td>
-                    <button style="background:none;border:none;color:var(--error);cursor:pointer;font-size:.8125rem" (click)="deleteFinancialDoc(f)">Delete</button>
+                    <span class="tag financial-cat-tag" [title]="cellTitle(row.item.category)">
+                      @switch (normalizeFinancialCategory(row.item.category)) {
+                        @case ('P&L Reports') {
+                          <svg class="inline-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                        }
+                        @case ('Receipts') {
+                          <svg class="inline-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                        }
+                        @case ('Invoices') {
+                          <svg class="inline-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
+                        }
+                        @default {
+                          <svg class="inline-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+                        }
+                      }
+                      {{ normalizeFinancialCategory(row.item.category) }}
+                    </span>
+                  </td>
+                  <td [title]="cellTitle(row.item.month + ' ' + row.item.year)">{{ row.item.month }} {{ row.item.year }}</td>
+                  <td style="color:var(--text-muted)" [title]="cellTitle(row.item.fileSize)">{{ row.item.fileSize || 'N/A' }}</td>
+                  <td style="color:var(--text-muted)" [title]="cellTitle(row.item.uploadedDate)">{{ row.item.uploadedDate || 'N/A' }}</td>
+                  <td><app-status-select kind="financialDoc" [readOnly]="!editMode()" [value]="row.item.status" (valueChange)="patchFinancialDocStatus(row.item.fileName, $event)" /></td>
+                  <td>
+                    @if (editMode()) {
+                      <button style="background:none;border:none;color:var(--error);cursor:pointer;font-size:.8125rem" (click)="deleteFinancialDoc(row.item)">Delete</button>
+                    } @else {
+                      <span style="color:var(--text-muted);font-size:.75rem">—</span>
+                    }
                   </td>
                 </tr>
               }
             </tbody>
           </table>
+          <app-vault-table-footer
+            [totalItems]="filteredFinancialDocs.length"
+            [page]="tablePage('financialDocs')"
+            [pageSize]="TABLE_PAGE_SIZE"
+            [editMode]="editMode()"
+            (pageChange)="setTablePage('financialDocs', $event)"
+            (addRow)="addFinancialDocRow()" />
         </div>
       }
 
@@ -838,28 +1178,35 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
           <table class="data-table">
             <thead><tr><th>Name</th><th>Role</th><th>Company</th><th>Email</th><th>Phone</th><th>Contract Date</th><th>Rate</th></tr></thead>
             <tbody>
-              @for(m of filteredTeamMembers; track $index; let i = $index) {
+              @for(row of pageSliceFilteredIndexed('team', filteredTeamMembers, teamMembers); track row.index) {
                 <tr>
-                  <td><input class="form-input" [ngModel]="m.name" (ngModelChange)="patchTeam(i, 'name', $event)" /></td>
-                  <td><input class="form-input" [ngModel]="m.role" (ngModelChange)="patchTeam(i, 'role', $event)" /></td>
-                  <td><input class="form-input" [ngModel]="m.company" (ngModelChange)="patchTeam(i, 'company', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!editMode()" [title]="cellTitle(row.item.name)" [ngModel]="row.item.name" (ngModelChange)="patchTeam(row.index, 'name', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!editMode()" [title]="cellTitle(row.item.role)" [ngModel]="row.item.role" (ngModelChange)="patchTeam(row.index, 'role', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!editMode()" [title]="cellTitle(row.item.company)" [ngModel]="row.item.company" (ngModelChange)="patchTeam(row.index, 'company', $event)" /></td>
                   <td>
                     <div style="display:flex;align-items:center;gap:.35rem">
-                      <input class="form-input" style="flex:1" [ngModel]="m.email" (ngModelChange)="patchTeam(i, 'email', $event)" />
-                      @if (m.email) {
-                        <a [href]="scEmailHref(m.email)" target="_blank" rel="noopener noreferrer" title="Compose email" style="color:var(--accent-blue);flex-shrink:0">
+                      <input class="form-input table-cell-field" style="flex:1" [disabled]="!editMode()" [title]="cellTitle(row.item.email)" [ngModel]="row.item.email" (ngModelChange)="patchTeam(row.index, 'email', $event)" />
+                      @if (row.item.email) {
+                        <a [href]="scEmailHref(row.item.email)" target="_blank" rel="noopener noreferrer" title="Open in SC Email" style="color:var(--accent-blue);flex-shrink:0">
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
                         </a>
                       }
                     </div>
                   </td>
-                  <td><input class="form-input" [ngModel]="m.phone" (ngModelChange)="patchTeam(i, 'phone', $event)" /></td>
-                  <td><input class="form-input" [ngModel]="m.contractDate" (ngModelChange)="patchTeam(i, 'contractDate', $event)" /></td>
-                  <td><input class="form-input" [ngModel]="m.rate" (ngModelChange)="patchTeam(i, 'rate', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!editMode()" [title]="cellTitle(row.item.phone)" [ngModel]="row.item.phone" (ngModelChange)="patchTeam(row.index, 'phone', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!editMode()" [title]="cellTitle(row.item.contractDate)" [ngModel]="row.item.contractDate" (ngModelChange)="patchTeam(row.index, 'contractDate', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!editMode()" [title]="cellTitle(row.item.rate)" [ngModel]="row.item.rate" (ngModelChange)="patchTeam(row.index, 'rate', $event)" /></td>
                 </tr>
               }
             </tbody>
           </table>
+          <app-vault-table-footer
+            [totalItems]="filteredTeamMembers.length"
+            [page]="tablePage('team')"
+            [pageSize]="TABLE_PAGE_SIZE"
+            [editMode]="editMode()"
+            (pageChange)="setTablePage('team', $event)"
+            (addRow)="addTeamRow()" />
         </div>
       }
 
@@ -870,26 +1217,33 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
           <table class="data-table">
             <thead><tr><th>Domain</th><th>Registrar</th><th>Renewal Date</th><th>Host</th><th>SSL Renewal</th><th>CMS</th><th>Contact</th></tr></thead>
             <tbody>
-              @for(d of domainRecords; track $index; let i = $index) {
+              @for(row of pageSliceIndexed('domains', domainRecords); track row.index) {
                 <tr>
-                  <td><input class="form-input" [ngModel]="d.domain" (ngModelChange)="patchDomain(i, 'domain', $event)" /></td>
-                  <td><input class="form-input" [ngModel]="d.registrar" (ngModelChange)="patchDomain(i, 'registrar', $event)" /></td>
-                  <td><input class="form-input" [ngModel]="d.renewal" (ngModelChange)="patchDomain(i, 'renewal', $event)" /></td>
-                  <td><input class="form-input" [ngModel]="d.host" (ngModelChange)="patchDomain(i, 'host', $event)" /></td>
-                  <td><input class="form-input" [ngModel]="d.ssl" (ngModelChange)="patchDomain(i, 'ssl', $event)" /></td>
-                  <td><input class="form-input" [ngModel]="d.cms" (ngModelChange)="patchDomain(i, 'cms', $event)" /></td>
-                  <td><input class="form-input" [ngModel]="d.contact" (ngModelChange)="patchDomain(i, 'contact', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!editMode()" [title]="cellTitle(row.item.domain)" [ngModel]="row.item.domain" (ngModelChange)="patchDomain(row.index, 'domain', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!editMode()" [title]="cellTitle(row.item.registrar)" [ngModel]="row.item.registrar" (ngModelChange)="patchDomain(row.index, 'registrar', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!editMode()" [title]="cellTitle(row.item.renewal)" [ngModel]="row.item.renewal" (ngModelChange)="patchDomain(row.index, 'renewal', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!editMode()" [title]="cellTitle(row.item.host)" [ngModel]="row.item.host" (ngModelChange)="patchDomain(row.index, 'host', $event)" /></td>
+                  <td><app-status-select kind="ssl" [readOnly]="!editMode()" [value]="row.item.ssl || 'not configured'" (valueChange)="patchDomain(row.index, 'ssl', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!editMode()" [title]="cellTitle(row.item.cms)" [ngModel]="row.item.cms" (ngModelChange)="patchDomain(row.index, 'cms', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!editMode()" [title]="cellTitle(row.item.contact)" [ngModel]="row.item.contact" (ngModelChange)="patchDomain(row.index, 'contact', $event)" /></td>
                 </tr>
               }
             </tbody>
           </table>
+          <app-vault-table-footer
+            [totalItems]="domainRecords.length"
+            [page]="tablePage('domains')"
+            [pageSize]="TABLE_PAGE_SIZE"
+            [editMode]="editMode()"
+            (pageChange)="setTablePage('domains', $event)"
+            (addRow)="addDomainRow()" />
         </div>
         <div class="card">
           <h3 class="section-title">DNS & Technical Notes</h3>
           @for(d of domainRecords; track $index; let i = $index) {
             <div class="record-card">
               <div class="record-header"><h4 class="record-title">{{ d.domain }}</h4></div>
-              <app-editable-field label="DNS Notes" [value]="d.dns" (valueChange)="patchDomain(i, 'dns', $event)" [full]="true" />
+              <app-editable-field [readOnly]="!editMode()" label="DNS Notes" [value]="d.dns" (valueChange)="patchDomain(i, 'dns', $event)" [full]="true" />
             </div>
           }
         </div>
@@ -900,8 +1254,8 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
         <div class="card">
           <h3 class="section-title">Email & Communications Setup</h3>
           <div class="form-grid">
-            <app-editable-field label="Sender Domain" [value]="communications.senderDomain" (valueChange)="patchComms('senderDomain', $event)" />
-            <app-editable-field label="Email Platform" [value]="communications.emailPlatform" (valueChange)="patchComms('emailPlatform', $event)" />
+            <app-editable-field [readOnly]="!editMode()" label="Sender Domain" [value]="communications.senderDomain" (valueChange)="patchComms('senderDomain', $event)" />
+            <app-editable-field [readOnly]="!editMode()" label="Email Platform" [value]="communications.emailPlatform" (valueChange)="patchComms('emailPlatform', $event)" />
 
             <!-- SPF — masked with timer -->
             <div class="form-group">
@@ -910,9 +1264,7 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
                 <div class="form-value" style="flex:1;font-family:monospace;font-size:.8125rem">
                   {{ isRevealed('comms-spf') ? communications.spfRecord : maskSensitive(communications.spfRecord) }}
                 </div>
-                <button (click)="toggleReveal('comms-spf')" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:.8125rem;white-space:nowrap">
-                  {{ isRevealed('comms-spf') ? '🙈 Hide (' + getTimerValue('comms-spf') + 's)' : '👁 Reveal' }}
-                </button>
+                <app-reveal-toggle [revealed]="isRevealed('comms-spf')" [timer]="getTimerValue('comms-spf')" label="Reveal" (toggle)="toggleReveal('comms-spf')" />
               </div>
             </div>
 
@@ -923,9 +1275,7 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
                 <div class="form-value" style="flex:1;font-family:monospace;font-size:.8125rem">
                   {{ isRevealed('comms-dkim') ? communications.dkimStatus : maskSensitive(communications.dkimStatus) }}
                 </div>
-                <button (click)="toggleReveal('comms-dkim')" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:.8125rem;white-space:nowrap">
-                  {{ isRevealed('comms-dkim') ? '🙈 Hide (' + getTimerValue('comms-dkim') + 's)' : '👁 Reveal' }}
-                </button>
+                <app-reveal-toggle [revealed]="isRevealed('comms-dkim')" [timer]="getTimerValue('comms-dkim')" label="Reveal" (toggle)="toggleReveal('comms-dkim')" />
               </div>
             </div>
 
@@ -936,9 +1286,7 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
                 <div class="form-value" style="flex:1;font-family:monospace;font-size:.8125rem">
                   {{ isRevealed('comms-api-key') ? communications.apiKey : maskSensitive(communications.apiKey) }}
                 </div>
-                <button (click)="toggleReveal('comms-api-key')" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:.8125rem;white-space:nowrap">
-                  {{ isRevealed('comms-api-key') ? '🙈 Hide (' + getTimerValue('comms-api-key') + 's)' : '👁 Reveal' }}
-                </button>
+                <app-reveal-toggle [revealed]="isRevealed('comms-api-key')" [timer]="getTimerValue('comms-api-key')" label="Reveal" (toggle)="toggleReveal('comms-api-key')" />
               </div>
             </div>
 
@@ -949,14 +1297,12 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
                 <div class="form-value" style="flex:1;font-family:monospace;font-size:.8125rem">
                   {{ isRevealed('comms-smtp-pass') ? communications.smtpPassword : '••••••••••••••••' }}
                 </div>
-                <button (click)="toggleReveal('comms-smtp-pass')" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:.8125rem;white-space:nowrap">
-                  {{ isRevealed('comms-smtp-pass') ? '🙈 Hide (' + getTimerValue('comms-smtp-pass') + 's)' : '👁 Reveal' }}
-                </button>
+                <app-reveal-toggle [revealed]="isRevealed('comms-smtp-pass')" [timer]="getTimerValue('comms-smtp-pass')" label="Reveal" (toggle)="toggleReveal('comms-smtp-pass')" />
               </div>
             </div>
 
-            <app-editable-field label="DMARC Policy" [value]="communications.dmarcStatus" (valueChange)="patchComms('dmarcStatus', $event)" />
-            <app-editable-field label="Newsletter List Size" [value]="communications.newsletterListSize" (valueChange)="patchComms('newsletterListSize', $event)" />
+            <app-editable-field [readOnly]="!editMode()" label="DMARC Policy" type="select" [options]="dmarcStatusOptions" [value]="communications.dmarcStatus" (valueChange)="patchComms('dmarcStatus', $event)" />
+            <app-editable-field [readOnly]="!editMode()" label="Newsletter List Size" [value]="communications.newsletterListSize" (valueChange)="patchComms('newsletterListSize', $event)" />
 
             <!-- Support Inbox — clickable email -->
             <div class="form-group">
@@ -970,8 +1316,8 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
                 }
               </div>
             </div>
-            <app-editable-field label="Business Phone" [value]="company().identity.phone" (valueChange)="vs.patchIdentity({ phone: $event })" type="tel" />
-            <app-editable-field label="PO Box" [value]="communications.poBox" (valueChange)="patchComms('poBox', $event)" />
+            <app-editable-field [readOnly]="!editMode()" label="Business Phone" [value]="company().identity.phone" (valueChange)="vs.patchIdentity({ phone: $event })" type="tel" placeholder="+1 555 123 4567" />
+            <app-editable-field [readOnly]="!editMode()" label="PO Box" [value]="communications.poBox" (valueChange)="patchComms('poBox', $event)" />
           </div>
         </div>
         <div class="card">
@@ -989,9 +1335,34 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
             </select>
           </div>
           <div class="tag-row">
-            <span class="tag">📧 Welcome Sequence</span><span class="tag">📚 Reader Magnet Funnel</span><span class="tag">🚀 Launch Sequence</span>
-            <span class="tag">🔁 Re-engagement Series</span><span class="tag">📝 Website Opt-in Form</span><span class="tag">🎁 BookFunnel Delivery</span>
-            <span class="tag">📣 Facebook Lead Ads</span>
+            <span class="tag tag-with-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              Welcome Sequence
+            </span>
+            <span class="tag tag-with-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+              Reader Magnet Funnel
+            </span>
+            <span class="tag tag-with-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>
+              Launch Sequence
+            </span>
+            <span class="tag tag-with-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+              Re-engagement Series
+            </span>
+            <span class="tag tag-with-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              Website Opt-in Form
+            </span>
+            <span class="tag tag-with-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+              BookFunnel Delivery
+            </span>
+            <span class="tag tag-with-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              Facebook Lead Ads
+            </span>
           </div>
         </div>
       }
@@ -1003,27 +1374,34 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
           <table class="data-table">
             <thead><tr><th>SKU</th><th>Title</th><th>Format</th><th>Stock</th><th>Reorder Point</th><th>Printer</th></tr></thead>
             <tbody>
-              @for(item of inventoryItems; track $index; let i = $index) {
+              @for(row of pageSliceIndexed('inventory', inventoryItems); track row.index) {
                 <tr>
-                  <td><input class="form-input" style="font-family:monospace" [ngModel]="item.sku" (ngModelChange)="patchInventory(i, 'sku', $event)" /></td>
-                  <td><input class="form-input" [ngModel]="item.title" (ngModelChange)="patchInventory(i, 'title', $event)" /></td>
-                  <td><input class="form-input" [ngModel]="item.format" (ngModelChange)="patchInventory(i, 'format', $event)" /></td>
-                  <td><input class="form-input" type="number" [ngModel]="item.stock" (ngModelChange)="patchInventory(i, 'stock', +$event)" /></td>
-                  <td><input class="form-input" type="number" [ngModel]="item.reorderPoint" (ngModelChange)="patchInventory(i, 'reorderPoint', +$event)" /></td>
-                  <td><input class="form-input" [ngModel]="item.printer" (ngModelChange)="patchInventory(i, 'printer', $event)" /></td>
+                  <td><input class="form-input table-cell-field" style="font-family:monospace" [disabled]="!editMode()" [title]="cellTitle(row.item.sku)" [ngModel]="row.item.sku" (ngModelChange)="patchInventory(row.index, 'sku', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!editMode()" [title]="cellTitle(row.item.title)" [ngModel]="row.item.title" (ngModelChange)="patchInventory(row.index, 'title', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!editMode()" [title]="cellTitle(row.item.format)" [ngModel]="row.item.format" (ngModelChange)="patchInventory(row.index, 'format', $event)" /></td>
+                  <td><input class="form-input table-cell-field" type="number" [disabled]="!editMode()" [title]="cellTitle(row.item.stock)" [ngModel]="row.item.stock" (ngModelChange)="patchInventory(row.index, 'stock', +$event)" /></td>
+                  <td><input class="form-input table-cell-field" type="number" [disabled]="!editMode()" [title]="cellTitle(row.item.reorderPoint)" [ngModel]="row.item.reorderPoint" (ngModelChange)="patchInventory(row.index, 'reorderPoint', +$event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!editMode()" [title]="cellTitle(row.item.printer)" [ngModel]="row.item.printer" (ngModelChange)="patchInventory(row.index, 'printer', $event)" /></td>
                 </tr>
               }
             </tbody>
           </table>
+          <app-vault-table-footer
+            [totalItems]="inventoryItems.length"
+            [page]="tablePage('inventory')"
+            [pageSize]="TABLE_PAGE_SIZE"
+            [editMode]="editMode()"
+            (pageChange)="setTablePage('inventory', $event)"
+            (addRow)="addInventoryRow()" />
         </div>
         <div class="card">
           <h3 class="section-title">Fulfillment Details</h3>
           <div class="form-grid">
-            <app-editable-field label="Fulfillment Partner" [value]="inventoryFulfillment.fulfillmentPartner" (valueChange)="patchFulfillment('fulfillmentPartner', $event)" />
-            <app-editable-field label="Shipping Account" [value]="inventoryFulfillment.shippingAccount" (valueChange)="patchFulfillment('shippingAccount', $event)" />
-            <app-editable-field label="Packaging Vendor" [value]="inventoryFulfillment.packagingVendor" (valueChange)="patchFulfillment('shippingAccount', $event)" />
-            <app-editable-field label="Return Address" [value]="company().identity.primaryAddress" (valueChange)="vs.patchIdentity({ primaryAddress: $event })" />
-            <app-editable-field label="Delivery Policy" type="textarea" [rows]="3" [value]="inventoryFulfillment.deliveryPolicy" (valueChange)="patchFulfillment('deliveryPolicy', $event)" [full]="true" />
+            <app-editable-field [readOnly]="!editMode()" label="Fulfillment Partner" [value]="inventoryFulfillment.fulfillmentPartner" (valueChange)="patchFulfillment('fulfillmentPartner', $event)" />
+            <app-editable-field [readOnly]="!editMode()" label="Shipping Account" [value]="inventoryFulfillment.shippingAccount" (valueChange)="patchFulfillment('shippingAccount', $event)" />
+            <app-editable-field [readOnly]="!editMode()" label="Packaging Vendor" [value]="inventoryFulfillment.packagingVendor" (valueChange)="patchFulfillment('shippingAccount', $event)" />
+            <app-editable-field [readOnly]="!editMode()" label="Return Address" [value]="company().identity.primaryAddress" (valueChange)="vs.patchIdentity({ primaryAddress: $event })" />
+            <app-editable-field [readOnly]="!editMode()" label="Delivery Policy" type="textarea" [rows]="3" [value]="inventoryFulfillment.deliveryPolicy" (valueChange)="patchFulfillment('deliveryPolicy', $event)" [full]="true" />
           </div>
         </div>
       }
@@ -1031,28 +1409,54 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
       <!-- ── SECURITY & RECOVERY ── -->
       @if (activeTab() === 'security') {
         <div class="card">
-          <h3 class="section-title">Access & Security Registry</h3>
-          <table class="data-table">
-            <thead><tr><th>Resource</th><th>Owner</th><th>Access Level</th><th>2FA Device</th><th>Recovery Email</th><th>Notes</th></tr></thead>
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem;flex-wrap:wrap;gap:.75rem">
+            <div>
+              <h3 class="section-title" style="margin:0 0 .35rem">Access & Security Registry</h3>
+              <p class="section-hint">Click <strong>Edit</strong> at the top of the page to add rows, update credentials, or write notes. Notes appear in the last column — hover or expand the field to read longer text.</p>
+            </div>
+            @if (editMode()) {
+              <button type="button" class="btn-primary btn-sm" (click)="addSecurityEntry()">+ Add entry</button>
+            }
+          </div>
+          <table class="data-table security-registry-table">
+            <thead><tr><th>Resource</th><th>Owner</th><th>Access Level</th><th>2FA Device</th><th>Recovery Email</th><th style="min-width:220px">Notes</th>@if (editMode()) {<th></th>}</tr></thead>
             <tbody>
-              @for(s of securityEntries; track $index; let i = $index) {
+              @for(row of pageSliceIndexed('security', securityEntries); track row.index) {
                 <tr>
-                  <td><input class="form-input" [ngModel]="s.resource" (ngModelChange)="patchSecurity(i, 'resource', $event)" /></td>
-                  <td><input class="form-input" [ngModel]="s.owner" (ngModelChange)="patchSecurity(i, 'owner', $event)" /></td>
-                  <td><input class="form-input" [ngModel]="s.accessLevel" (ngModelChange)="patchSecurity(i, 'accessLevel', $event)" /></td>
-                  <td><input class="form-input" [ngModel]="s.twoFa" (ngModelChange)="patchSecurity(i, 'twoFa', $event)" /></td>
-                  <td><input class="form-input" [ngModel]="s.recoveryEmail" (ngModelChange)="patchSecurity(i, 'recoveryEmail', $event)" /></td>
-                  <td><input class="form-input" [ngModel]="s.notes" (ngModelChange)="patchSecurity(i, 'notes', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!editMode()" [title]="cellTitle(row.item.resource)" [ngModel]="row.item.resource" (ngModelChange)="patchSecurity(row.index, 'resource', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!editMode()" [title]="cellTitle(row.item.owner)" [ngModel]="row.item.owner" (ngModelChange)="patchSecurity(row.index, 'owner', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!editMode()" [title]="cellTitle(row.item.accessLevel)" [ngModel]="row.item.accessLevel" (ngModelChange)="patchSecurity(row.index, 'accessLevel', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!editMode()" [title]="cellTitle(row.item.twoFa)" [ngModel]="row.item.twoFa" (ngModelChange)="patchSecurity(row.index, 'twoFa', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!editMode()" [title]="cellTitle(row.item.recoveryEmail)" [ngModel]="row.item.recoveryEmail" (ngModelChange)="patchSecurity(row.index, 'recoveryEmail', $event)" /></td>
+                  <td>
+                    @if (editMode()) {
+                      <textarea class="form-input security-notes-input table-cell-field" rows="4" [title]="cellTitle(row.item.notes)" [ngModel]="row.item.notes" (ngModelChange)="patchSecurity(row.index, 'notes', $event)" placeholder="Login details, backup codes, access notes…"></textarea>
+                    } @else {
+                      <div class="security-notes-read table-cell-text" [title]="cellTitle(row.item.notes)">{{ row.item.notes || '—' }}</div>
+                    }
+                  </td>
+                  @if (editMode()) {
+                    <td><button type="button" class="row-remove-btn" (click)="removeSecurityEntry(row.index)">Remove</button></td>
+                  }
                 </tr>
+              } @empty {
+                <tr><td [attr.colspan]="editMode() ? 7 : 6" class="empty-table-hint">No security entries yet. Click <strong>Edit</strong>, then <strong>+ Add entry</strong>.</td></tr>
               }
             </tbody>
           </table>
+          <app-vault-table-footer
+            [totalItems]="securityEntries.length"
+            [page]="tablePage('security')"
+            [pageSize]="TABLE_PAGE_SIZE"
+            [editMode]="editMode()"
+            (pageChange)="setTablePage('security', $event)"
+            (addRow)="addSecurityEntry()" />
         </div>
         <div class="card">
           <h3 class="section-title">Emergency Access & Offboarding</h3>
           <div class="form-grid">
-            <app-editable-field label="Emergency Access Instructions" type="textarea" [rows]="4" [value]="securityNotes.emergencyAccess" (valueChange)="patchSecurityNotes('emergencyAccess', $event)" [full]="true" />
-            <app-editable-field label="Contractor Offboarding Steps" type="textarea" [rows]="4" [value]="securityNotes.offboardingSteps" (valueChange)="patchSecurityNotes('offboardingSteps', $event)" [full]="true" />
+            <app-editable-field [readOnly]="!editMode()" label="Emergency Access Instructions" type="textarea" [rows]="8" [value]="securityNotes.emergencyAccess" (valueChange)="patchSecurityNotes('emergencyAccess', $event)" [full]="true" />
+            <app-editable-field [readOnly]="!editMode()" label="Contractor Offboarding Steps" type="textarea" [rows]="8" [value]="securityNotes.offboardingSteps" (valueChange)="patchSecurityNotes('offboardingSteps', $event)" [full]="true" />
           </div>
         </div>
       }
@@ -1129,9 +1533,15 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
 
       <!-- ── SOPs ── -->
       @if (activeTab() === 'sops') {
+        @if (sopFeedback()) {
+          <div class="inline-feedback">{{ sopFeedback() }}</div>
+        }
         <div class="card">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:.75rem">
-            <h3 class="section-title" style="margin:0">Standard Operating Procedures</h3>
+            <div>
+              <h3 class="section-title" style="margin:0 0 .25rem">Your Standard Operating Procedures</h3>
+              <p class="section-hint">These are your saved SOPs. Click <strong>Edit</strong> at the top to add, view, or change procedures.</p>
+            </div>
             <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
               <select [(ngModel)]="sopCategoryFilter" style="padding:.4rem .6rem;border:1px solid var(--border-color);border-radius:8px;background:var(--background);color:var(--text-secondary);font-size:.8125rem;font-family:inherit">
                 <option value="">All Categories</option>
@@ -1143,46 +1553,67 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
                 <option value="Legal">Legal & Compliance</option>
               </select>
               <input type="text" [(ngModel)]="sopFilter" placeholder="Search SOPs..." style="padding:.4rem .75rem;border:1px solid var(--border-color);border-radius:8px;background:var(--background);color:var(--text-primary);font-size:.8125rem;font-family:inherit;width:200px">
+              @if (editMode()) {
+                <button type="button" class="btn-primary btn-sm" (click)="createBlankSop()">+ New SOP</button>
+              }
             </div>
           </div>
           <table class="data-table">
             <thead><tr><th>Document Name</th><th>Category</th><th>Description</th><th>Last Updated</th><th>Actions</th></tr></thead>
             <tbody>
-              @for(s of filteredSops; track $index; let i = $index) {
+              @for(row of pageSliceFilteredIndexed('sops', filteredSops, sopTemplates); track row.index) {
                 <tr>
-                  <td class="td-primary">{{ s.name }}</td>
-                  <td><span class="tag" style="font-size:.6875rem">{{ s.category || 'General' }}</span></td>
-                  <td style="color:var(--text-muted);font-size:.8125rem">{{ s.description }}</td>
-                  <td style="color:var(--text-muted);font-size:.8125rem">{{ s.updated }}</td>
+                  <td class="td-primary table-cell-text" [title]="cellTitle(row.item.name)">{{ row.item.name }}</td>
+                  <td><span class="tag" style="font-size:.6875rem" [title]="cellTitle(row.item.category)">{{ row.item.category || 'General' }}</span></td>
+                  <td class="table-cell-text" style="color:var(--text-muted);font-size:.8125rem" [title]="cellTitle(row.item.description)">{{ row.item.description }}</td>
+                  <td style="color:var(--text-muted);font-size:.8125rem" [title]="cellTitle(row.item.updated)">{{ row.item.updated }}</td>
                   <td style="white-space:nowrap">
-                    <button style="background:none;border:none;color:var(--accent-blue);cursor:pointer;font-size:.8125rem;font-family:inherit" (click)="viewSop(s)">View</button>
-                    <button style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:.8125rem;font-family:inherit;margin-left:.5rem" (click)="editSop(s, i)">Edit</button>
+                    <button style="background:none;border:none;color:var(--accent-blue);cursor:pointer;font-size:.8125rem;font-family:inherit" (click)="viewSop(row.item)">View</button>
+                    @if (editMode()) {
+                      <button style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:.8125rem;font-family:inherit;margin-left:.5rem" (click)="editSop(row.item, row.index)">Edit</button>
+                    }
                   </td>
                 </tr>
+              } @empty {
+                <tr><td colspan="5" class="empty-table-hint">No SOPs saved yet. Use a starter template below or click <strong>Edit</strong> then <strong>+ New SOP</strong>.</td></tr>
               }
             </tbody>
           </table>
+          <app-vault-table-footer
+            [totalItems]="filteredSops.length"
+            [page]="tablePage('sops')"
+            [pageSize]="TABLE_PAGE_SIZE"
+            [editMode]="editMode()"
+            [allowAdd]="false"
+            (pageChange)="setTablePage('sops', $event)" />
         </div>
         <div class="card">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
-            <h3 class="section-title" style="margin:0">AI-Generated Sample Templates</h3>
-            <span style="font-size:.75rem;color:var(--text-muted)">Click "Use Template" to add an editable copy to your SOPs</span>
+          <div style="margin-bottom:.75rem">
+            <h3 class="section-title" style="margin:0 0 .35rem">Starter Templates</h3>
+            <p class="section-hint">Pre-written procedure templates you can copy into <strong>Your Standard Operating Procedures</strong> above. Click <strong>Edit</strong> at the top, then <strong>Add to my SOPs</strong> — the template opens immediately so you can review and save it.</p>
           </div>
           <table class="data-table">
             <thead><tr><th>Template Name</th><th>Category</th><th>Description</th><th>Action</th></tr></thead>
             <tbody>
-              @for(t of sopSamples; track t.name) {
+              @for(t of pageSlice('sopStarter', filteredSopStarterTemplates); track t.name) {
                 <tr>
-                  <td class="td-primary">{{ t.name }}</td>
-                  <td><span class="tag" style="font-size:.6875rem">{{ t.category }}</span></td>
-                  <td style="color:var(--text-muted);font-size:.8125rem">{{ t.description }}</td>
+                  <td class="td-primary table-cell-text" [title]="cellTitle(t.name)">{{ t.name }}</td>
+                  <td><span class="tag" style="font-size:.6875rem" [title]="cellTitle(t.category)">{{ t.category }}</span></td>
+                  <td class="table-cell-text" style="color:var(--text-muted);font-size:.8125rem" [title]="cellTitle(t.description)">{{ t.description }}</td>
                   <td>
-                    <button style="background:none;border:none;color:var(--accent-blue);cursor:pointer;font-size:.8125rem;font-family:inherit" (click)="addSopFromSample(t)">Use Template</button>
+                    <button class="template-use-btn" [disabled]="!editMode()" (click)="addSopFromSample(t)">Add to my SOPs</button>
                   </td>
                 </tr>
               }
             </tbody>
           </table>
+          <app-vault-table-footer
+            [totalItems]="filteredSopStarterTemplates.length"
+            [page]="tablePage('sopStarter')"
+            [pageSize]="TABLE_PAGE_SIZE"
+            [editMode]="editMode()"
+            [allowAdd]="false"
+            (pageChange)="setTablePage('sopStarter', $event)" />
         </div>
       }
 
@@ -1234,11 +1665,11 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
       <div class="modal-body">
         <div class="form-group">
           <label class="form-label">SOP Name</label>
-          <input type="text" class="form-input" [(ngModel)]="sopEditName" />
+          <input type="text" class="form-input" [(ngModel)]="sopEditName" [readonly]="!editMode()" />
         </div>
         <div class="form-group">
           <label class="form-label">Category</label>
-          <select class="form-input" [(ngModel)]="sopEditCategory">
+          <select class="form-input" [(ngModel)]="sopEditCategory" [disabled]="!editMode()">
             <option value="Finance">Finance & Billing</option>
             <option value="Publishing">Publishing & Upload</option>
             <option value="Launch">Launch & Marketing</option>
@@ -1249,16 +1680,18 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
         </div>
         <div class="form-group">
           <label class="form-label">Description</label>
-          <input type="text" class="form-input" [(ngModel)]="sopEditDescription" />
+          <input type="text" class="form-input" [(ngModel)]="sopEditDescription" [readonly]="!editMode()" />
         </div>
         <div class="form-group">
           <label class="form-label">Instructions / Content</label>
-          <textarea class="form-input" style="height:220px;font-family:inherit" [(ngModel)]="sopEditContent" placeholder="Enter step-by-step instructions..."></textarea>
+          <textarea class="form-input sop-content-input" [(ngModel)]="sopEditContent" [readonly]="!editMode()" placeholder="Enter step-by-step instructions..."></textarea>
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn-secondary btn-sm" (click)="closeSopModal()">Cancel</button>
-        <button class="btn-primary btn-sm" (click)="saveSopContent()">Save SOP Changes</button>
+        <button class="btn-secondary btn-sm" (click)="closeSopModal()">{{ editMode() ? 'Cancel' : 'Close' }}</button>
+        @if (editMode()) {
+          <button class="btn-primary btn-sm" (click)="saveSopContent()">Save SOP Changes</button>
+        }
       </div>
     </div>
   </div>
@@ -1269,7 +1702,14 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
   readonly vs = inject(AuthorVaultService);
   private excelImport = inject(ExcelImportService);
   private companyStore = inject(VaultCompanyStoreService);
+  private pinService = inject(CompanyPinService);
+  private fileUpload = inject(FileUploadService);
   readonly company = this.vs.company;
+  readonly uploadingOwnerDoc = signal<string | null>(null);
+  readonly uploadingOwnershipFile = signal<string | null>(null);
+  editMode = signal(false);
+  tablePages: Record<string, number> = {};
+  readonly TABLE_PAGE_SIZE = 8;
 
   importMessage = '';
   importError = false;
@@ -1345,9 +1785,23 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
     this.companyStore.updateInventory(list);
   }
   patchSecurity(i: number, key: string, val: string): void {
+    if (!this.editMode()) return;
     const list = [...this.securityEntries];
     list[i] = { ...list[i], [key]: val };
     this.companyStore.updateSecurity(list);
+  }
+
+  addSecurityEntry(): void {
+    if (!this.editMode()) return;
+    this.companyStore.updateSecurity([
+      ...this.securityEntries,
+      { resource: '', owner: '', accessLevel: '', twoFa: '', recoveryEmail: '', notes: '' }
+    ]);
+  }
+
+  removeSecurityEntry(index: number): void {
+    if (!this.editMode()) return;
+    this.companyStore.updateSecurity(this.securityEntries.filter((_, i) => i !== index));
   }
   patchLogo(i: number, key: string, val: string): void {
     const list = [...this.logos];
@@ -1364,6 +1818,252 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
     list[i] = { ...list[i], [key]: val };
     this.companyStore.updateCorporateDocs(list);
   }
+
+  tablePage(key: string): number {
+    return this.tablePages[key] ?? 1;
+  }
+
+  setTablePage(key: string, page: number): void {
+    this.tablePages = { ...this.tablePages, [key]: page };
+  }
+
+  pageSliceIndexed<T>(key: string, rows: T[]): { item: T; index: number }[] {
+    const page = this.tablePage(key);
+    const start = (page - 1) * this.TABLE_PAGE_SIZE;
+    return rows.slice(start, start + this.TABLE_PAGE_SIZE).map((item, i) => ({ item, index: start + i }));
+  }
+
+  pageSlice<T>(key: string, rows: T[]): T[] {
+    const page = this.tablePage(key);
+    const start = (page - 1) * this.TABLE_PAGE_SIZE;
+    return rows.slice(start, start + this.TABLE_PAGE_SIZE);
+  }
+
+  pageSliceFilteredIndexed<T>(key: string, filtered: T[], all: T[]): { item: T; index: number }[] {
+    const page = this.tablePage(key);
+    const start = (page - 1) * this.TABLE_PAGE_SIZE;
+    return filtered.slice(start, start + this.TABLE_PAGE_SIZE).map(item => ({
+      item,
+      index: all.indexOf(item),
+    }));
+  }
+
+  cellTitle(val: unknown): string {
+    if (val == null) return '';
+    return String(val);
+  }
+
+  sameMailingAddress(): boolean {
+    const id = this.company().identity;
+    if (id.sameMailingAsBusiness === false) return false;
+    if (id.sameMailingAsBusiness === true) return true;
+    const mail = (id.mailingAddress || '').trim();
+    const primary = (id.primaryAddress || '').trim();
+    return !mail || mail === primary;
+  }
+
+  onSameMailingChange(same: boolean): void {
+    const id = this.company().identity;
+    if (same) {
+      this.vs.patchIdentity({ sameMailingAsBusiness: true, mailingAddress: id.primaryAddress });
+    } else {
+      this.vs.patchIdentity({ sameMailingAsBusiness: false });
+    }
+  }
+
+  onPrimaryAddressChange(val: string): void {
+    const patch: Partial<CompanyIdentity> = { primaryAddress: val };
+    if (this.sameMailingAddress()) {
+      patch.mailingAddress = val;
+      patch.sameMailingAsBusiness = true;
+    }
+    this.vs.patchIdentity(patch);
+  }
+
+  addOwnerRow(): void {
+    if (!this.editMode()) return;
+    this.companyStore.updateOwners([
+      ...this.ownerProfiles,
+      { name: '', role: '', ownershipPct: '', email: '', phone: '', canSign: true, canManageFinances: false, showNda: false },
+    ]);
+  }
+
+  addCorpDocRow(): void {
+    if (!this.editMode()) return;
+    this.companyStore.updateCorporateDocs([
+      ...this.corporateDocs,
+      { document: '', fileRef: '', status: 'Pending' },
+    ]);
+  }
+
+  addBankRow(): void {
+    if (!this.editMode()) return;
+    this.companyStore.updateBankAccounts([
+      ...this.bankAccounts,
+      { bank: '', nickname: '', account: '', routing: '', wire: '', swift: '', showAccount: false, showRouting: false },
+    ]);
+  }
+
+  addTaxDocRow(): void {
+    if (!this.editMode()) return;
+    this.companyStore.updateTaxDocs([
+      ...this.taxDocs,
+      { name: '', type: '', year: new Date().getFullYear().toString(), status: 'Pending' },
+    ]);
+  }
+
+  addContractRow(): void {
+    if (!this.editMode()) return;
+    this.companyStore.updateContracts([
+      ...this.contractRecords,
+      { name: '', counterparty: '', type: '', date: new Date().toISOString().split('T')[0], status: 'Draft', file: '' },
+    ]);
+  }
+
+  addFinancialRow(): void {
+    if (!this.editMode()) return;
+    this.companyStore.updateFinancialRecords([
+      ...this.financialRecords,
+      { month: '', revenue: '', expenses: '', net: '' },
+    ]);
+  }
+
+  addFinancialDocRow(): void {
+    if (!this.editMode()) return;
+    this.companyStore.updateFinancialDocs([
+      ...this.financialDocs,
+      { month: '', year: new Date().getFullYear().toString(), category: '', fileName: '', status: 'Pending' },
+    ]);
+  }
+
+  addTeamRow(): void {
+    if (!this.editMode()) return;
+    this.companyStore.updateTeam([
+      ...this.teamMembers,
+      { name: '', role: '', company: '', email: '', phone: '', contractDate: '', rate: '', notes: '' },
+    ]);
+  }
+
+  addDomainRow(): void {
+    if (!this.editMode()) return;
+    this.companyStore.updateDomains([
+      ...this.domainRecords,
+      { domain: '', registrar: '', renewal: '', host: '', dns: '', ssl: '', cms: '', contact: '' },
+    ]);
+  }
+
+  addInventoryRow(): void {
+    if (!this.editMode()) return;
+    this.companyStore.updateInventory([
+      ...this.inventoryItems,
+      { sku: '', title: '', format: '', stock: 0, reorderPoint: 0, printer: '' },
+    ]);
+  }
+
+  addIsbnRow(): void {
+    if (!this.editMode()) return;
+    this.companyStore.updateIsbnRecords([
+      ...this.isbnRecords,
+      { isbn: '', format: '', title: '', imprint: '', pubDate: '', series: '', trimSize: '', edition: '', asin: '', status: 'unused' },
+    ]);
+  }
+
+  onOwnershipFileUpload(event: Event, kind: 'operating' | 'scorp'): void {
+    if (!this.editMode()) return;
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    this.uploadingOwnershipFile.set(kind);
+    this.fileUpload.upload(file, `ownership/${kind}`).subscribe({
+      next: uploaded => {
+        if (kind === 'operating') {
+          this.vs.patchOwnership({
+            operatingAgreementFile: uploaded.fileName,
+            operatingAgreementFileUrl: uploaded.url,
+            operatingAgreementFileId: uploaded.id,
+          });
+        } else {
+          this.vs.patchOwnership({
+            sCorpElectionFile: uploaded.fileName,
+            sCorpElectionFileUrl: uploaded.url,
+            sCorpElectionFileId: uploaded.id,
+          });
+        }
+        this.uploadingOwnershipFile.set(null);
+        (event.target as HTMLInputElement).value = '';
+      },
+      error: () => {
+        alert('Upload failed. Make sure you are logged in and the API is running.');
+        this.uploadingOwnershipFile.set(null);
+        (event.target as HTMLInputElement).value = '';
+      },
+    });
+  }
+
+  openOwnershipFile(kind: 'operating' | 'scorp'): void {
+    const o = this.company().ownership;
+    const url = kind === 'operating' ? o.operatingAgreementFileUrl : o.sCorpElectionFileUrl;
+    if (url) {
+      window.open(this.fileUpload.resolveFileUrl(url), '_blank');
+      return;
+    }
+    const name = kind === 'operating' ? o.operatingAgreementFile : o.sCorpElectionFile;
+    if (name) alert(`File: ${name}`);
+  }
+
+  removeOwnershipFile(kind: 'operating' | 'scorp'): void {
+    if (!this.editMode()) return;
+    const o = this.company().ownership;
+    const fileId = kind === 'operating' ? o.operatingAgreementFileId : o.sCorpElectionFileId;
+    if (kind === 'operating') {
+      this.vs.patchOwnership({ operatingAgreementFile: '', operatingAgreementFileUrl: '', operatingAgreementFileId: undefined });
+    } else {
+      this.vs.patchOwnership({ sCorpElectionFile: '', sCorpElectionFileUrl: '', sCorpElectionFileId: undefined });
+    }
+    if (fileId) {
+      this.fileUpload.delete(fileId).subscribe({ error: () => undefined });
+    }
+  }
+
+  onCorpDocFileUpload(event: Event, rowIndex: number): void {
+    if (!this.editMode()) return;
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    this.fileUpload.upload(file, `corporate-doc/${rowIndex}`).subscribe({
+      next: uploaded => {
+        const list = [...this.corporateDocs];
+        list[rowIndex] = {
+          ...list[rowIndex],
+          fileRef: uploaded.fileName,
+          fileUrl: uploaded.url,
+          fileId: uploaded.id,
+        };
+        this.companyStore.updateCorporateDocs(list);
+        (event.target as HTMLInputElement).value = '';
+      },
+      error: () => alert('Upload failed.'),
+    });
+  }
+
+  openCorpDocFile(rowIndex: number): void {
+    const doc = this.corporateDocs[rowIndex];
+    if (doc?.fileUrl) {
+      window.open(this.fileUpload.resolveFileUrl(doc.fileUrl), '_blank');
+    } else if (doc?.fileRef) {
+      alert(`File: ${doc.fileRef}`);
+    }
+  }
+
+  removeCorpDocFile(rowIndex: number): void {
+    if (!this.editMode()) return;
+    const doc = this.corporateDocs[rowIndex];
+    const list = [...this.corporateDocs];
+    list[rowIndex] = { ...list[rowIndex], fileRef: '', fileUrl: undefined, fileId: undefined };
+    this.companyStore.updateCorporateDocs(list);
+    if (doc?.fileId) {
+      this.fileUpload.delete(doc.fileId).subscribe({ error: () => undefined });
+    }
+  }
+
   patchPlatform(listKey: 'publishing' | 'payment', i: number, key: string, val: string): void {
     const list = listKey === 'publishing' ? [...this.publishingPlatforms] : [...this.paymentPlatforms];
     list[i] = { ...list[i], [key]: val };
@@ -1377,6 +2077,7 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
     this.companyStore.updateInventoryFulfillment({ ...this.inventoryFulfillment, [key]: val });
   }
   patchSecurityNotes(key: string, val: string): void {
+    if (!this.editMode()) return;
     this.companyStore.updateSecurityNotes({ ...this.securityNotes, [key]: val });
   }
   patchTaxReg(key: string, val: string): void {
@@ -1396,8 +2097,7 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
   newPinInput = '';
   pinChangeError = '';
   pinChangeSuccess = false;
-  copyrightCountry = 'US';
-  copyrightLinks: Record<string,string> = {
+  copyrightLinks: Record<string, string> = {
     US: 'https://www.copyright.gov',
     UK: 'https://www.gov.uk/copyright',
     CA: 'https://ised-isde.canada.ca/site/canadian-intellectual-property-office',
@@ -1439,39 +2139,86 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
 
   // Owner document slots
   ownerDocSlots = [
-    { key: 'cv', label: 'CV / Resume', hint: 'PDF or DOCX', icon: '📄' },
-    { key: 'avatar', label: 'Avatar Photo', hint: 'JPG or PNG, 1:1', icon: '🖼' },
-    { key: 'signature', label: 'Electronic Signature', hint: 'PNG transparent', icon: '✍️' },
-    { key: 'job-desc', label: 'Job Description', hint: 'PDF or DOCX', icon: '📋' },
-    { key: 'nda', label: 'Signed NDA', hint: 'PDF', icon: '🤝' },
-    { key: 'business-card', label: 'Business Card', hint: 'PNG or PDF', icon: '📇' },
-    { key: 'bio-short', label: 'Bio (Short)', hint: 'DOCX or TXT', icon: '📝' },
-    { key: 'bio-long', label: 'Bio (Long)', hint: 'DOCX or TXT', icon: '📝' },
-    { key: 'letterhead', label: 'Letterhead Template', hint: 'DOCX or PDF', icon: '🖨' },
+    { key: 'cv', label: 'CV / Resume', hint: 'PDF or DOCX' },
+    { key: 'avatar', label: 'Avatar Photo', hint: 'JPG or PNG, 1:1' },
+    { key: 'signature', label: 'Electronic Signature', hint: 'PNG transparent' },
+    { key: 'job-desc', label: 'Job Description', hint: 'PDF or DOCX' },
+    { key: 'nda', label: 'Signed NDA', hint: 'PDF' },
+    { key: 'business-card', label: 'Business Card', hint: 'PNG or PDF' },
+    { key: 'bio-short', label: 'Bio (Short)', hint: 'DOCX or TXT' },
+    { key: 'bio-long', label: 'Bio (Long)', hint: 'DOCX or TXT' },
+    { key: 'letterhead', label: 'Letterhead Template', hint: 'DOCX or PDF' },
   ];
 
+  getOwnerDocRef(owner: VaultOwnerProfile, slotKey: string): OwnerDocRef | null {
+    const v = owner.docs?.[slotKey];
+    if (!v) return null;
+    if (typeof v === 'string') return v ? { fileId: 0, fileName: v, url: '' } : null;
+    return v;
+  }
+
+  hasOwnerDoc(owner: VaultOwnerProfile, slotKey: string): boolean {
+    return !!this.getOwnerDocRef(owner, slotKey);
+  }
+
+  getOwnerDocHint(owner: VaultOwnerProfile, slotKey: string, fallback: string): string {
+    const ref = this.getOwnerDocRef(owner, slotKey);
+    return ref ? `✓ ${ref.fileName}` : fallback;
+  }
+
   onOwnerDocUpload(event: Event, ownerIndex: number, slotKey: string): void {
-    const file = (event.target as HTMLInputElement).files?.[0];
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
     if (!file) return;
-    const list = [...this.ownerProfiles];
-    const docs = { ...(list[ownerIndex].docs || {}) };
-    docs[slotKey] = file.name;
-    list[ownerIndex] = { ...list[ownerIndex], docs };
-    this.companyStore.updateOwners(list);
-    (event.target as HTMLInputElement).value = '';
+
+    const uploadKey = `${ownerIndex}:${slotKey}`;
+    this.uploadingOwnerDoc.set(uploadKey);
+    const category = `owner-doc/${ownerIndex}/${slotKey}`;
+
+    this.fileUpload.upload(file, category).subscribe({
+      next: uploaded => {
+        const list = [...this.ownerProfiles];
+        const docs = { ...(list[ownerIndex].docs || {}) };
+        docs[slotKey] = { fileId: uploaded.id, fileName: uploaded.fileName, url: uploaded.url };
+        list[ownerIndex] = { ...list[ownerIndex], docs };
+        this.companyStore.updateOwners(list);
+        this.uploadingOwnerDoc.set(null);
+        input.value = '';
+      },
+      error: () => {
+        alert('Upload failed. Make sure you are logged in and the API is running.');
+        this.uploadingOwnerDoc.set(null);
+        input.value = '';
+      }
+    });
   }
 
   removeOwnerDoc(ownerIndex: number, slotKey: string): void {
     const list = [...this.ownerProfiles];
+    const existing = this.getOwnerDocRef(list[ownerIndex], slotKey);
     const docs = { ...(list[ownerIndex].docs || {}) };
     delete docs[slotKey];
     list[ownerIndex] = { ...list[ownerIndex], docs };
     this.companyStore.updateOwners(list);
+
+    if (existing?.fileId) {
+      this.fileUpload.delete(existing.fileId).subscribe({ error: () => { /* metadata already cleared */ } });
+    }
+  }
+
+  downloadOwnerDoc(owner: VaultOwnerProfile, slotKey: string): void {
+    const ref = this.getOwnerDocRef(owner, slotKey);
+    if (!ref) return;
+    if (ref.url) {
+      window.open(this.fileUpload.resolveFileUrl(ref.url), '_blank');
+      return;
+    }
+    alert(`File: ${ref.fileName}\n(Re-upload to get a download link from the server)`);
   }
 
   downloadFile(fileName: string | undefined): void {
     if (!fileName) return;
-    alert(`Opening / Downloading file: ${fileName}\n\n(In production: retrieves download stream from secure cloud bucket)`);
+    alert(`Opening / Downloading file: ${fileName}`);
   }
 
   // Tax doc uploads
@@ -1585,19 +2332,42 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
 
   // Financial Documents Vault
   financialCategoryFilter = '';
+  readonly financialCategories = [
+    { id: 'P&L Reports', label: 'P&L Reports' },
+    { id: 'Chart of Accounts', label: 'Chart of Accounts' },
+    { id: 'Receipts', label: 'Receipts' },
+    { id: 'Invoices', label: 'Invoices' },
+    { id: 'Contractor Payments', label: 'Contractor Payments' },
+    { id: 'Subscription Costs', label: 'Subscription Costs' },
+    { id: 'Royalty Statements', label: 'Royalty Statements' },
+    { id: 'Ad Spend by Platform', label: 'Ad Spend by Platform' },
+    { id: 'Expense Logs', label: 'Expense Logs' },
+  ];
+
+  normalizeFinancialCategory(category: string): string {
+    if (!category) return 'Other';
+    const found = this.financialCategories.find(c => c.id === category);
+    if (found) return found.id;
+    return category.replace(/^[\p{Emoji_Presentation}\p{Extended_Pictographic}\u2600-\u27BF]\s*/u, '').trim() || category;
+  }
+
   get financialDocs() { return this.companyStore.financialDocs(); }
   get filteredFinancialDocs() {
     if (!this.financialCategoryFilter) return this.financialDocs;
-    return this.financialDocs.filter(d => d.category === this.financialCategoryFilter);
+    return this.financialDocs.filter(d =>
+      this.normalizeFinancialCategory(d.category) === this.financialCategoryFilter ||
+      d.category === this.financialCategoryFilter
+    );
   }
 
   onFinancialUpload(event: Event): void {
+    if (!this.editMode()) return;
     const file = (event.target as HTMLInputElement).files?.[0];
     if (!file) return;
     const newDoc = {
       month: new Date().toLocaleString('default', { month: 'short' }),
       year: new Date().getFullYear().toString(),
-      category: this.financialCategoryFilter || '📊 P&L Reports',
+      category: this.financialCategoryFilter || 'P&L Reports',
       fileName: file.name,
       status: 'Approved',
       fileSize: (file.size / 1024).toFixed(0) + ' KB',
@@ -1691,6 +2461,8 @@ Contractor: ____________________________`;
   sopEditDescription = '';
   sopEditContent = '';
 
+  sopFeedback = signal('');
+
   sopSamples = [
     { name: 'Monthly Bookkeeping SOP', category: 'Finance', description: 'Month-end reconciliation, expense categorization, and reporting process', content: `1. Reconcile monthly bills from editors, designers, and web developers.\n2. Confirm tasks are completed and approved.\n3. Open QuickBooks Online / Billing module.\n4. Create invoice matching the contractor rates ($250/hr for CPA, $800/cover for designer).\n5. Send draft invoice to CEO Eleanor Vance for approval.\n6. Issue payment via Chase Checking or PayPal.` },
     { name: 'Quarterly Tax Prep SOP', category: 'Finance', description: 'Steps for preparing and filing quarterly estimated tax payments', content: `1. Gather income statements and contractor 1099 records.\n2. Calculate estimated federal tax using standard tax schedules.\n3. Submit tax filing on IRS EFTPS platform.\n4. Log estimated payments under company financial logs.` },
@@ -1710,10 +2482,47 @@ Contractor: ____________________________`;
     { name: 'Copyright Registration SOP', category: 'Legal', description: 'Process for registering copyright with the U.S. Copyright Office', content: `1. Navigate to USCO portal.\n2. Fill out Literary Work registration form.\n3. Pay registration fee.\n4. Upload digital copy of manuscript.` }
   ];
 
-  addSopFromSample(sample: any): void {
-    const newSop = { name: sample.name, category: sample.category, description: sample.description, updated: new Date().toISOString().split('T')[0], content: sample.content };
-    this.companyStore.updateSops([...this.sopTemplates, newSop]);
-    alert(`Template "${sample.name}" copied to your active SOPs directory.`);
+  addSopFromSample(sample: { name: string; category: string; description: string; content: string }): void {
+    if (!this.editMode()) {
+      this.showSopFeedback('Click Edit at the top of the page first, then add templates.');
+      return;
+    }
+    const existing = this.sopTemplates.find(s => s.name === sample.name);
+    if (existing) {
+      this.showSopFeedback(`"${sample.name}" is already in your SOPs — opening it for editing.`);
+      this.editSop(existing, this.sopTemplates.indexOf(existing));
+      return;
+    }
+    const newSop = {
+      name: sample.name,
+      category: sample.category,
+      description: sample.description,
+      updated: new Date().toISOString().split('T')[0],
+      content: sample.content
+    };
+    const nextList = [...this.sopTemplates, newSop];
+    this.companyStore.updateSops(nextList);
+    this.showSopFeedback(`"${sample.name}" was added to your SOPs. Review and save below.`);
+    this.editSop(newSop, nextList.length - 1);
+  }
+
+  createBlankSop(): void {
+    if (!this.editMode()) return;
+    const blank = {
+      name: 'New SOP',
+      category: 'General',
+      description: '',
+      updated: new Date().toISOString().split('T')[0],
+      content: '1. \n2. \n3. '
+    };
+    const nextList = [...this.sopTemplates, blank];
+    this.companyStore.updateSops(nextList);
+    this.editSop(blank, nextList.length - 1);
+  }
+
+  private showSopFeedback(message: string): void {
+    this.sopFeedback.set(message);
+    setTimeout(() => this.sopFeedback.set(''), 5000);
   }
 
   viewSop(s: any): void {
@@ -1725,7 +2534,7 @@ Contractor: ____________________________`;
     this.sopEditContent = s.content || '1. Read guidelines.\n2. Complete tasks.\n3. Log reports.';
   }
 
-  editSop(s: any, index: number): void {
+  editSop(s: any, _index?: number): void {
     this.viewSop(s);
   }
 
@@ -1735,6 +2544,7 @@ Contractor: ____________________________`;
   }
 
   saveSopContent(): void {
+    if (!this.editMode()) return;
     const list = [...this.sopTemplates];
     const updatedSop = {
       name: this.sopEditName,
@@ -1751,14 +2561,10 @@ Contractor: ____________________________`;
     }
     this.companyStore.updateSops(list);
     this.closeSopModal();
-    alert('SOP has been saved successfully!');
+    this.showSopFeedback(`"${updatedSop.name}" saved.`);
   }
 
   private readonly PIN_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
-  private readonly PIN_KEY = 'av_company_unlocked';
-  private readonly PIN_ACTIVITY_KEY = 'av_company_pin_activity';
-  private readonly STORED_PIN_KEY = 'av_company_pin';
-  private get storedPin(): string { return localStorage.getItem(this.STORED_PIN_KEY) || ''; }
 
   // ── Tabs ──
   readonly activeTab = signal('overview');
@@ -1783,6 +2589,93 @@ Contractor: ____________________________`;
   ];
 
   // ── Computed stats ──
+  readonly companyStatusOptions = vaultStatusOptions('company');
+  readonly dmarcStatusOptions = vaultStatusOptions('dmarc');
+  readonly fiscalYearEndOptions = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December',
+  ];
+
+  get companyStatusClass(): string {
+    return vaultStatusClass(this.company().identity.companyStatus);
+  }
+
+  get catalogChartTotal(): number {
+    return this.company().imprints.length + this.penNameCount + this.bookCount;
+  }
+
+  get activeContractCount(): number {
+    return this.contractRecords.filter(c => c.status === 'Active').length;
+  }
+
+  catalogBarPct(value: number): number {
+    const max = Math.max(this.company().imprints.length, this.penNameCount, this.bookCount, 1);
+    return Math.round((value / max) * 100);
+  }
+
+  isbnBarPct(value: number): number {
+    const total = Math.max(this.isbnRecords.length, 1);
+    return Math.round((value / total) * 100);
+  }
+
+  contractBarPct(value: number): number {
+    const total = Math.max(this.contractRecords.length, 1);
+    return Math.round((value / total) * 100);
+  }
+
+  private readonly catalogCircumference = 2 * Math.PI * 46;
+
+  catalogSegment(value: number): string {
+    if (this.catalogChartTotal <= 0) return '0 289';
+    const pct = value / this.catalogChartTotal;
+    const len = pct * this.catalogCircumference;
+    return `${len} ${this.catalogCircumference - len}`;
+  }
+
+  catalogOffset(priorTotal: number): number {
+    if (this.catalogChartTotal <= 0) return 0;
+    return (priorTotal / this.catalogChartTotal) * this.catalogCircumference;
+  }
+
+  platformStatus(p: { status?: string }): string {
+    return p.status || 'active';
+  }
+
+  onIsbnStatusChange(record: { isbn: string; status: string; title?: string; imprint?: string; series?: string; pubDate?: string; asin?: string }, status: string): void {
+    if (!this.editMode()) return;
+    const idx = this.isbnRecords.findIndex(r => r.isbn === record.isbn);
+    if (idx < 0) return;
+    const list = [...this.isbnRecords];
+    const updated = { ...list[idx], status: status as typeof list[number]['status'] };
+    if (status === 'unused') {
+      updated.title = '';
+      updated.imprint = '';
+      updated.series = '';
+      updated.pubDate = '';
+      updated.asin = '';
+    }
+    list[idx] = updated;
+    this.companyStore.updateIsbnRecords(list);
+  }
+
+  onContractStatusChange(i: number, status: string): void {
+    if (!this.editMode()) return;
+    const list = [...this.contractRecords];
+    const updated = { ...list[i], status };
+    if (status === 'Active' && !updated.date) {
+      updated.date = new Date().toISOString().split('T')[0];
+    }
+    list[i] = updated;
+    this.companyStore.updateContracts(list);
+  }
+
+  patchFinancialDocStatus(fileName: string, status: string): void {
+    if (!this.editMode()) return;
+    this.companyStore.updateFinancialDocs(
+      this.financialDocs.map(d => d.fileName === fileName ? { ...d, status } : d)
+    );
+  }
+
   get penNameCount(): number { return this.company().imprints.reduce((a, i) => a + i.penNames.length, 0); }
   get bookCount(): number { return this.company().imprints.reduce((a, i) => i.penNames.reduce((b, p) => p.series.reduce((c, s) => c + s.books.length, b), a), 0); }
   get isbnUsed(): number { return this.isbnRecords.filter(r => r.status === 'used').length; }
@@ -1798,6 +2691,11 @@ Contractor: ____________________________`;
     return list;
   }
 
+  get filteredSopStarterTemplates() {
+    if (!this.sopCategoryFilter) return this.sopSamples;
+    return this.sopSamples.filter(s => s.category === this.sopCategoryFilter);
+  }
+
   // ── ISBN filter ──
   isbnFilterStatus = '';
   isbnFilterFormat = '';
@@ -1810,10 +2708,14 @@ Contractor: ____________________________`;
 
   // ── PIN methods ──
   ngOnInit(): void {
-    this.isFirstTime = !localStorage.getItem(this.STORED_PIN_KEY);
-    this.unlocked = this.isSessionValid();
-    if (!this.unlocked) localStorage.removeItem(this.PIN_KEY);
-    else this.resetPinTimeout();
+    this.pinService.getStatus().subscribe({
+      next: status => {
+        this.isFirstTime = !status.hasPin;
+        this.unlocked = status.isUnlocked;
+        if (this.unlocked) this.resetPinTimeout();
+      },
+      error: () => { this.isFirstTime = true; this.unlocked = false; }
+    });
 
     // Start reveal timer ticks
     this.timerIntervalRef = setInterval(() => {
@@ -1833,21 +2735,22 @@ Contractor: ____________________________`;
   }
 
   private isSessionValid(): boolean {
-    if (localStorage.getItem(this.PIN_KEY) !== 'true') return false;
-    const last = Number(localStorage.getItem(this.PIN_ACTIVITY_KEY) || 0);
-    if (!last) return false;
-    return Date.now() - last < this.PIN_TIMEOUT_MS;
+    return this.unlocked;
   }
 
   private touchActivity(): void {
     if (!this.unlocked) return;
-    localStorage.setItem(this.PIN_ACTIVITY_KEY, String(Date.now()));
-    localStorage.setItem(this.PIN_KEY, 'true');
+    this.pinService.touch().subscribe();
     this.resetPinTimeout();
   }
 
   private checkPinExpiry(): void {
-    if (this.unlocked && !this.isSessionValid()) this.lockVault();
+    if (!this.unlocked) return;
+    this.pinService.getStatus().subscribe({
+      next: status => {
+        if (!status.isUnlocked) this.lockVault(false);
+      }
+    });
   }
 
   private pinTimeoutRef: any;
@@ -1879,25 +2782,36 @@ Contractor: ____________________________`;
   unlock(): void {
     const entered = this.pinDigits.join('');
     if (this.isFirstTime) {
-      // First time: set the PIN (with confirm)
       const confirmed = this.confirmPinDigits.join('');
       if (entered.length < 4) { this.pinError = true; return; }
-      if (entered !== confirmed) { this.pinMismatch = true; this.confirmPinDigits = ['', '', '', '']; setTimeout(() => { const el = document.getElementById('cpin-0') as HTMLInputElement; if (el) el.focus(); }, 50); return; }
-      localStorage.setItem(this.STORED_PIN_KEY, entered);
-      this.isFirstTime = false;
-      this.unlocked = true;
-      this.pinMismatch = false;
-      this.touchActivity();
-    } else {
-      if (entered === this.storedPin) {
-        this.unlocked = true;
-        this.pinError = false;
-        this.touchActivity();
-      } else {
-        this.pinError = true;
-        this.pinDigits = ['', '', '', ''];
-        setTimeout(() => { const el = document.getElementById('pin-0') as HTMLInputElement; if (el) el.focus(); }, 50);
+      if (entered !== confirmed) {
+        this.pinMismatch = true;
+        this.confirmPinDigits = ['', '', '', ''];
+        setTimeout(() => { const el = document.getElementById('cpin-0') as HTMLInputElement; if (el) el.focus(); }, 50);
+        return;
       }
+      this.pinService.setup(entered).subscribe({
+        next: () => {
+          this.isFirstTime = false;
+          this.unlocked = true;
+          this.pinMismatch = false;
+          this.touchActivity();
+        },
+        error: () => { this.pinError = true; }
+      });
+    } else {
+      this.pinService.verify(entered).subscribe({
+        next: () => {
+          this.unlocked = true;
+          this.pinError = false;
+          this.touchActivity();
+        },
+        error: () => {
+          this.pinError = true;
+          this.pinDigits = ['', '', '', ''];
+          setTimeout(() => { const el = document.getElementById('pin-0') as HTMLInputElement; if (el) el.focus(); }, 50);
+        }
+      });
     }
   }
 
@@ -1925,25 +2839,35 @@ Contractor: ____________________________`;
     if (event.key === 'Enter') this.unlock();
   }
 
-  lockVault(): void {
+  lockVault(callApi = true): void {
     this.unlocked = false;
     this.pinDigits = ['', '', '', ''];
     this.pinError = false;
     this.revealTimers = {};
     clearTimeout(this.pinTimeoutRef);
-    localStorage.removeItem(this.PIN_KEY);
-    localStorage.removeItem(this.PIN_ACTIVITY_KEY);
+    if (callApi) this.pinService.lock().subscribe();
   }
 
   changePin(): void {
-    if (this.currentPinInput !== this.storedPin) { this.pinChangeError = 'Current PIN is incorrect.'; return; }
-    if (!/^\d{4}$/.test(this.newPinInput)) { this.pinChangeError = 'New PIN must be exactly 4 digits.'; return; }
-    localStorage.setItem(this.STORED_PIN_KEY, this.newPinInput);
-    this.pinChangeSuccess = true;
-    this.pinChangeError = '';
-    this.currentPinInput = '';
-    this.newPinInput = '';
-    setTimeout(() => { this.changingPin = false; this.pinChangeSuccess = false; }, 2000);
+    this.pinService.verify(this.currentPinInput).subscribe({
+      next: () => {
+        if (!/^\d{4}$/.test(this.newPinInput)) {
+          this.pinChangeError = 'New PIN must be exactly 4 digits.';
+          return;
+        }
+        this.pinService.change(this.newPinInput).subscribe({
+          next: () => {
+            this.pinChangeSuccess = true;
+            this.pinChangeError = '';
+            this.currentPinInput = '';
+            this.newPinInput = '';
+            setTimeout(() => { this.changingPin = false; this.pinChangeSuccess = false; }, 2000);
+          },
+          error: () => { this.pinChangeError = 'Failed to update PIN.'; }
+        });
+      },
+      error: () => { this.pinChangeError = 'Current PIN is incorrect.'; }
+    });
   }
 
   maskValue(val: string): string {
@@ -1979,16 +2903,61 @@ Contractor: ____________________________`;
     input.value = '';
   }
 
+  get copyrightOffice() { return this.companyStore.copyrightOffice; }
+
+  get copyrightOfficeUrl(): string {
+    const office = this.companyStore.copyrightOffice();
+    if (office.country === 'OTHER') return office.customUrl?.trim() || '';
+    return this.copyrightLinks[office.country] || '';
+  }
+
+  patchCopyrightCountry(country: string): void {
+    if (!this.editMode()) return;
+    const current = this.companyStore.copyrightOffice();
+    this.companyStore.updateCopyrightOffice({
+      country,
+      customUrl: country === 'OTHER' ? (current.customUrl || '') : ''
+    });
+  }
+
+  patchCopyrightCustomUrl(url: string): void {
+    if (!this.editMode()) return;
+    const current = this.companyStore.copyrightOffice();
+    this.companyStore.updateCopyrightOffice({ ...current, customUrl: url });
+  }
+
+  onEditToggle(): void {
+    if (this.editMode()) {
+      this.vs.flush();
+      this.companyStore.flush();
+      this.editMode.set(false);
+    } else {
+      this.vs.setDeferPersist(true);
+      this.companyStore.setDeferPersist(true);
+      this.editMode.set(true);
+    }
+  }
+
   onCompanyStatus(value: string): void {
+    if (!this.editMode()) return;
     this.vs.patchIdentity({ companyStatus: value as CompanyIdentity['companyStatus'] });
   }
 
   onCompanyAvatar(event: Event): void {
+    if (!this.editMode()) return;
     const file = (event.target as HTMLInputElement).files?.[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => this.vs.setCompanyAvatar(reader.result as string);
     reader.readAsDataURL(file);
+  }
+
+  deleteAllVaultData(): void {
+    if (!confirm('Delete all company file data (owners, platforms, ISBNs, contracts, etc.)? This cannot be undone.')) return;
+    this.vs.setDeferPersist(false);
+    this.companyStore.setDeferPersist(false);
+    this.companyStore.clearAll();
+    this.editMode.set(false);
   }
 
   @HostListener('document:click')

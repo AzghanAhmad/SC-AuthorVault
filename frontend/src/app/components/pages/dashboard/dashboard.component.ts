@@ -2,34 +2,22 @@ import { Component, OnInit, signal, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { AuthorVaultService } from '../../../services/author-vault.service';
-import { BookService } from '../../../services/book.service';
 import { AuthService } from '../../../services/auth.service';
-
-export interface ImportantDate {
-  id: string;
-  title: string;
-  category: 'Tax' | 'Domain' | 'ISBN' | 'Software' | 'Trademark' | 'Contract' | 'Filing';
-  dueDate: string;
-  notes: string;
-  recurring: boolean;
-}
-
-const DEFAULT_DATES: ImportantDate[] = [
-  { id: '1', title: 'Q2 Estimated Tax Payment', category: 'Tax', dueDate: '2026-06-15', notes: 'Federal estimated tax — Form 1040-ES', recurring: true },
-  { id: '2', title: 'authorvaultpress.com Domain Renewal', category: 'Domain', dueDate: '2026-05-28', notes: 'Registrar: Namecheap — auto-renew enabled', recurring: true },
-  { id: '3', title: 'Delaware Annual Report Filing', category: 'Filing', dueDate: '2026-06-01', notes: 'File via Delaware Division of Corporations', recurring: true },
-  { id: '4', title: 'AuthorVault Press™ Trademark Renewal', category: 'Trademark', dueDate: '2026-07-15', notes: 'USPTO Section 8 & 15 Declaration due', recurring: false },
-  { id: '5', title: 'ISBN Block Purchase (next 100)', category: 'ISBN', dueDate: '2026-08-01', notes: 'Current block running low', recurring: false },
-  { id: '7', title: 'Editor Contract Renewal', category: 'Contract', dueDate: '2026-06-30', notes: 'Review rates and terms before renewal', recurring: false },
-  { id: '8', title: 'Q3 Estimated Tax Payment', category: 'Tax', dueDate: '2026-09-15', notes: 'Federal estimated tax — Form 1040-ES', recurring: true }
-];
+import { ImportantDatesService, ImportantDate } from '../../../services/important-dates.service';
+import { PageActionBarComponent } from '../../shared/page-action-bar/page-action-bar.component';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, PageActionBarComponent],
   template: `
     <div class="page">
+      <app-page-action-bar
+        [editing]="editMode()"
+        deleteLabel="Delete company tree"
+        (editToggle)="editMode.update(v => !v)"
+        (deleteAll)="deleteCompanyTree()" />
+
       <!-- ── WELCOME BANNER ── -->
       <div class="welcome-banner glass-card">
         <div class="welcome-content">
@@ -77,7 +65,7 @@ const DEFAULT_DATES: ImportantDate[] = [
             </svg>
           </div>
           <div class="stat-body">
-            <span class="stat-value">{{ publishedCount() }}</span>
+            <span class="stat-value">{{ vs.pipelineStats().published }}</span>
             <span class="stat-label">Published</span>
           </div>
         </div>
@@ -89,7 +77,7 @@ const DEFAULT_DATES: ImportantDate[] = [
             </svg>
           </div>
           <div class="stat-body">
-            <span class="stat-value">{{ draftCount() }}</span>
+            <span class="stat-value">{{ vs.pipelineStats().draft }}</span>
             <span class="stat-label">In Draft</span>
           </div>
         </div>
@@ -183,17 +171,27 @@ const DEFAULT_DATES: ImportantDate[] = [
             <p class="visual-subtitle" style="margin-bottom:1.75rem;">Explore the structural relationship map of your assets</p>
 
             <div class="hierarchy-tree">
+              @if (!hasCompany()) {
+                <div class="empty-widget-state hierarchy-empty">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="40" height="40" style="opacity:0.4;margin-bottom:0.5rem;">
+                    <path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/>
+                  </svg>
+                  <p>No company added yet</p>
+                  <span class="empty-hint">Set up your publishing company in Company File to see your vault hierarchy.</span>
+                  <button class="btn-widget-action" routerLink="/vault/company">Go to Company File</button>
+                </div>
+              } @else {
               <!-- LEVEL 1: COMPANY -->
               <div class="tree-section level-company">
                 <div class="node-badge">Company</div>
                 <div class="company-node-card">
-                  <label class="entity-avatar-upload company-avatar-lg" title="Upload company avatar (Click to change)">
+                  <label class="entity-avatar-upload company-avatar-lg" [class.edit-disabled]="!editMode()" title="Upload company avatar (Click to change)">
                     @if (vs.company().identity.avatarUrl) {
                       <img [src]="vs.company().identity.avatarUrl" alt="" class="entity-avatar-img" />
                     } @else {
                       <span class="entity-avatar-fallback">{{ companyInitials }}</span>
                     }
-                    <input type="file" accept="image/*" hidden (change)="onCompanyAvatar($event)" />
+                    <input type="file" accept="image/*" hidden [disabled]="!editMode()" (change)="onCompanyAvatar($event)" />
                   </label>
                   <div class="company-node-info">
                     <h3 class="node-name" routerLink="/vault/company">{{ vs.company().identity.legalName }}</h3>
@@ -211,13 +209,13 @@ const DEFAULT_DATES: ImportantDate[] = [
                 <div class="imprints-node-grid">
                   @for (imp of vs.company().imprints; track imp.id) {
                     <div class="imprint-node-card">
-                      <label class="entity-avatar-upload" title="Upload imprint avatar (Click to change)">
+                      <label class="entity-avatar-upload" [class.edit-disabled]="!editMode()" title="Upload imprint avatar (Click to change)">
                         @if (imp.identity.avatarUrl) {
                           <img [src]="imp.identity.avatarUrl" alt="" class="entity-avatar-img" />
                         } @else {
                           <span class="entity-avatar-fallback">{{ initials(imp.identity.name) }}</span>
                         }
-                        <input type="file" accept="image/*" hidden (change)="onImprintAvatar($event, imp.id)" />
+                        <input type="file" accept="image/*" hidden [disabled]="!editMode()" (change)="onImprintAvatar($event, imp.id)" />
                       </label>
                       <div class="node-details">
                         <h4 class="node-subname" routerLink="/vault/imprints">{{ imp.identity.name }}</h4>
@@ -237,13 +235,13 @@ const DEFAULT_DATES: ImportantDate[] = [
                 <div class="pennames-node-grid">
                   <ng-container *ngFor="let imp of vs.company().imprints">
                     <div class="penname-node-card" *ngFor="let pn of imp.penNames">
-                      <label class="entity-avatar-upload" title="Upload pen name avatar (Click to change)">
+                      <label class="entity-avatar-upload" [class.edit-disabled]="!editMode()" title="Upload pen name avatar (Click to change)">
                         @if (pn.identity.avatarUrl) {
                           <img [src]="pn.identity.avatarUrl" alt="" class="entity-avatar-img" />
                         } @else {
                           <span class="entity-avatar-fallback" style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)">{{ initials(pn.identity.displayName) }}</span>
                         }
-                        <input type="file" accept="image/*" hidden (change)="onPenNameAvatar($event, pn.id)" />
+                        <input type="file" accept="image/*" hidden [disabled]="!editMode()" (change)="onPenNameAvatar($event, pn.id)" />
                       </label>
                       <div class="node-details">
                         <h4 class="node-subname" routerLink="/vault/pen-names">{{ pn.identity.displayName }}</h4>
@@ -253,6 +251,7 @@ const DEFAULT_DATES: ImportantDate[] = [
                   </ng-container>
                 </div>
               </div>
+              }
             </div>
           </div>
         </div>
@@ -849,6 +848,15 @@ const DEFAULT_DATES: ImportantDate[] = [
       color: #fff; font-weight: 700; font-size: 0.75rem;
     }
 
+    .entity-avatar-upload.edit-disabled {
+      pointer-events: none;
+      opacity: 0.65;
+    }
+    .entity-avatar-upload.edit-disabled::after,
+    .entity-avatar-upload.edit-disabled::before {
+      display: none;
+    }
+
     /* ── Sidebar Column Widgets ── */
     .deadline-feed {
       display: flex;
@@ -962,6 +970,13 @@ const DEFAULT_DATES: ImportantDate[] = [
     .empty-widget-state p {
       font-size: 0.8125rem;
       margin: 0 0 0.75rem;
+    }
+    .empty-hint {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin: 0 0 1rem;
+      max-width: 280px;
+      line-height: 1.45;
     }
     .btn-widget-action {
       background: var(--accent-blue, #3b82f6);
@@ -1085,25 +1100,20 @@ const DEFAULT_DATES: ImportantDate[] = [
 })
 export class DashboardComponent implements OnInit {
   readonly vs = inject(AuthorVaultService);
-  private bookService = inject(BookService);
   readonly auth = inject(AuthService);
+  private readonly datesService = inject(ImportantDatesService);
 
-  publishedCount = signal(0);
-  draftCount = signal(0);
-  editingCount = signal(0);
-  preorderCount = signal(0);
   upcomingDates = signal<any[]>([]);
+  editMode = signal(false);
 
   activeHoverSegment: 'draft' | 'editing' | 'preorder' | 'published' | null = null;
 
   ngOnInit() {
-    this.bookService.getBooks().subscribe(books => {
-      this.publishedCount.set(books.filter(b => b.status === 'published').length);
-      this.draftCount.set(books.filter(b => b.status === 'draft').length);
-      this.editingCount.set(books.filter(b => b.status === 'pending').length);
-      this.preorderCount.set(books.filter(b => b.status === 'approved').length);
-    });
     this.loadUpcomingDates();
+  }
+
+  get stats() {
+    return this.vs.pipelineStats();
   }
 
   get currentDay(): string {
@@ -1114,34 +1124,20 @@ export class DashboardComponent implements OnInit {
     return new Date().toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
   }
 
-  get stats() {
-    const published = this.publishedCount();
-    const draft = this.draftCount();
-    const editing = this.editingCount();
-    const preorder = this.preorderCount();
-    const total = published + draft + editing + preorder || 1;
-    return {
-      published,
-      draft,
-      editing,
-      preorder,
-      total,
-      publishedPct: (published / total) * 100,
-      draftPct: (draft / total) * 100,
-      editingPct: (editing / total) * 100,
-      preorderPct: (preorder / total) * 100
-    };
+  loadUpcomingDates() {
+    this.datesService.load().subscribe({
+      next: list => {
+        if (Array.isArray(list) && list.length > 0) {
+          this.applyUpcomingDates(list);
+        } else {
+          this.upcomingDates.set([]);
+        }
+      },
+      error: () => this.upcomingDates.set([])
+    });
   }
 
-  loadUpcomingDates() {
-    let list: ImportantDate[] = [];
-    try {
-      const raw = localStorage.getItem('av_important_dates_v1');
-      list = raw ? JSON.parse(raw) : [...DEFAULT_DATES];
-    } catch {
-      list = [...DEFAULT_DATES];
-    }
-
+  private applyUpcomingDates(list: ImportantDate[]) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -1201,6 +1197,13 @@ export class DashboardComponent implements OnInit {
     return this.initials(this.vs.company()?.identity?.legalName || '');
   }
 
+  hasCompany(): boolean {
+    const identity = this.vs.company()?.identity;
+    if (!identity) return false;
+    const name = (identity.legalName || identity.dbaNames || '').trim();
+    return name.length > 0 || (this.vs.company()?.imprints?.length ?? 0) > 0;
+  }
+
   getPercentage(legalIsbn: any): number {
     const total = legalIsbn?.isbnBlockCount || 100;
     const assigned = legalIsbn?.isbnsAssigned || 0;
@@ -1213,6 +1216,7 @@ export class DashboardComponent implements OnInit {
   }
 
   onCompanyAvatar(event: Event): void {
+    if (!this.editMode()) return;
     const file = (event.target as HTMLInputElement).files?.[0];
     if (!file) return;
     const reader = new FileReader();
@@ -1221,6 +1225,7 @@ export class DashboardComponent implements OnInit {
   }
 
   onImprintAvatar(event: Event, imprintId: string): void {
+    if (!this.editMode()) return;
     const file = (event.target as HTMLInputElement).files?.[0];
     if (!file) return;
     const reader = new FileReader();
@@ -1229,10 +1234,17 @@ export class DashboardComponent implements OnInit {
   }
 
   onPenNameAvatar(event: Event, penNameId: string): void {
+    if (!this.editMode()) return;
     const file = (event.target as HTMLInputElement).files?.[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => this.vs.setPenNameAvatar(penNameId, reader.result as string);
     reader.readAsDataURL(file);
+  }
+
+  deleteCompanyTree(): void {
+    if (!confirm('Delete your entire company tree (imprints, pen names, series, and books)? This cannot be undone.')) return;
+    this.vs.resetCompany();
+    this.editMode.set(false);
   }
 }

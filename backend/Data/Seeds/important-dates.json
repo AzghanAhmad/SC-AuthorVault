@@ -1,0 +1,14 @@
+[
+  {"id":"1","title":"Q2 Estimated Tax Payment","category":"Tax","dueDate":"2026-06-15","notes":"Federal estimated tax — Form 1040-ES","recurring":true},
+  {"id":"2","title":"authorvaultpress.com Domain Renewal","category":"Domain","dueDate":"2026-05-28","notes":"Registrar: Namecheap — auto-renew enabled","recurring":true},
+  {"id":"3","title":"Delaware Annual Report Filing","category":"Filing","dueDate":"2026-06-01","notes":"File via Delaware Division of Corporations","recurring":true},
+  {"id":"4","title":"AuthorVault Press™ Trademark Renewal","category":"Trademark","dueDate":"2026-07-15","notes":"USPTO Section 8 & 15 Declaration due","recurring":false},
+  {"id":"5","title":"ISBN Block Purchase (next 100)","category":"ISBN","dueDate":"2026-08-01","notes":"Current block running low","recurring":false},
+  {"id":"6","title":"QuickBooks Online Subscription","category":"Software","dueDate":"2026-05-20","notes":"$30/mo — annual renewal option available","recurring":true},
+  {"id":"7","title":"Editor Contract Renewal","category":"Contract","dueDate":"2026-06-30","notes":"Review rates and terms before renewal","recurring":false},
+  {"id":"8","title":"Q3 Estimated Tax Payment","category":"Tax","dueDate":"2026-09-15","notes":"Federal estimated tax — Form 1040-ES","recurring":true},
+  {"id":"9","title":"eleanorvanc.com SSL Renewal","category":"Domain","dueDate":"2026-05-15","notes":"Let's Encrypt — auto-renew via hosting","recurring":true},
+  {"id":"10","title":"BookFunnel Subscription Renewal","category":"Software","dueDate":"2026-07-01","notes":"Mid-level plan — $20/mo","recurring":true},
+  {"id":"11","title":"NY State Business Registration","category":"Filing","dueDate":"2026-09-01","notes":"Biennial statement due","recurring":true},
+  {"id":"12","title":"Narrator Contract — Crown of Thorns","category":"Contract","dueDate":"2026-10-15","notes":"Royalty share agreement expires","recurring":false}
+]

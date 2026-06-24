@@ -56,12 +56,9 @@ interface NavGroup {
           <div class="nav-active-indicator"></div>
         </a>
 
-        <!-- Company (with dropdown) -->
+        <!-- Company section (always expanded) -->
         <div class="nav-group">
-          <button class="nav-group-header"
-                  [class.group-active]="isGroupActive('company')"
-                  [class.open]="openGroup() === 'company'"
-                  (click)="toggleGroup('company')">
+          <div class="nav-section-label" *ngIf="!collapsed()">
             <span class="nav-icon">
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M2.5 21h19"/>
@@ -76,12 +73,9 @@ interface NavGroup {
                 <path d="M17.75 13.5v5"/>
               </svg>
             </span>
-            <span class="nav-label" *ngIf="!collapsed()">Company</span>
-            <svg *ngIf="!collapsed()" class="chevron" [class.rotated]="openGroup() === 'company'" viewBox="0 0 24 24">
-              <polyline points="6 9 12 15 18 9"/>
-            </svg>
-          </button>
-          <div class="nav-children" [class.open]="openGroup() === 'company' && !collapsed()">
+            <span class="nav-label">Company</span>
+          </div>
+          <div class="nav-children always-open" [class.visible]="!collapsed()">
             <a class="nav-child" routerLink="/vault/company" routerLinkActive="child-active">
               <span class="child-dot"></span>Company File
             </a>
@@ -91,29 +85,23 @@ interface NavGroup {
             <a class="nav-child" routerLink="/company/isbns" routerLinkActive="child-active">
               <span class="child-dot"></span>ISBNs
             </a>
-            <a class="nav-child" routerLink="/company/calendar" routerLinkActive="child-active" (click)="openGroup.set('company')">
+            <a class="nav-child" routerLink="/company/calendar" routerLinkActive="child-active">
               <span class="child-dot"></span>Important Dates
             </a>
           </div>
         </div>
 
-        <!-- Library (with dropdown) -->
+        <!-- Library section (always expanded) -->
         <div class="nav-group">
-          <button class="nav-group-header"
-                  [class.group-active]="isGroupActive('library')"
-                  [class.open]="openGroup() === 'library'"
-                  (click)="toggleGroup('library')">
+          <div class="nav-section-label" *ngIf="!collapsed()">
             <span class="nav-icon">
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
               </svg>
             </span>
-            <span class="nav-label" *ngIf="!collapsed()">Library</span>
-            <svg *ngIf="!collapsed()" class="chevron" [class.rotated]="openGroup() === 'library'" viewBox="0 0 24 24">
-              <polyline points="6 9 12 15 18 9"/>
-            </svg>
-          </button>
-          <div class="nav-children" [class.open]="openGroup() === 'library' && !collapsed()">
+            <span class="nav-label">Library</span>
+          </div>
+          <div class="nav-children always-open" [class.visible]="!collapsed()">
             <a class="nav-child" routerLink="/vault/pen-names" routerLinkActive="child-active">
               <span class="child-dot"></span>Pen Names
             </a>
@@ -210,7 +198,14 @@ interface NavGroup {
     .nav-item.active .nav-active-indicator { height: 20px; }
 
     /* Group */
-    .nav-group { display: flex; flex-direction: column; }
+    .nav-group { display: flex; flex-direction: column; margin-bottom: 0.25rem; }
+    .nav-section-label {
+      display: flex; align-items: center; gap: 12px;
+      padding: 8px 14px 4px;
+      font-size: 11px; font-weight: 700;
+      color: rgba(255,255,255,0.45);
+      text-transform: uppercase; letter-spacing: 0.08em;
+    }
     .nav-group-header {
       display: flex; align-items: center; gap: 12px;
       padding: 10px 14px; border-radius: 10px;
@@ -234,6 +229,12 @@ interface NavGroup {
       max-height: 0; overflow: hidden;
       transition: max-height 0.25s cubic-bezier(0.4,0,0.2,1);
       padding-left: 14px;
+    }
+    .nav-children.always-open {
+      max-height: none; overflow: visible; padding-left: 14px;
+    }
+    .nav-children.always-open:not(.visible) {
+      max-height: 0; overflow: hidden; padding-left: 0;
     }
     .nav-children.open { max-height: 300px; }
 

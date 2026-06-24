@@ -2,14 +2,21 @@ import { Component, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AuthorVaultService } from '../../../services/author-vault.service';
 import { Series } from '../../../models/author-vault.model';
+import { PageActionBarComponent } from '../../shared/page-action-bar/page-action-bar.component';
 
 @Component({
   selector: 'app-vault-series-page',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, PageActionBarComponent],
   styleUrls: ['../company-vault/company-vault.component.css'],
   template: `
     <div class="page">
+      <app-page-action-bar
+        [editing]="editMode()"
+        deleteLabel="Delete all series"
+        (editToggle)="editMode.update(v => !v)"
+        (deleteAll)="deleteAllSeries()" />
+
       <div class="page-header">
         <div class="page-title-wrap">
           <svg class="header-icon-svg" viewBox="0 0 24 24" aria-hidden="true" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -157,8 +164,14 @@ import { Series } from '../../../models/author-vault.model';
               <div class="card">
                 <h3 class="section-title">Box Sets</h3>
                 @if (!sr.boxSets.length) {
-                  <div class="empty-state"><div class="empty-icon">📦</div><p>No box sets for this series yet</p>
-                    <button style="margin-top:.75rem;padding:.5rem 1.25rem;background:var(--accent-blue);color:#fff;border:none;border-radius:8px;font-size:.8125rem;font-weight:600;cursor:pointer;font-family:inherit;">+ Create Box Set</button>
+                  <div class="empty-state">
+                    <svg class="empty-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/>
+                    </svg>
+                    <p>No box sets for this series yet</p>
+                    @if (editMode()) {
+                      <button style="margin-top:.75rem;padding:.5rem 1.25rem;background:var(--accent-blue);color:#fff;border:none;border-radius:8px;font-size:.8125rem;font-weight:600;cursor:pointer;font-family:inherit;">+ Create Box Set</button>
+                    }
                   </div>
                 }
                 @for (bs of sr.boxSets; track bs.id) {
@@ -171,11 +184,11 @@ import { Series } from '../../../models/author-vault.model';
                     </div>
                     <div style="margin-top:.5rem;padding:.5rem .75rem;background:var(--primary-light);border-radius:6px;font-size:.8125rem;color:var(--text-secondary);">
                       <p style="margin:0 0 .25rem;font-weight:600;color:var(--text-primary);">Box Set Details</p>
-                      <div style="display:flex;gap:1rem;flex-wrap:wrap;">
-                        <span>📘 Needs own ISBN</span>
-                        <span>📝 Needs own blurb & metadata</span>
-                        <span>🎨 Needs own cover</span>
-                        <span>💰 Separate pricing</span>
+                      <div class="boxset-detail-icons">
+                        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg> Needs own ISBN</span>
+                        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg> Needs own blurb</span>
+                        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg> Needs own cover</span>
+                        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> Separate pricing</span>
                       </div>
                     </div>
                   </div>
@@ -187,10 +200,16 @@ import { Series } from '../../../models/author-vault.model';
         </div>
       }
     </div>
-  `
+  `,
+  styles: [`
+    .empty-icon-svg { width: 40px; height: 40px; color: var(--text-muted); margin-bottom: 0.5rem; }
+    .boxset-detail-icons { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .boxset-detail-icons span { display: inline-flex; align-items: center; gap: 0.35rem; }
+  `]
 })
 export class VaultSeriesPageComponent {
   private vs = inject(AuthorVaultService);
+  editMode = signal(false);
   allSeries = computed(() => {
     const s: Series[] = [];
     for (const i of this.vs.company().imprints) for (const p of i.penNames) s.push(...p.series);
@@ -210,4 +229,11 @@ export class VaultSeriesPageComponent {
   get totalBoxSets() { return this.allSeries().reduce((a, s) => a + s.boxSets.length, 0); }
   countFormats(bk: any): number { return bk.languageBranches.reduce((a: number, lb: any) => a + lb.formats.length, 0); }
   selectItem(sr: Series) { this.selected.set(sr); this.tab.set('identity'); }
+
+  deleteAllSeries(): void {
+    if (!confirm('Delete all series (and their books and box sets) across every pen name? This cannot be undone.')) return;
+    this.vs.clearAllSeries();
+    this.selected.set(null);
+    this.editMode.set(false);
+  }
 }

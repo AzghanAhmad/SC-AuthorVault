@@ -3,16 +3,23 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthorVaultService } from '../../../services/author-vault.service';
+import { VaultCompanyStoreService } from '../../../services/vault-company-store.service';
 import { Imprint } from '../../../models/author-vault.model';
 import { EditableFieldComponent } from '../../shared/editable-field/editable-field.component';
+import { PageActionBarComponent } from '../../shared/page-action-bar/page-action-bar.component';
 
 @Component({
   selector: 'app-vault-imprints-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, EditableFieldComponent],
+  imports: [CommonModule, FormsModule, EditableFieldComponent, PageActionBarComponent],
   styleUrls: ['../company-vault/company-vault.component.css'],
   template: `
     <div class="page">
+      <app-page-action-bar
+        [editing]="editMode()"
+        deleteLabel="Delete all imprints"
+        (editToggle)="editMode.update(v => !v)"
+        (deleteAll)="deleteAllImprints()" />
 
       <!-- ── IMPRINT LIST (no selection) ── -->
       @if (!selected()) {
@@ -139,7 +146,20 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
         <div class="vault-layout" style="margin-top:1.25rem">
           <nav class="vault-nav">
             @for (t of tabs; track t.id) {
-              <button class="tab-item" [class.active]="activeTab() === t.id" (click)="activeTab.set(t.id)">{{ t.label }}</button>
+              <button class="tab-item" [class.active]="activeTab() === t.id" (click)="activeTab.set(t.id)">
+                @switch (t.id) {
+                  @case ('identity') {
+                    <svg class="tab-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 21h19"/><path d="M4.5 21V11.5h3.5V21"/><path d="M8.5 21V6h7V21"/><path d="M12 6V2.75"/><path d="M9.75 8h4.5"/><path d="M9.75 11.5h4.5"/><path d="M9.75 15h4.5"/><path d="M16 21V11.5h3.5V21"/></svg>
+                  }
+                  @case ('pennames') {
+                    <svg class="tab-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+                  }
+                  @case ('isbns') {
+                    <svg class="tab-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5V15h16v4.5M4 10V5h16v5M12 2v20"/></svg>
+                  }
+                }
+                {{ t.label }}
+              </button>
             }
           </nav>
 
@@ -150,9 +170,9 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
               <div class="card">
                 <h3 class="section-title">Imprint Identity</h3>
                 <div class="form-grid">
-                  <app-editable-field label="Name" [value]="imp.identity.name" (valueChange)="vs.updateImprint(imp.id, { name: $event })" />
+                  <app-editable-field [readOnly]="!editMode()" label="Name" [value]="imp.identity.name" (valueChange)="vs.updateImprint(imp.id, { name: $event })" />
                   <div class="form-group"><span class="form-label">Parent Company</span><div class="form-value">{{ company().identity.legalName }}</div></div>
-                  <app-editable-field label="Genre Focus" [value]="imp.identity.purposeGenreFocus" (valueChange)="vs.updateImprint(imp.id, { purposeGenreFocus: $event })" />
+                  <app-editable-field [readOnly]="!editMode()" label="Genre Focus" [value]="imp.identity.purposeGenreFocus" (valueChange)="vs.updateImprint(imp.id, { purposeGenreFocus: $event })" />
                   <div class="form-group">
                     <span class="form-label">Status</span>
                     <select class="form-input" [ngModel]="imp.identity.status" (ngModelChange)="vs.updateImprint(imp.id, { status: $event })" style="width:100%;height:38px;padding:.55rem .75rem;border:1.5px solid var(--border-color);border-radius:8px;background:var(--surface);color:var(--text-primary);font-size:.875rem;font-family:inherit;">
@@ -161,11 +181,11 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
                       <option value="Retired">Retired</option>
                     </select>
                   </div>
-                  <app-editable-field label="Date Established" [value]="imp.identity.dateEstablished" (valueChange)="vs.updateImprint(imp.id, { dateEstablished: $event })" />
-                  <app-editable-field label="Website" type="url" [value]="imp.identity.website" (valueChange)="vs.updateImprint(imp.id, { website: $event })" />
-                  <app-editable-field label="Email" type="email" [value]="imp.identity.email" (valueChange)="vs.updateImprint(imp.id, { email: $event })" />
-                  <app-editable-field label="DBA Registration" [value]="imp.legalIsbn.dbaRegistration || ''" (valueChange)="vs.updateImprintLegalIsbn(imp.id, { dbaRegistration: $event })" />
-                  <app-editable-field label="Trademark" [value]="imp.legalIsbn.trademark || ''" (valueChange)="vs.updateImprintLegalIsbn(imp.id, { trademark: $event })" />
+                  <app-editable-field [readOnly]="!editMode()" label="Date Established" [value]="imp.identity.dateEstablished" (valueChange)="vs.updateImprint(imp.id, { dateEstablished: $event })" />
+                  <app-editable-field [readOnly]="!editMode()" label="Website" type="url" [value]="imp.identity.website" (valueChange)="vs.updateImprint(imp.id, { website: $event })" />
+                  <app-editable-field [readOnly]="!editMode()" label="Email" type="email" [value]="imp.identity.email" (valueChange)="vs.updateImprint(imp.id, { email: $event })" />
+                  <app-editable-field [readOnly]="!editMode()" label="DBA Registration" [value]="imp.legalIsbn.dbaRegistration || ''" (valueChange)="vs.updateImprintLegalIsbn(imp.id, { dbaRegistration: $event })" />
+                  <app-editable-field [readOnly]="!editMode()" label="Trademark" [value]="imp.legalIsbn.trademark || ''" (valueChange)="vs.updateImprintLegalIsbn(imp.id, { trademark: $event })" />
                 </div>
               </div>
               <div class="card">
@@ -182,7 +202,7 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
               <div class="card">
                 <h3 class="section-title">Templates</h3>
                 <div class="form-grid">
-                  <app-editable-field label="Copyright Page Template" [value]="imp.legalIsbn.copyrightPageTemplate" (valueChange)="vs.updateImprintLegalIsbn(imp.id, { copyrightPageTemplate: $event })" />
+                  <app-editable-field [readOnly]="!editMode()" label="Copyright Page Template" [value]="imp.legalIsbn.copyrightPageTemplate" (valueChange)="vs.updateImprintLegalIsbn(imp.id, { copyrightPageTemplate: $event })" />
                   <div class="form-group"><span class="form-label">Contract Template</span><div class="form-value">contract-template-{{ imp.identity.name | lowercase }}.docx</div></div>
                 </div>
               </div>
@@ -197,7 +217,10 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
                   @for (pn of imp.penNames; track pn.id) {
                     <div class="entity-card" (click)="goTo('/vault/pen-names')">
                       <div class="entity-card-header">
-                        <h3 class="entity-name">✍️ {{ pn.identity.displayName }}</h3>
+                        <h3 class="entity-name">
+                          <svg class="entity-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+                          {{ pn.identity.displayName }}
+                        </h3>
                         <span class="status status-green">{{ pn.identity.status }}</span>
                       </div>
                       <p class="entity-meta">{{ pn.identity.genre }} · {{ pn.identity.penNameType }}</p>
@@ -302,16 +325,27 @@ import { EditableFieldComponent } from '../../shared/editable-field/editable-fie
     }
     .logo-upload-area:hover { border-color: var(--accent-blue); }
     .td-muted { color: var(--text-muted); font-size: .8125rem; }
+    .entity-name { display: flex; align-items: center; gap: .5rem; }
+    .entity-icon-svg { width: 18px; height: 18px; flex-shrink: 0; color: var(--accent-blue, #6366f1); }
   `]
 })
 export class VaultImprintsPageComponent {
   readonly vs = inject(AuthorVaultService);
+  private readonly vaultStore = inject(VaultCompanyStoreService);
   private router = inject(Router);
   company = this.vs.company;
   allImprints = computed(() => this.company().imprints);
   selected = signal<Imprint | null>(null);
   activeTab = signal('identity');
   isbnFilter = '';
+  editMode = signal(false);
+
+  deleteAllImprints(): void {
+    if (!confirm('Delete all imprints and their pen names, series, and books? This cannot be undone.')) return;
+    this.vs.clearImprints();
+    this.selected.set(null);
+    this.editMode.set(false);
+  }
 
   onImprintAvatarUpload(event: Event, imprintId: string): void {
     const file = (event.target as HTMLInputElement).files?.[0];
@@ -324,9 +358,9 @@ export class VaultImprintsPageComponent {
   }
 
   tabs = [
-    { id: 'identity', label: '🏢 Identity' },
-    { id: 'pennames', label: '✍️ Pen Names' },
-    { id: 'isbns',    label: '🔢 ISBNs' },
+    { id: 'identity', label: 'Identity' },
+    { id: 'pennames', label: 'Pen Names' },
+    { id: 'isbns',    label: 'ISBNs' },
   ];
 
   get totalPenNames() { return this.allImprints().reduce((a, i) => a + i.penNames.length, 0); }
@@ -346,25 +380,9 @@ export class VaultImprintsPageComponent {
   selectImprint(imp: Imprint) { this.selected.set(imp); this.activeTab.set('identity'); }
   goTo(r: string) { this.router.navigate([r]); }
 
-  // Mock ISBN data per imprint
-  private allIsbns = [
-    { isbn: '979-8-XXXX-0001-0', format: 'Ebook', title: 'The Midnight Library', series: 'Hearts of Manhattan', pubDate: '2023-06-15', imprintId: 'imp1', status: 'used' },
-    { isbn: '979-8-XXXX-0001-1', format: 'Paperback 5.5x8.5', title: 'The Midnight Library', series: 'Hearts of Manhattan', pubDate: '2023-06-15', imprintId: 'imp1', status: 'used' },
-    { isbn: '979-8-XXXX-0001-3', format: 'Audiobook', title: 'The Midnight Library', series: 'Hearts of Manhattan', pubDate: '2023-09-01', imprintId: 'imp1', status: 'used' },
-    { isbn: '979-8-XXXX-0002-0', format: 'Ebook', title: 'Shadow Protocol', series: 'Hearts of Manhattan', pubDate: '2023-11-01', imprintId: 'imp1', status: 'used' },
-    { isbn: '979-8-XXXX-0002-1', format: 'Paperback 5.5x8.5', title: 'Shadow Protocol', series: 'Hearts of Manhattan', pubDate: '2023-11-01', imprintId: 'imp1', status: 'used' },
-    { isbn: '979-8-XXXX-0003-0', format: 'Ebook', title: 'Garden of Stars', series: 'Hearts of Manhattan', pubDate: '', imprintId: 'imp1', status: 'reserved' },
-    { isbn: '979-8-XXXX-0003-1', format: 'Paperback 5.5x8.5', title: 'Garden of Stars', series: 'Hearts of Manhattan', pubDate: '', imprintId: 'imp1', status: 'reserved' },
-    { isbn: '979-8-XXXX-0007-0', format: 'Ebook', title: '', series: '', pubDate: '', imprintId: 'imp1', status: 'unused' },
-    { isbn: '979-8-XXXX-0007-1', format: 'Paperback 6x9', title: '', series: '', pubDate: '', imprintId: 'imp1', status: 'unused' },
-    { isbn: '979-8-XXXX-0008-0', format: 'Ebook', title: '', series: '', pubDate: '', imprintId: 'imp2', status: 'unused' },
-    { isbn: '979-8-XXXX-0004-0', format: 'Ebook', title: 'The Quantified Self', series: 'Standalone', pubDate: '2025-03-20', imprintId: 'imp2', status: 'used' },
-    { isbn: '979-8-XXXX-0004-1', format: 'Paperback 6x9', title: 'The Quantified Self', series: 'Standalone', pubDate: '2025-03-20', imprintId: 'imp2', status: 'used' },
-  ];
-
   getImprintIsbns(imp: Imprint) {
-    return this.allIsbns.filter(r =>
-      r.imprintId === imp.id &&
+    return this.vaultStore.isbnRecords().filter(r =>
+      r.imprint === imp.identity.name &&
       (!this.isbnFilter || r.status === this.isbnFilter)
     );
   }

@@ -1,5 +1,6 @@
-import { Injectable } from '@angular/core';
-import { Observable, of, delay } from 'rxjs';
+import { Injectable, inject } from '@angular/core';
+import { Observable, of, tap, catchError } from 'rxjs';
+import { ApiService } from './api.service';
 
 export interface AppSettings {
   name: string;
@@ -20,6 +21,8 @@ export interface AppSettings {
 
 @Injectable({ providedIn: 'root' })
 export class SettingsService {
+  private readonly api = inject(ApiService);
+
   private settings: AppSettings = {
     name: 'Author User',
     email: 'author@scribecount.com',
@@ -37,13 +40,37 @@ export class SettingsService {
     notifProductUpdates: false
   };
 
+  loadFromApi(): Observable<AppSettings> {
+    return this.api.get<AppSettings>('/settings').pipe(
+      tap(s => {
+        if (s && s.email) {
+          this.settings = { ...this.settings, ...s };
+        } else {
+          this.saveToApi(this.settings).subscribe();
+        }
+      }),
+      catchError(() => {
+        this.saveToApi(this.settings).subscribe();
+        return of(this.settings);
+      })
+    );
+  }
+
   getSettings(): Observable<AppSettings> {
-    return of({ ...this.settings }).pipe(delay(300));
+    return of({ ...this.settings });
   }
 
   updateSettings(s: AppSettings): Observable<AppSettings> {
     this.settings = { ...s };
-    return of(this.settings).pipe(delay(500));
+    return this.saveToApi(this.settings);
   }
 
+  private saveToApi(s: AppSettings): Observable<AppSettings> {
+    return this.api.put<AppSettings>('/settings', s).pipe(
+      tap(saved => {
+        if (saved) this.settings = { ...this.settings, ...saved };
+      }),
+      catchError(() => of(s))
+    );
+  }
 }

@@ -19,6 +19,7 @@ type ViewMode = 'list' | 'grid' | 'table';
           <p class="page-subtitle">Browse and manage your entire catalog</p>
         </div>
         <div class="header-actions">
+          <a routerLink="/books/new" class="btn-add-book">+ Add New Book</a>
           <div class="search-box">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -72,6 +73,13 @@ type ViewMode = 'list' | 'grid' | 'table';
       </ng-container>
 
       <ng-container *ngIf="!loading()">
+
+        @if (filteredBooks().length === 0) {
+          <div class="books-empty">
+            <p>No books in your library yet.</p>
+            <a routerLink="/books/new" class="btn-add-book">+ Add Your First Book</a>
+          </div>
+        } @else {
 
         <!-- ── LIST VIEW ── -->
         <ng-container *ngIf="viewMode === 'list'">
@@ -190,13 +198,7 @@ type ViewMode = 'list' | 'grid' | 'table';
           </table>
         </div>
 
-        <!-- Empty -->
-        <div class="empty-state" *ngIf="filteredBooks().length === 0">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
-          </svg>
-          <p>No books found. Try adjusting your search.</p>
-        </div>
+        }
 
       </ng-container>
     </div>
@@ -212,6 +214,29 @@ type ViewMode = 'list' | 'grid' | 'table';
     .page-subtitle { font-size: .9rem; color: var(--text-muted); margin: 0; }
 
     .header-actions { display: flex; gap: .75rem; align-items: center; flex-wrap: wrap; }
+
+    .btn-add-book {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.65rem 1rem;
+      background: var(--accent-blue, #3b82f6);
+      color: white;
+      border-radius: 10px;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .btn-add-book:hover { filter: brightness(1.05); }
+
+    .books-empty {
+      text-align: center;
+      padding: 3rem 1.5rem;
+      color: var(--text-muted);
+      border: 1.5px dashed var(--border-light);
+      border-radius: 16px;
+    }
+    .books-empty p { margin: 0 0 1rem; }
 
     .search-box { position: relative; }
     .search-box svg { position: absolute; left: .875rem; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--text-muted); }
