@@ -113,6 +113,10 @@ namespace AuthorVault.Api.Migrations
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("BooksJson")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
                     b.Property<string>("CompanyJson")
                         .IsRequired()
                         .HasColumnType("longtext");

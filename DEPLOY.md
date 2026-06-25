@@ -67,6 +67,14 @@ Check **Deploy Logs** for lines starting with `[DB]`:
 
 **Never** put database variables only on the MySQL service — they must be on the **web/Docker service**.
 
+If registration fails after deploy, open `/health` — you should see `"database": "connected"`. If migrations were broken, connect to MySQL and run:
+
+```sql
+DROP TABLE IF EXISTS __EFMigrationsHistory;
+```
+
+Then redeploy so migrations run cleanly from scratch.
+
 ---
 
 ## Local Docker

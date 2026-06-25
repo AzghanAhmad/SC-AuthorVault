@@ -86,16 +86,18 @@ var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
     try
     {
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
         await DatabaseInitializer.MigrateAsync(db, connectionString, logger);
     }
     catch (Exception ex)
     {
-        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "Could not connect to MySQL. Start XAMPP MySQL, then run: npm start");
+        logger.LogCritical(ex, "Database migration failed — API will not work until this is fixed.");
+        if (app.Environment.IsProduction())
+            throw;
+        logger.LogError("Could not connect to MySQL. Start XAMPP MySQL, then run: npm start");
     }
 }
 
@@ -129,7 +131,19 @@ if (hasSpa)
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
+app.MapGet("/health", async (AppDbContext db) =>
+{
+    try
+    {
+        await db.Database.CanConnectAsync();
+        var pending = await db.Database.GetPendingMigrationsAsync();
+        return Results.Ok(new { status = "ok", database = "connected", pendingMigrations = pending.Count() });
+    }
+    catch (Exception ex)
+    {
+        return Results.Json(new { status = "error", database = ex.Message }, statusCode: 503);
+    }
+});
 
 if (hasSpa)
     app.MapFallbackToFile("index.html");

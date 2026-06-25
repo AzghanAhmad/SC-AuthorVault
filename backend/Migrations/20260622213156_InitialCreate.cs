@@ -74,6 +74,8 @@ namespace AuthorVault.Api.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     ImportantDatesJson = table.Column<string>(type: "longtext", nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
+                    BooksJson = table.Column<string>(type: "longtext", nullable: false, defaultValue: "[]")
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     SettingsJson = table.Column<string>(type: "longtext", nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     PinHash = table.Column<string>(type: "longtext", nullable: true)
