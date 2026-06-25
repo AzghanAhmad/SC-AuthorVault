@@ -129,6 +129,7 @@ if (hasSpa)
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 
 if (hasSpa)
     app.MapFallbackToFile("index.html");

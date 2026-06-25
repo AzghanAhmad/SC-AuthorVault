@@ -4,12 +4,17 @@ public static class ConnectionStringResolver
 {
     public static string Resolve(IConfiguration configuration)
     {
+        LogAvailableDatabaseKeys(configuration);
+
         // 1. Explicit ASP.NET connection string (env: ConnectionStrings__Default)
         var fromConfig = configuration.GetConnectionString("Default")
             ?? configuration["ConnectionStrings:Default"]
             ?? Env(configuration, "ConnectionStrings__Default");
         if (IsUsableConnectionString(fromConfig))
-            return fromConfig!;
+        {
+            Console.WriteLine("[DB] Using ConnectionStrings__Default");
+            return NormalizeAdoNet(fromConfig!);
+        }
 
         // 2. Railway / cloud database URLs
         foreach (var key in new[]
@@ -21,33 +26,81 @@ public static class ConnectionStringResolver
             var url = Env(configuration, key);
             var parsed = ParseDatabaseUrl(url) ?? ParseAdoNetString(url);
             if (parsed is not null)
+            {
+                Console.WriteLine($"[DB] Using {key}");
                 return parsed;
+            }
         }
 
-        // 3. Individual MySQL components (Railway injects MYSQLHOST, MYSQLPORT, …)
+        // 3. Individual MySQL components (MYSQLHOST + MYSQLPASSWORD, etc.)
         var host = Env(configuration,
             "MYSQLHOST", "MYSQL_HOST", "MYSQL_HOSTNAME",
-            "DB_HOST", "DATABASE_HOST");
+            "DB_HOST", "DATABASE_HOST", "RAILWAY_MYSQL_HOST");
+        var password = Env(configuration, "MYSQLPASSWORD", "MYSQL_PASSWORD", "DB_PASSWORD");
+
         if (!string.IsNullOrWhiteSpace(host))
         {
-            var port = Env(configuration, "MYSQLPORT", "MYSQL_PORT", "DB_PORT") ?? "3306";
-            var user = Env(configuration, "MYSQLUSER", "MYSQL_USER", "DB_USER") ?? "root";
-            var password = Env(configuration, "MYSQLPASSWORD", "MYSQL_PASSWORD", "DB_PASSWORD") ?? "";
-            var database = Env(configuration, "MYSQLDATABASE", "MYSQL_DATABASE", "DB_DATABASE", "DB_NAME") ?? "railway";
+            var port = Env(configuration, "MYSQLPORT", "MYSQL_PORT", "DB_PORT", "RAILWAY_MYSQL_PORT") ?? "3306";
+            var user = Env(configuration, "MYSQLUSER", "MYSQL_USER", "DB_USER", "RAILWAY_MYSQL_USER") ?? "root";
+            password ??= "";
+            var database = Env(configuration, "MYSQLDATABASE", "MYSQL_DATABASE", "DB_DATABASE", "DB_NAME", "RAILWAY_MYSQL_DATABASE") ?? "railway";
 
+            Console.WriteLine($"[DB] Using MYSQLHOST={host}");
             return BuildMySqlConnectionString(host, port, user, password, database);
         }
 
-        var checkedKeys = string.Join(", ", new[]
+        // 4. Password only — set MYSQLPASSWORD on the Railway *web* service (host defaults from RAILWAY_MYSQL_*)
+        if (!string.IsNullOrWhiteSpace(password))
         {
-            "ConnectionStrings__Default", "MYSQL_URL", "MYSQLHOST", "MYSQL_HOST"
-        });
+            host = Env(configuration, "RAILWAY_MYSQL_HOST") ?? "thomas.proxy.rlwy.net";
+            var port = Env(configuration, "RAILWAY_MYSQL_PORT") ?? "30264";
+            var user = Env(configuration, "RAILWAY_MYSQL_USER") ?? "root";
+            var database = Env(configuration, "RAILWAY_MYSQL_DATABASE") ?? "railway";
+
+            Console.WriteLine($"[DB] Using MYSQLPASSWORD with host {host} (set RAILWAY_MYSQL_HOST to override)");
+            return BuildMySqlConnectionString(host, port, user, password, database);
+        }
 
         throw new InvalidOperationException(
-            "No database connection configured. On Railway: open your **web service** (not MySQL) → Variables → " +
-            "add a reference variable `MYSQL_URL` = `${{MySQL.MYSQL_URL}}` (replace MySQL with your database service name), " +
-            "or add MYSQLHOST / MYSQLPORT / MYSQLUSER / MYSQLPASSWORD / MYSQLDATABASE references from the MySQL service. " +
-            $"Checked: {checkedKeys}.");
+            "No database connection configured on this Railway web service. " +
+            "Quickest fix — add these Variables on the WEB service (not MySQL): " +
+            "MYSQLPASSWORD=<your-mysql-password>, Jwt__Key=<32+ char secret>, ASPNETCORE_ENVIRONMENT=Production. " +
+            "Optional: RAILWAY_MYSQL_HOST, RAILWAY_MYSQL_PORT (defaults: thomas.proxy.rlwy.net / 30264). " +
+            "Or reference MYSQL_URL from your MySQL service. See DEPLOY.md.");
+    }
+
+    private static void LogAvailableDatabaseKeys(IConfiguration configuration)
+    {
+        var keys = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var child in configuration.AsEnumerable())
+        {
+            if (child.Key.Contains("MYSQL", StringComparison.OrdinalIgnoreCase)
+                || child.Key.Contains("DATABASE", StringComparison.OrdinalIgnoreCase)
+                || child.Key.Contains("ConnectionStrings", StringComparison.OrdinalIgnoreCase)
+                || child.Key.StartsWith("RAILWAY_MYSQL", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!string.IsNullOrWhiteSpace(child.Value))
+                    keys.Add(child.Key);
+            }
+        }
+
+        foreach (var key in Environment.GetEnvironmentVariables().Keys)
+        {
+            var name = key.ToString() ?? "";
+            if (name.Contains("MYSQL", StringComparison.OrdinalIgnoreCase)
+                || name.Contains("DATABASE", StringComparison.OrdinalIgnoreCase)
+                || name.Contains("ConnectionStrings", StringComparison.OrdinalIgnoreCase)
+                || name.StartsWith("RAILWAY_MYSQL", StringComparison.OrdinalIgnoreCase))
+            {
+                keys.Add(name);
+            }
+        }
+
+        if (keys.Count == 0)
+            Console.WriteLine("[DB] No MYSQL/DATABASE/ConnectionStrings env vars found on this service.");
+        else
+            Console.WriteLine("[DB] Env keys present: " + string.Join(", ", keys));
     }
 
     private static string? Env(IConfiguration configuration, params string[] keys)
@@ -55,15 +108,24 @@ public static class ConnectionStringResolver
         foreach (var key in keys)
         {
             var value = configuration[key] ?? Environment.GetEnvironmentVariable(key);
-            if (!string.IsNullOrWhiteSpace(value))
-                return value.Trim();
+            if (string.IsNullOrWhiteSpace(value))
+                continue;
+
+            value = value.Trim();
+            if (value.Contains("${{", StringComparison.Ordinal))
+            {
+                Console.WriteLine($"[DB] Skipping unresolved Railway reference for {key}");
+                continue;
+            }
+
+            return value;
         }
         return null;
     }
 
     private static bool IsUsableConnectionString(string? value)
     {
-        if (string.IsNullOrWhiteSpace(value))
+        if (string.IsNullOrWhiteSpace(value) || value.Contains("${{", StringComparison.Ordinal))
             return false;
 
         if (value.StartsWith("Server=", StringComparison.OrdinalIgnoreCase)
@@ -78,20 +140,28 @@ public static class ConnectionStringResolver
                    StringComparison.OrdinalIgnoreCase);
     }
 
+    private static string NormalizeAdoNet(string value)
+    {
+        if (value.StartsWith("mysql://", StringComparison.OrdinalIgnoreCase))
+            return ParseDatabaseUrl(value) ?? value;
+
+        return value.Contains("SslMode=", StringComparison.OrdinalIgnoreCase)
+            ? value
+            : $"{value.TrimEnd(';')};SslMode={SslModeForHost(ExtractHost(value))};";
+    }
+
     private static string? ParseAdoNetString(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
             return null;
         if (!value.StartsWith("Server=", StringComparison.OrdinalIgnoreCase))
             return null;
-        return value.Contains("SslMode=", StringComparison.OrdinalIgnoreCase)
-            ? value
-            : $"{value.TrimEnd(';')};SslMode={SslModeForHost(ExtractHost(value))};";
+        return NormalizeAdoNet(value);
     }
 
     private static string? ParseDatabaseUrl(string? databaseUrl)
     {
-        if (string.IsNullOrWhiteSpace(databaseUrl))
+        if (string.IsNullOrWhiteSpace(databaseUrl) || databaseUrl.Contains("${{", StringComparison.Ordinal))
             return null;
 
         var normalized = databaseUrl.Trim();
@@ -111,10 +181,7 @@ public static class ConnectionStringResolver
         if (string.IsNullOrWhiteSpace(database))
             database = "railway";
 
-        var host = uri.Host;
-        var port = uri.Port > 0 ? uri.Port.ToString() : "3306";
-
-        return BuildMySqlConnectionString(host, port, user, password, database);
+        return BuildMySqlConnectionString(uri.Host, uri.Port > 0 ? uri.Port.ToString() : "3306", user, password, database);
     }
 
     private static string BuildMySqlConnectionString(
@@ -124,9 +191,6 @@ public static class ConnectionStringResolver
         return $"Server={host};Port={port};Database={database};User={user};Password={password};SslMode={ssl};";
     }
 
-    /// <summary>
-    /// Railway public proxy hosts need SSL; internal *.railway.internal hosts typically do not.
-    /// </summary>
     private static string SslModeForHost(string host)
     {
         if (host.Contains("proxy.rlwy.net", StringComparison.OrdinalIgnoreCase)

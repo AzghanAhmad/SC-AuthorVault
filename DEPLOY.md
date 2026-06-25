@@ -1,75 +1,79 @@
 # AuthorVault — Deploy to Railway
 
-Single Docker image: **Angular frontend** + **.NET API** + **MySQL** (Railway).
+## Quickest fix (3 variables on the WEB service)
 
-## Railway setup (GitHub auto-deploy)
+Open your **web app service** → **Variables** → **Raw Editor** and paste:
 
-1. Push this repo to **GitHub**.
-2. Railway → **New Project** → **Deploy from GitHub repo**.
-3. Add a **MySQL** database service to the same project.
-4. **Link MySQL to your web service** (this fixes the connection error):
+```env
+MYSQLPASSWORD=your-mysql-password-here
+Jwt__Key=change-this-to-a-long-random-secret-at-least-32-chars
+ASPNETCORE_ENVIRONMENT=Production
+```
 
-### Option A — Reference `MYSQL_URL` (easiest)
+Get the MySQL password from: **MySQL service** → **Connect** → copy **Password**.
 
-1. Open your **web app service** (the one running the Dockerfile — not the MySQL service).
-2. Go to **Variables** → **New Variable** → **Add Reference**.
-3. Select your **MySQL** service → choose **`MYSQL_URL`**.
-4. Name the variable on the web service: `MYSQL_URL`
-5. Save — Railway redeploys automatically.
+Default host/port (`thomas.proxy.rlwy.net` / `30264`) are built in automatically. Override if yours differ:
 
-### Option B — Reference individual variables
+```env
+RAILWAY_MYSQL_HOST=your-host.proxy.rlwy.net
+RAILWAY_MYSQL_PORT=30264
+RAILWAY_MYSQL_DATABASE=railway
+RAILWAY_MYSQL_USER=root
+```
 
-On the **web service**, add these reference variables from your MySQL service:
+Click **Deploy** after saving variables.
 
-| Variable on web service | Reference value |
-|-------------------------|-----------------|
-| `MYSQLHOST` | `${{MySQL.MYSQLHOST}}` |
-| `MYSQLPORT` | `${{MySQL.MYSQLPORT}}` |
-| `MYSQLUSER` | `${{MySQL.MYSQLUSER}}` |
-| `MYSQLPASSWORD` | `${{MySQL.MYSQLPASSWORD}}` |
-| `MYSQLDATABASE` | `${{MySQL.MYSQLDATABASE}}` |
+---
 
-Replace `MySQL` with your database service’s exact name in Railway.
-
-### Option C — Manual connection string
+## Alternative: full connection string
 
 On the **web service** only:
 
-```
-ConnectionStrings__Default=Server=YOUR_HOST;Port=YOUR_PORT;Database=railway;User=root;Password=YOUR_PASSWORD;SslMode=Required;
-Jwt__Key=your-long-random-secret-at-least-32-characters
+```env
+ConnectionStrings__Default=Server=HOST;Port=PORT;Database=railway;User=root;Password=PASSWORD;SslMode=Required;
+Jwt__Key=your-secret
 ASPNETCORE_ENVIRONMENT=Production
 ```
 
-Also required on the web service:
+---
 
-```
-Jwt__Key=your-long-random-secret-at-least-32-characters
-ASPNETCORE_ENVIRONMENT=Production
-```
+## Alternative: reference MySQL service
 
-5. **Settings → Networking → Generate Domain** for your public URL.
-6. Every **git push** triggers a new deploy.
+On the **web service**, add reference variable:
+
+- Name: `MYSQL_URL`
+- Value: `${{YourMySQLServiceName.MYSQL_URL}}`
+
+(Replace `YourMySQLServiceName` with the exact name shown in Railway.)
+
+---
+
+## GitHub auto-deploy
+
+1. Push to GitHub.
+2. Railway project → **Deploy from GitHub** → uses root `Dockerfile`.
+3. Set variables on the **web service** (steps above).
+4. **Networking** → **Generate Domain**.
+
+Every git push redeploys.
+
+---
 
 ## Troubleshooting
 
-**`No database connection configured`**
+Check **Deploy Logs** for lines starting with `[DB]`:
+- `No MYSQL/DATABASE env vars found` → variables are on the wrong service or not saved.
+- `Skipping unresolved Railway reference` → reference syntax wrong; use Raw Editor or copy password manually as `MYSQLPASSWORD`.
 
-- Variables must be on the **web service**, not only on MySQL.
-- Use **Add Reference** from the MySQL service — do not copy localhost values.
-- After adding variables, trigger a **Redeploy**.
+**Never** put database variables only on the MySQL service — they must be on the **web/Docker service**.
 
-## Security
+---
 
-- Never commit passwords or JWT secrets to git.
-- Rotate credentials if they were exposed.
-
-## Local Docker test
+## Local Docker
 
 ```bash
-cp .env.example .env   # fill in values
+cp .env.example .env
+# Set MYSQLPASSWORD=... in .env
 npm run docker:build
 npm run docker:run
 ```
-
-Open http://localhost:8080

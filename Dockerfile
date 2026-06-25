@@ -26,9 +26,11 @@ ENV ASPNETCORE_ENVIRONMENT=Production
 
 COPY --from=backend-build /app/publish .
 COPY --from=frontend-build /app/frontend/dist/authorvault/browser ./wwwroot/
+COPY backend/docker-entrypoint.sh /app/docker-entrypoint.sh
+RUN chmod +x /app/docker-entrypoint.sh
 
 RUN mkdir -p /app/uploads
 
 EXPOSE 8080
 
-ENTRYPOINT ["dotnet", "AuthorVault.Api.dll"]
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
