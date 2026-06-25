@@ -1,0 +1,15 @@
+**/.git
+**/.vs
+**/.vscode
+**/node_modules
+**/bin
+**/obj
+**/dist
+**/.angular
+**/uploads
+**/*.user
+**/*.suo
+**/terminals
+**/agent-transcripts
+**/mcps
+**/assets/c__Users_*

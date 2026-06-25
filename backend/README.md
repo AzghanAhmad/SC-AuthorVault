@@ -59,8 +59,13 @@ Without AWS credentials, files are stored in `uploads/` locally.
 }
 ```
 
-## Schema changes
+## Deploy to Railway (production)
 
-1. Edit entity classes in `Entities/` or `Data/AppDbContext.cs`.
-2. Run: `npm run db:add-migration -- DescribeYourChange`
-3. Run `npm start` — the new migration is applied automatically.
+See **[DEPLOY.md](../DEPLOY.md)** at the repo root for Docker + GitHub + Railway MySQL setup.
+
+Quick variable names for Railway:
+
+- `ConnectionStrings__Default` — full MySQL connection string with `SslMode=Required`
+- `Jwt__Key` — production JWT secret (32+ chars)
+- `PORT` — set automatically by Railway
+

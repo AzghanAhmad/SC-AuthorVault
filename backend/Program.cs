@@ -1,4 +1,5 @@
 using System.Text;
+using AuthorVault.Api.Configuration;
 using AuthorVault.Api.Data;
 using AuthorVault.Api.Options;
 using AuthorVault.Api.Services;
@@ -8,11 +9,14 @@ using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var port = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrWhiteSpace(port))
+    builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
 builder.Services.Configure<AwsOptions>(builder.Configuration.GetSection(AwsOptions.SectionName));
 
-var connectionString = builder.Configuration.GetConnectionString("Default")
-    ?? throw new InvalidOperationException("Connection string 'Default' not found.");
+var connectionString = ConnectionStringResolver.Resolve(builder.Configuration);
 
 var mySqlVersion = new MySqlServerVersion(new Version(8, 0, 36));
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -56,13 +60,16 @@ builder.Services.AddControllers()
     .AddJsonOptions(o => o.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase);
 
 var corsOrigins = builder.Configuration.GetSection("Cors:Origins").Get<string[]>()
-    ?? ["http://localhost:4200"];
+    ?? [];
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
-        policy.WithOrigins(corsOrigins)
-            .AllowAnyHeader()
-            .AllowAnyMethod());
+    {
+        if (corsOrigins.Length > 0)
+            policy.WithOrigins(corsOrigins).AllowAnyHeader().AllowAnyMethod();
+        else
+            policy.AllowAnyHeader().AllowAnyMethod().SetIsOriginAllowed(_ => true);
+    });
 });
 
 builder.Services.AddOpenApi();
@@ -108,8 +115,22 @@ app.UseStaticFiles(new StaticFileOptions
     RequestPath = "/uploads"
 });
 
+var wwwrootPath = Path.Combine(app.Environment.ContentRootPath, "wwwroot");
+var hasSpa = File.Exists(Path.Combine(wwwrootPath, "index.html"));
+if (hasSpa)
+{
+    app.UseDefaultFiles();
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(wwwrootPath)
+    });
+}
+
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+
+if (hasSpa)
+    app.MapFallbackToFile("index.html");
 
 app.Run();
