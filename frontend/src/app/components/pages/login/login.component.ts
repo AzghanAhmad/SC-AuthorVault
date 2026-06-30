@@ -3,20 +3,19 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../../services/auth.service';
+import { BrandIconComponent } from '../../shared/brand-icon/brand-icon.component';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule, BrandIconComponent],
   template: `
     <div class="auth-root">
       <!-- NAVBAR -->
       <header class="nav" [class.scrolled]="navScrolled">
         <div class="nav-inner">
           <a routerLink="/login" class="nav-logo">
-            <span class="logo-mark" style="background:transparent;box-shadow:none;width:32px;height:32px;">
-              <svg viewBox="0 0 36 36" fill="none" style="width:32px;height:32px;"><defs><linearGradient id="lg-login" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#60a5fa"/><stop offset="50%" stop-color="#818cf8"/><stop offset="100%" stop-color="#a78bfa"/></linearGradient></defs><rect width="36" height="36" rx="10" fill="url(#lg-login)" opacity="0.15"/><path d="M13 14.5a3.5 3.5 0 0 1 5.25.38l1.75-1.75a3.5 3.5 0 0 0-4.95-4.95l-2 2" stroke="url(#lg-login)" stroke-width="2.2" stroke-linecap="round"/><path d="M23 21.5a3.5 3.5 0 0 1-5.25-.38l-1.75 1.75a3.5 3.5 0 0 0 4.95 4.95l2-2" stroke="url(#lg-login)" stroke-width="2.2" stroke-linecap="round"/><line x1="14" y1="22" x2="22" y2="14" stroke="url(#lg-login)" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="2 3"/></svg>
-            </span>
+            <app-brand-icon size="sm" />
             <span class="logo-text">ScribeCount</span>
           </a>
           <nav class="nav-links">
@@ -100,9 +99,7 @@ import { AuthService } from '../../../services/auth.service';
         <div class="footer-top">
           <div class="footer-brand">
             <a routerLink="/login" class="nav-logo">
-              <span class="logo-mark" style="background:transparent;box-shadow:none;width:32px;height:32px;">
-                <svg viewBox="0 0 36 36" fill="none" style="width:32px;height:32px;"><defs><linearGradient id="lg-login-foot" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#60a5fa"/><stop offset="50%" stop-color="#818cf8"/><stop offset="100%" stop-color="#a78bfa"/></linearGradient></defs><rect width="36" height="36" rx="10" fill="url(#lg-login-foot)" opacity="0.15"/><path d="M13 14.5a3.5 3.5 0 0 1 5.25.38l1.75-1.75a3.5 3.5 0 0 0-4.95-4.95l-2 2" stroke="url(#lg-login-foot)" stroke-width="2.2" stroke-linecap="round"/><path d="M23 21.5a3.5 3.5 0 0 1-5.25-.38l-1.75 1.75a3.5 3.5 0 0 0 4.95 4.95l2-2" stroke="url(#lg-login-foot)" stroke-width="2.2" stroke-linecap="round"/><line x1="14" y1="22" x2="22" y2="14" stroke="url(#lg-login-foot)" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="2 3"/></svg>
-              </span>
+              <app-brand-icon size="sm" />
               <span class="logo-text">ScribeCount</span>
             </a>
             <p class="footer-tagline">AuthorVault — your book asset command center.</p>
@@ -132,12 +129,6 @@ import { AuthService } from '../../../services/auth.service';
     .nav.scrolled { background:rgba(15,23,42,.92);backdrop-filter:blur(18px);box-shadow:0 4px 30px rgba(0,0,0,.25); }
     .nav-inner { max-width:1200px;margin:0 auto;padding:.85rem 1.5rem;display:flex;align-items:center;justify-content:space-between; }
     .nav-logo { display:flex;align-items:center;gap:.6rem;text-decoration:none;color:white; }
-    .logo-mark {
-      width:36px;height:36px;display:flex;align-items:center;justify-content:center;
-      background:#fff;border-radius:10px;padding:4px;flex-shrink:0;
-      box-shadow:0 2px 8px rgba(0,0,0,.12);
-    }
-    .logo-img { width:100%;height:100%;object-fit:contain;display:block; }
     .logo-text { font-weight:700;font-size:1.1rem;letter-spacing:-.02em; }
     .nav-links { display:flex;align-items:center;gap:1.5rem; }
     .nav-links a { color:rgba(255,255,255,.8);text-decoration:none;font-size:.9rem;font-weight:500;transition:color .2s; }

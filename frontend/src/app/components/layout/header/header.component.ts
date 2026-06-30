@@ -1,16 +1,17 @@
 import { Component, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { BrandIconComponent } from '../../shared/brand-icon/brand-icon.component';
 
 @Component({
   selector: 'app-header',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, BrandIconComponent],
   template: `
     <header class="nav" [class.scrolled]="navScrolled">
       <div class="nav-inner">
         <a routerLink="/" class="nav-logo">
-          <span class="logo-mark"><svg viewBox="0 0 36 36" fill="none"><defs><linearGradient id="lg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#60a5fa"/><stop offset="50%" stop-color="#818cf8"/><stop offset="100%" stop-color="#a78bfa"/></linearGradient></defs><rect width="36" height="36" rx="10" fill="url(#lg)" opacity="0.15"/><path d="M13 14.5a3.5 3.5 0 0 1 5.25.38l1.75-1.75a3.5 3.5 0 0 0-4.95-4.95l-2 2" stroke="url(#lg)" stroke-width="2.2" stroke-linecap="round"/><path d="M23 21.5a3.5 3.5 0 0 1-5.25-.38l-1.75 1.75a3.5 3.5 0 0 0 4.95 4.95l2-2" stroke="url(#lg)" stroke-width="2.2" stroke-linecap="round"/><line x1="14" y1="22" x2="22" y2="14" stroke="url(#lg)" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="2 3"/></svg></span>
+          <app-brand-icon size="sm" />
           <span class="logo-text">ScribeCount</span>
           <span class="logo-badge">AuthorVault</span>
         </a>
@@ -69,8 +70,6 @@ import { RouterModule } from '@angular/router';
       color: white;
     }
 
-    .logo-mark { width:32px;height:32px;display:flex;align-items:center;justify-content:center; }
-    .logo-mark svg { width:100%;height:100%; }
     .logo-text { font-weight:700;font-size:1.1rem;letter-spacing:-.02em; }
 
     .logo-badge {

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterModule, RouterLinkActive, NavigationEnd } from '@angular/router';
 import { filter, Subscription } from 'rxjs';
 import { AuthService } from '../../../services/auth.service';
+import { BrandIconComponent } from '../../shared/brand-icon/brand-icon.component';
 
 interface NavGroup {
   id: string;
@@ -15,23 +16,19 @@ interface NavGroup {
 @Component({
   selector: 'app-sidebar',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, BrandIconComponent],
   template: `
     <aside class="sidebar" [class.collapsed]="collapsed()">
       <div class="sidebar-top-row">
         <div class="sidebar-logo" *ngIf="!collapsed()">
-          <span class="logo-mark" style="background:transparent;box-shadow:none;width:32px;height:32px;">
-            <svg viewBox="0 0 36 36" fill="none" style="width:32px;height:32px;"><defs><linearGradient id="lg-sidebar" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#60a5fa"/><stop offset="50%" stop-color="#818cf8"/><stop offset="100%" stop-color="#a78bfa"/></linearGradient></defs><rect width="36" height="36" rx="10" fill="url(#lg-sidebar)" opacity="0.15"/><path d="M13 14.5a3.5 3.5 0 0 1 5.25.38l1.75-1.75a3.5 3.5 0 0 0-4.95-4.95l-2 2" stroke="url(#lg-sidebar)" stroke-width="2.2" stroke-linecap="round"/><path d="M23 21.5a3.5 3.5 0 0 1-5.25-.38l-1.75 1.75a3.5 3.5 0 0 0 4.95 4.95l2-2" stroke="url(#lg-sidebar)" stroke-width="2.2" stroke-linecap="round"/><line x1="14" y1="22" x2="22" y2="14" stroke="url(#lg-sidebar)" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="2 3"/></svg>
-          </span>
+          <app-brand-icon />
           <div class="logo-text-wrap">
             <span class="logo-text">ScribeCount</span>
             <span class="logo-sub">AUTHORVAULT</span>
           </div>
         </div>
         <div class="sidebar-logo-collapsed" *ngIf="collapsed()" style="padding-bottom:12px;">
-          <span class="logo-mark" style="background:transparent;box-shadow:none;width:32px;height:32px;margin:0 auto;">
-            <svg viewBox="0 0 36 36" fill="none" style="width:32px;height:32px;"><defs><linearGradient id="lg-sidebar-col" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#60a5fa"/><stop offset="50%" stop-color="#818cf8"/><stop offset="100%" stop-color="#a78bfa"/></linearGradient></defs><rect width="36" height="36" rx="10" fill="url(#lg-sidebar-col)" opacity="0.15"/><path d="M13 14.5a3.5 3.5 0 0 1 5.25.38l1.75-1.75a3.5 3.5 0 0 0-4.95-4.95l-2 2" stroke="url(#lg-sidebar-col)" stroke-width="2.2" stroke-linecap="round"/><path d="M23 21.5a3.5 3.5 0 0 1-5.25-.38l-1.75 1.75a3.5 3.5 0 0 0 4.95 4.95l2-2" stroke="url(#lg-sidebar-col)" stroke-width="2.2" stroke-linecap="round"/><line x1="14" y1="22" x2="22" y2="14" stroke="url(#lg-sidebar-col)" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="2 3"/></svg>
-          </span>
+          <app-brand-icon size="sm" />
         </div>
         <button class="collapse-btn" (click)="toggleCollapse()" [attr.aria-label]="collapsed() ? 'Expand sidebar' : 'Collapse sidebar'">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
@@ -164,19 +161,10 @@ interface NavGroup {
     .sidebar-logo {
       display: flex; align-items: center; gap: 10px;
     }
-    .logo-mark {
-      width: 36px; height: 36px; flex-shrink: 0;
-      display: flex; align-items: center; justify-content: center;
-      background: #fff; border-radius: 10px; padding: 4px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-    }
-    .logo-icon { width: 100%; height: 100%; object-fit: contain; display: block; }
     .logo-text-wrap { display: flex; flex-direction: column; gap: 0; }
     .logo-text { font-size: 1.05rem; font-weight: 700; color: #fff; letter-spacing: .01em; line-height: 1.2; }
     .logo-sub { font-size: 0.6rem; font-weight: 700; color: #38bdf8; letter-spacing: .14em; text-transform: uppercase; line-height: 1.2; }
     .sidebar-logo-collapsed { display: flex; justify-content: center; padding-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 12px; }
-    .sidebar-logo-collapsed .logo-mark { width: 32px; height: 32px; border-radius: 8px; padding: 3px; }
-    .logo-icon-sm { width: 100%; height: 100%; object-fit: contain; display: block; }
 
     /* Nav */
     .sidebar-nav { flex: 1; display: flex; flex-direction: column; gap: 2px; }
