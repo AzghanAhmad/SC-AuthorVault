@@ -1,6 +1,8 @@
 using System.Text;
 using AuthorVault.Api.Configuration;
 using AuthorVault.Api.Data;
+using AuthorVault.Api.Filters;
+using AuthorVault.Api.Middleware;
 using AuthorVault.Api.Options;
 using AuthorVault.Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -20,7 +22,8 @@ var connectionString = ConnectionStringResolver.Resolve(builder.Configuration);
 
 var mySqlVersion = new MySqlServerVersion(new Version(8, 0, 36));
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseMySql(connectionString, mySqlVersion));
+    options.UseMySql(connectionString, mySqlVersion, mySqlOptions =>
+        mySqlOptions.EnableRetryOnFailure(maxRetryCount: 3, maxRetryDelay: TimeSpan.FromSeconds(5), errorNumbersToAdd: null)));
 
 var jwtOpts = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -56,7 +59,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 builder.Services.AddAuthorization();
-builder.Services.AddControllers()
+builder.Services.AddControllers(options => options.Filters.Add<ApiExceptionFilter>())
     .AddJsonOptions(o => o.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase);
 
 var corsOrigins = builder.Configuration.GetSection("Cors:Origins").Get<string[]>()
@@ -65,10 +68,11 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        if (corsOrigins.Length > 0)
-            policy.WithOrigins(corsOrigins).AllowAnyHeader().AllowAnyMethod();
-        else
-            policy.AllowAnyHeader().AllowAnyMethod().SetIsOriginAllowed(_ => true);
+        policy.AllowAnyHeader().AllowAnyMethod().SetIsOriginAllowed(origin =>
+        {
+            var uri = new Uri(origin);
+            return uri.Host == "localhost" || uri.Host == "127.0.0.1" || Array.IndexOf(corsOrigins, origin) >= 0;
+        });
     });
 });
 
@@ -84,13 +88,25 @@ else
 
 var app = builder.Build();
 
+app.UseMiddleware<ApiExceptionMiddleware>();
+
+if (args.Contains("--repair-db"))
+{
+    using var repairScope = app.Services.CreateScope();
+    var repairDb = repairScope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var repairLogger = repairScope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    await DatabaseInitializer.RepairDatabaseAsync(repairDb, connectionString, repairLogger);
+    repairLogger.LogInformation("Database repaired successfully.");
+    return;
+}
+
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
     try
     {
-        await DatabaseInitializer.MigrateAsync(db, connectionString, logger);
+        await DatabaseInitializer.MigrateAsync(db, connectionString, logger, allowRepair: app.Environment.IsDevelopment());
     }
     catch (Exception ex)
     {
@@ -103,7 +119,14 @@ using (var scope = app.Services.CreateScope())
 
 if (app.Environment.IsDevelopment())
 {
+    app.UseWhen(
+        ctx => !ctx.Request.Path.StartsWithSegments("/api"),
+        branch => branch.UseDeveloperExceptionPage());
     app.MapOpenApi();
+}
+else
+{
+    app.UseExceptionHandler();
 }
 
 app.UseCors();

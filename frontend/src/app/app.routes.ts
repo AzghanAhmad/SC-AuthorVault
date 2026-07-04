@@ -11,6 +11,26 @@ export const routes: Routes = [
     loadComponent: () => import('./components/pages/signup/signup.component').then(m => m.SignupComponent)
   },
   {
+    path: 'about',
+    loadComponent: () => import('./components/pages/static-page/static-page.component').then(m => m.StaticPageComponent),
+    data: { pageKey: 'about' }
+  },
+  {
+    path: 'contact',
+    loadComponent: () => import('./components/pages/static-page/static-page.component').then(m => m.StaticPageComponent),
+    data: { pageKey: 'contact' }
+  },
+  {
+    path: 'privacy',
+    loadComponent: () => import('./components/pages/static-page/static-page.component').then(m => m.StaticPageComponent),
+    data: { pageKey: 'privacy' }
+  },
+  {
+    path: 'terms',
+    loadComponent: () => import('./components/pages/static-page/static-page.component').then(m => m.StaticPageComponent),
+    data: { pageKey: 'terms' }
+  },
+  {
     path: 'dashboard',
     loadComponent: () => import('./components/pages/dashboard/dashboard.component').then(m => m.DashboardComponent)
   },

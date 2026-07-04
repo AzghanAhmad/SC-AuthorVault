@@ -1,0 +1,90 @@
+:host {
+  display: block;
+  min-height: 100vh;
+  background: #0f172a;
+  color: #f1f5f9;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.static-main {
+  padding-top: 5rem;
+  min-height: calc(100vh - 5rem);
+}
+
+.static-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.static-header {
+  padding: 4rem 0 3rem;
+  background: radial-gradient(circle at top right, rgba(99, 102, 241, 0.08), transparent 50%),
+              radial-gradient(circle at top left, rgba(56, 189, 248, 0.05), transparent 50%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.static-title {
+  font-size: 2.75rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  background: linear-gradient(135deg, #fff 0%, #cbd5e1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin: 0 0 0.5rem;
+}
+
+.static-subtitle {
+  font-size: 1.15rem;
+  color: #94a3b8;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.static-content {
+  padding: 3rem 1.5rem 6rem;
+}
+
+.static-section {
+  margin-bottom: 2.5rem;
+}
+
+.section-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 1rem;
+  letter-spacing: -0.02em;
+}
+
+.section-p {
+  font-size: 1rem;
+  line-height: 1.7;
+  color: #cbd5e1;
+  margin: 0 0 1.25rem;
+}
+
+.section-list {
+  margin: 0 0 1.5rem;
+  padding-left: 1.5rem;
+}
+
+.section-li {
+  font-size: 1rem;
+  line-height: 1.7;
+  color: #cbd5e1;
+  margin-bottom: 0.5rem;
+}
+
+.section-li::marker {
+  color: #6366f1;
+}
+
+@media (max-width: 640px) {
+  .static-title {
+    font-size: 2.25rem;
+  }
+  .static-subtitle {
+    font-size: 1rem;
+  }
+}

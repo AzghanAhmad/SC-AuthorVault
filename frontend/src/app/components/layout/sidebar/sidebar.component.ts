@@ -19,7 +19,7 @@ interface NavGroup {
   imports: [CommonModule, RouterModule, BrandIconComponent],
   template: `
     <aside class="sidebar" [class.collapsed]="collapsed()">
-      <div class="sidebar-top-row">
+      <div class="sidebar-top-row" [class.is-collapsed]="collapsed()">
         <div class="sidebar-logo" *ngIf="!collapsed()">
           <app-brand-icon />
           <div class="logo-text-wrap">
@@ -27,7 +27,7 @@ interface NavGroup {
             <span class="logo-sub">AUTHORVAULT</span>
           </div>
         </div>
-        <div class="sidebar-logo-collapsed" *ngIf="collapsed()" style="padding-bottom:12px;">
+        <div class="sidebar-logo-collapsed" *ngIf="collapsed()">
           <app-brand-icon size="sm" />
         </div>
         <button class="collapse-btn" (click)="toggleCollapse()" [attr.aria-label]="collapsed() ? 'Expand sidebar' : 'Collapse sidebar'">
@@ -118,23 +118,38 @@ interface NavGroup {
         </div>
       </nav>
 
-      <div class="sidebar-divider"></div>
+      <div class="sidebar-footer">
+        <div class="sidebar-divider"></div>
 
-      <div class="sidebar-user" *ngIf="!collapsed()">
-        <div class="profile-avatar">{{ auth.initials() }}</div>
-        <div class="profile-meta">
-          <div class="profile-name">{{ auth.displayName() }}</div>
-          <div class="profile-email" *ngIf="auth.email()">{{ auth.email() }}</div>
+        <a class="nav-item settings-link"
+           routerLink="/settings"
+           routerLinkActive="active">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+          </span>
+          <span class="nav-label" *ngIf="!collapsed()">Settings</span>
+          <div class="nav-active-indicator"></div>
+        </a>
+
+        <div class="sidebar-user" *ngIf="!collapsed()">
+          <div class="profile-avatar">{{ auth.initials() }}</div>
+          <div class="profile-meta">
+            <div class="profile-name">{{ auth.displayName() }}</div>
+            <div class="profile-email" *ngIf="auth.email()">{{ auth.email() }}</div>
+          </div>
         </div>
-      </div>
 
-      <button class="logout-btn" *ngIf="!collapsed()" type="button" (click)="logout()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
-          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-          <polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
-        </svg>
-        Logout
-      </button>
+        <button class="logout-btn" *ngIf="!collapsed()" type="button" (click)="logout()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+          Logout
+        </button>
+      </div>
 
 
     </aside>
@@ -150,21 +165,40 @@ interface NavGroup {
       position: fixed; left: 0; top: 0; z-index: 40;
       overflow-y: auto; overflow-x: hidden;
     }
-    .sidebar.collapsed { width: 72px; min-width: 72px; }
+    .sidebar.collapsed {
+      width: 72px;
+      min-width: 72px;
+      padding: 16px 10px;
+    }
 
     /* Top Row */
     .sidebar-top-row {
       display: flex; align-items: center; justify-content: space-between;
       padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.08);
       margin-bottom: 12px;
+      gap: 8px;
+      min-width: 0;
+    }
+    .sidebar-top-row.is-collapsed {
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
     }
     .sidebar-logo {
       display: flex; align-items: center; gap: 10px;
+      min-width: 0;
+      flex: 1;
     }
-    .logo-text-wrap { display: flex; flex-direction: column; gap: 0; }
+    .logo-text-wrap { display: flex; flex-direction: column; gap: 0; min-width: 0; }
     .logo-text { font-size: 1.05rem; font-weight: 700; color: #fff; letter-spacing: .01em; line-height: 1.2; }
     .logo-sub { font-size: 0.6rem; font-weight: 700; color: #38bdf8; letter-spacing: .14em; text-transform: uppercase; line-height: 1.2; }
-    .sidebar-logo-collapsed { display: flex; justify-content: center; padding-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 12px; }
+    .sidebar-logo-collapsed {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+    }
 
     /* Nav */
     .sidebar-nav { flex: 1; display: flex; flex-direction: column; gap: 2px; }
@@ -255,6 +289,17 @@ interface NavGroup {
     /* Divider */
     .sidebar-divider { height: 1px; margin: 10px 4px 8px; background: rgba(255,255,255,0.08); }
 
+    .sidebar-footer {
+      display: flex;
+      flex-direction: column;
+      margin-top: auto;
+      flex-shrink: 0;
+    }
+    .sidebar.collapsed .sidebar-footer .sidebar-divider {
+      margin-left: 0;
+      margin-right: 0;
+    }
+
     /* User */
     .sidebar-user {
       display: flex; align-items: center; gap: .75rem;
@@ -283,13 +328,39 @@ interface NavGroup {
 
     /* Collapse */
     .collapse-btn {
-      margin: 0 4px; padding: 9px; border-radius: 9px;
+      margin: 0; padding: 8px; border-radius: 9px;
       background: transparent; border: 1px solid rgba(255,255,255,0.15);
       color: rgba(255,255,255,0.6); cursor: pointer;
       display: flex; align-items: center; justify-content: center;
-      transition: all 0.15s;
+      transition: all 0.15s; flex-shrink: 0;
     }
     .collapse-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+    .sidebar.collapsed .collapse-btn {
+      width: 40px;
+      height: 32px;
+      padding: 6px;
+    }
+
+    /* Collapsed rail layout */
+    .sidebar.collapsed .nav-item {
+      justify-content: center;
+      padding: 10px 8px;
+      gap: 0;
+    }
+    .sidebar.collapsed .nav-item .nav-icon {
+      margin: 0;
+    }
+    .sidebar.collapsed .nav-active-indicator {
+      right: 3px;
+      width: 2px;
+    }
+    .sidebar.collapsed .nav-active-indicator,
+    .sidebar.collapsed .nav-item.active .nav-active-indicator {
+      height: 16px;
+    }
+    .sidebar.collapsed .nav-group {
+      margin-bottom: 0;
+    }
 
     @media (max-width: 768px) {
       .sidebar { transform: translateX(-100%); }

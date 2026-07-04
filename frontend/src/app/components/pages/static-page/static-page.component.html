@@ -1,0 +1,34 @@
+<app-public-nav />
+
+<main class="static-main" *ngIf="content">
+  <div class="static-header">
+    <div class="static-container">
+      <h1 class="static-title">{{ content.title }}</h1>
+      <p class="static-subtitle" *ngIf="content.subtitle">{{ content.subtitle }}</p>
+    </div>
+  </div>
+
+  <div class="static-content static-container">
+    @for (sec of content.sections; track $index) {
+      <div class="static-section">
+        <h2 *ngIf="sec.heading" class="section-title">{{ sec.heading }}</h2>
+        
+        @if (sec.paragraphs) {
+          @for (p of sec.paragraphs; track $index) {
+            <p class="section-p">{{ p }}</p>
+          }
+        }
+
+        @if (sec.list) {
+          <ul class="section-list">
+            @for (li of sec.list; track $index) {
+              <li class="section-li">{{ li }}</li>
+            }
+          </ul>
+        }
+      </div>
+    }
+  </div>
+</main>
+
+<app-public-footer />

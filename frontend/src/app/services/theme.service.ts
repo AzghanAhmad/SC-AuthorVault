@@ -34,11 +34,19 @@ export class ThemeService {
     }
   }
 
-  applyThemeFromSettings(theme: string, _compact: boolean): void {
+  applyThemeFromSettings(theme: string, compact: boolean): void {
     this.setTheme(theme as 'light' | 'dark' | 'auto');
+    this.setCompactSidebar(compact);
   }
 
-  setCompactSidebar(_compact: boolean): void {
-    // Reserved for sidebar compact mode
+  setCompactSidebar(compact: boolean): void {
+    localStorage.setItem('av_compact_sidebar', compact ? '1' : '0');
+    document.documentElement.classList.toggle('compact-sidebar', compact);
+  }
+
+  loadCompactSidebarFromStorage(): boolean {
+    const compact = localStorage.getItem('av_compact_sidebar') === '1';
+    document.documentElement.classList.toggle('compact-sidebar', compact);
+    return compact;
   }
 }

@@ -1,0 +1,34 @@
+.pn-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.25rem; }
+.pn-card {
+  background: var(--surface); border: 1px solid var(--border-light); border-radius: 16px;
+  padding: 1.5rem; cursor: pointer; transition: all .25s; box-shadow: var(--shadow-sm);
+}
+.pn-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-3px); border-color: rgba(79,70,229,.3); }
+.pn-card-top { display: flex; align-items: flex-start; gap: 1rem; margin-bottom: 1rem; }
+.pn-big-avatar {
+  width: 52px; height: 52px; border-radius: 14px; flex-shrink: 0;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-weight: 700; font-size: 18px;
+}
+.pn-card-name { font-size: 1.0625rem; font-weight: 700; color: var(--text-primary); margin: 0 0 .2rem; }
+.pn-card-genre { font-size: .8125rem; color: var(--text-muted); margin: 0; }
+.pn-card-stats { display: flex; gap: 1.25rem; flex-wrap: wrap; padding-top: .875rem; border-top: 1px solid var(--border-light); }
+.pnstat { display: flex; flex-direction: column; }
+.pnstat-val { font-size: 1.125rem; font-weight: 700; color: var(--text-primary); line-height: 1.1; }
+.pnstat-lbl { font-size: .6875rem; color: var(--text-muted); }
+.pn-detail-header { background: var(--surface); border: 1px solid var(--border-light); border-radius: 16px; padding: 1.5rem; box-shadow: var(--shadow-sm); }
+.pn-detail-top { display: flex; align-items: center; gap: 1rem; margin-top: .75rem; }
+.asset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: .875rem; margin-top: .5rem; }
+.asset-slot {
+  border: 2px dashed var(--border-color); border-radius: 10px; padding: 1.25rem .875rem;
+  text-align: center; cursor: pointer; transition: border-color .2s;
+  display: flex; flex-direction: column; align-items: center; gap: .35rem;
+}
+.asset-slot:hover { border-color: var(--accent-blue); }
+.asset-icon { font-size: 1.5rem; }
+.asset-label { font-size: .8125rem; font-weight: 600; color: var(--text-primary); }
+.asset-sub { font-size: .6875rem; color: var(--text-muted); }
+.empty-icon-svg { width: 40px; height: 40px; color: var(--text-muted); margin-bottom: 0.5rem; }
+.entity-icon-svg { width: 18px; height: 18px; flex-shrink: 0; color: var(--accent-blue, #6366f1); }
+.entity-name-with-icon, .boxset-card-title { display: flex; align-items: center; gap: 0.5rem; margin: 0; font-size: .95rem; font-weight: 700; }

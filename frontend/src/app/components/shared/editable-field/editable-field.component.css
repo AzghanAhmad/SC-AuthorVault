@@ -1,0 +1,53 @@
+.form-group { display: flex; flex-direction: column; gap: 0.35rem; }
+.form-group.full { grid-column: 1 / -1; }
+.vault-edit-input {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border: 1.5px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  font-family: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.vault-edit-input:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+}
+.sc-email-link, .field-url-link {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--accent-blue);
+  text-decoration: none;
+  word-break: break-all;
+}
+.sc-email-link:hover, .field-url-link:hover { text-decoration: underline; }
+.form-value {
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  padding: 0.55rem 0;
+  min-height: 38px;
+}
+.field-select-field {
+  position: relative;
+  width: 100%;
+}
+.field-select-input {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-right: 2rem;
+  cursor: pointer;
+}
+.field-chevron {
+  position: absolute;
+  right: 0.6rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+  color: var(--accent-blue);
+  pointer-events: none;
+}

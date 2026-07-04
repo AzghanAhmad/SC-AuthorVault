@@ -1,0 +1,274 @@
+<div class="page">
+  <app-page-action-bar
+    [editing]="editMode()"
+    deleteLabel="Delete all dates"
+    (editToggle)="editMode.update(v => !v)"
+    (deleteAll)="deleteAllDates()" />
+
+  <div class="page-header">
+    <div>
+      <div class="page-title-wrap">
+        <svg class="header-icon-svg" viewBox="0 0 24 24" aria-hidden="true" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2.5 21h19"/>
+          <path d="M4.5 21V11.5h3.5V21"/>
+          <path d="M6.25 13.5v5"/>
+          <path d="M8.5 21V6h7V21"/>
+          <path d="M12 6V2.75"/>
+          <path d="M9.75 8h4.5"/><path d="M9.75 9.75h4.5"/><path d="M9.75 11.5h4.5"/>
+          <path d="M9.75 13.25h4.5"/><path d="M9.75 15h4.5"/><path d="M9.75 16.75h4.5"/>
+          <path d="M9.75 18.5h4.5"/>
+          <path d="M16 21V11.5h3.5V21"/>
+          <path d="M17.75 13.5v5"/>
+        </svg>
+        <h1 class="page-title" style="margin:0;">Important Dates</h1>
+      </div>
+      <p class="page-subtitle">Tax deadlines, renewals, filings, and contract dates — all in one place</p>
+    </div>
+    <div class="header-actions">
+      <button type="button" class="btn-secondary" [disabled]="!editMode()" (click)="openAddModal()">+ Add date</button>
+      <button type="button" class="btn-primary" [class.active]="viewMode() === 'calendar'" (click)="viewMode.set('calendar')">
+        Calendar
+      </button>
+      <button type="button" class="btn-secondary" [class.active]="viewMode() === 'list'" (click)="viewMode.set('list')">
+        List
+      </button>
+    </div>
+  </div>
+
+  <div class="toolbar" style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;">
+    <select [(ngModel)]="filterCat" class="filter-select">
+      <option value="">All Categories</option>
+      <option value="Tax">Tax Deadlines</option>
+      <option value="Domain">Domain Renewals</option>
+      <option value="ISBN">ISBN Purchases</option>
+      <option value="Software">Software Renewals</option>
+      <option value="Trademark">Trademark Renewals</option>
+      <option value="Contract">Contract Renewals</option>
+      <option value="Filing">Annual Filings</option>
+    </select>
+    
+    <div class="date-range-filter" style="display:flex;align-items:center;gap:.35rem;font-size:.8125rem;color:var(--text-secondary);">
+      <span>From:</span>
+      <input type="date" [(ngModel)]="filterStartDate" style="padding:.5rem;border:1.5px solid var(--border-color);border-radius:8px;background:var(--surface);color:var(--text-primary);font-size:.8125rem;" />
+      <span>To:</span>
+      <input type="date" [(ngModel)]="filterEndDate" style="padding:.5rem;border:1.5px solid var(--border-color);border-radius:8px;background:var(--surface);color:var(--text-primary);font-size:.8125rem;" />
+      @if (filterStartDate || filterEndDate) {
+        <button type="button" (click)="clearDateRange()" style="background:none;border:none;color:#ef4444;cursor:pointer;font-weight:600;padding:.2rem .4rem;">Clear Range</button>
+      }
+    </div>
+
+    @if (viewMode() === 'list') {
+      <div class="legend" style="margin-left:auto;">
+        <span class="legend-dot red"></span><span>Due within 30 days</span>
+        <span class="legend-dot amber"></span><span>Due within 90 days</span>
+        <span class="legend-dot green"></span><span>90+ days away</span>
+      </div>
+    }
+  </div>
+
+  @if (viewMode() === 'calendar') {
+    <div class="cal-card">
+      <div class="cal-header">
+        <h2 class="cal-month-title">{{ monthTitle() }}</h2>
+        <div class="cal-controls">
+          <button type="button" class="cal-today-btn" (click)="goToday()">Today</button>
+          <div class="cal-nav">
+            <button type="button" class="cal-arrow" (click)="prevMonth()" aria-label="Previous month">&lsaquo;</button>
+            <button type="button" class="cal-arrow" (click)="nextMonth()" aria-label="Next month">&rsaquo;</button>
+          </div>
+          <div class="view-segment">
+            <button type="button" [class.active]="calView() === 'month'" (click)="calView.set('month')">Monthly</button>
+            <button type="button" [class.active]="calView() === 'quarter'" (click)="calView.set('quarter')">Quarterly</button>
+            <button type="button" [class.active]="calView() === 'year'" (click)="calView.set('year')">Yearly</button>
+          </div>
+        </div>
+      </div>
+
+      @if (calView() === 'month') {
+        <div class="cal-grid-body">
+          <div class="cal-weekdays">
+            @for (wd of weekDays; track wd) {
+              <span>{{ wd }}</span>
+            }
+          </div>
+          <div class="cal-grid">
+            @for (day of calendarDays(); track day.date.getTime()) {
+              <div class="cal-cell" [class.other-month]="!day.inMonth" [class.today]="day.isToday">
+                <span class="cal-day-num">{{ day.date.getDate() }}</span>
+                <div class="cal-events">
+                  @for (ev of day.events; track ev.id) {
+                    <button
+                      type="button"
+                      class="cal-event"
+                      [class]="'cat-stripe-' + ev.category.toLowerCase()"
+                      [title]="ev.title + ' (' + ev.category + ')'"
+                      (click)="selectEvent(ev)">
+                      <span class="cal-event-title">{{ ev.title }}</span>
+                    </button>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      @if (calView() === 'quarter') {
+        <div class="quarter-view-container" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1.5rem;padding:0 1.5rem 1.5rem;">
+          @for (m of quarterMonths(); track m.monthIndex) {
+            <div class="quarter-month-box" style="background:var(--background);border:1px solid var(--border-color);border-radius:12px;padding:.75rem;box-sizing:border-box;">
+              <h3 style="text-align:center;font-size:1rem;font-weight:700;color:var(--text-primary);margin:0 0 .5rem;">{{ m.name }} {{ m.year }}</h3>
+              
+              <div class="cal-weekdays" style="grid-template-columns:repeat(7, 1fr);border-bottom:1px solid var(--border-color);">
+                @for (wd of ['M','T','W','T','F','S','S']; track $index) {
+                  <span style="font-size:.65rem;font-weight:700;text-align:center;display:block;padding:.25rem 0;">{{ wd }}</span>
+                }
+              </div>
+              
+              <div class="mini-cal-grid" style="display:grid;grid-template-columns:repeat(7, 1fr);grid-auto-rows:2.8rem;gap:1px;background:var(--border-color);margin-top:.25rem;">
+                @for (day of getMonthDays(m.year, m.monthIndex); track day.date.getTime()) {
+                  <div class="mini-cal-cell" 
+                       [style.background]="day.isToday ? 'rgba(56,189,248,.15)' : (day.inMonth ? 'var(--surface)' : 'var(--background-subtle)')"
+                       [style.opacity]="day.inMonth ? '1' : '.4'"
+                       style="position:relative;padding:.2rem;display:flex;flex-direction:column;justify-content:space-between;box-sizing:border-box;min-width:0;height:2.8rem;">
+                    <span style="font-size:.7rem;font-weight:500;color:var(--text-secondary);align-self:flex-end;" [style.color]="day.isToday ? 'var(--accent-blue)' : 'inherit'">{{ day.date.getDate() }}</span>
+                    
+                    <div class="mini-cal-dots" style="display:flex;gap:2px;justify-content:center;margin-top:auto;overflow:hidden;width:100%;">
+                      @for (ev of day.events.slice(0, 3); track ev.id) {
+                        <span [class]="'legend-dot ' + ev.category.toLowerCase()" 
+                              style="width:5px;height:5px;border-radius:50%;display:inline-block;cursor:pointer;"
+                              [title]="ev.title"
+                              (click)="selectEvent(ev)"></span>
+                      }
+                      @if (day.events.length > 3) {
+                        <span style="font-size:.5rem;line-height:1;color:var(--text-muted);">+</span>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
+
+      @if (calView() === 'year') {
+        <div class="yearly-view-container" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:1rem;padding:0 1.5rem 1.5rem;">
+          @for (m of yearMonthsGrid(); track m.monthIndex) {
+            <div class="quarter-month-box" style="background:var(--background);border:1px solid var(--border-color);border-radius:10px;padding:.5rem;box-sizing:border-box;">
+              <h3 style="text-align:center;font-size:.85rem;font-weight:700;color:var(--text-primary);margin:0 0 .35rem;cursor:pointer;" (click)="jumpToMonth(m.monthIndex)">{{ m.name }} {{ m.year }}</h3>
+              
+              <div class="cal-weekdays" style="grid-template-columns:repeat(7, 1fr);border-bottom:1px solid var(--border-color);">
+                @for (wd of ['M','T','W','T','F','S','S']; track $index) {
+                  <span style="font-size:.55rem;font-weight:700;text-align:center;display:block;padding:.15rem 0;">{{ wd }}</span>
+                }
+              </div>
+              
+              <div class="mini-cal-grid" style="display:grid;grid-template-columns:repeat(7, 1fr);grid-auto-rows:1.8rem;gap:1px;background:var(--border-color);margin-top:.15rem;">
+                @for (day of getMonthDays(m.year, m.monthIndex); track day.date.getTime()) {
+                  <div class="mini-cal-cell" 
+                       [style.background]="day.isToday ? 'rgba(56,189,248,.1)' : (day.inMonth ? 'var(--surface)' : 'var(--background-subtle)')"
+                       [style.opacity]="day.inMonth ? '1' : '.3'"
+                       style="position:relative;padding:.1rem;display:flex;flex-direction:column;justify-content:space-between;box-sizing:border-box;min-width:0;height:1.8rem;">
+                    <span style="font-size:.6rem;font-weight:500;color:var(--text-secondary);align-self:flex-end;">{{ day.date.getDate() }}</span>
+                    
+                    <div class="mini-cal-dots" style="display:flex;gap:1.5px;justify-content:center;margin-top:auto;overflow:hidden;width:100%;">
+                      @for (ev of day.events.slice(0, 2); track ev.id) {
+                        <span [class]="'legend-dot ' + ev.category.toLowerCase()" 
+                              style="width:4px;height:4px;border-radius:50%;display:inline-block;cursor:pointer;"
+                              [title]="ev.title"
+                              (click)="selectEvent(ev)"></span>
+                      }
+                      @if (day.events.length > 2) {
+                        <span style="font-size:.45rem;line-height:1;color:var(--text-muted);">+</span>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  @if (viewMode() === 'list') {
+    <div class="dates-list">
+      @for (d of filtered(); track d.id) {
+        <div class="date-card" [class]="'urgency-' + getUrgency(d.dueDate)">
+          <div class="date-left">
+            <div class="date-badge" [class]="'urgency-' + getUrgency(d.dueDate)">
+              <span class="date-day">{{ getDay(d.dueDate) }}</span>
+              <span class="date-month">{{ getMonthShort(d.dueDate) }}</span>
+            </div>
+          </div>
+          <div class="date-body">
+            <div class="date-title">{{ d.title }}</div>
+            <div class="date-meta">
+              <span class="cat-tag" [class]="'cat-' + d.category.toLowerCase()">{{ d.category }}</span>
+              <span class="days-until" [class]="'urgency-text-' + getUrgency(d.dueDate)">
+                {{ daysUntilLabel(d.dueDate) }}
+              </span>
+              @if (d.recurring) { <span class="recurring-tag">&#8635; Recurring</span> }
+            </div>
+            @if (d.notes) { <p class="date-notes">{{ d.notes }}</p> }
+          </div>
+          <div class="date-right">
+            <span class="full-date">{{ formatDate(d.dueDate) }}</span>
+            <button type="button" class="link-btn" (click)="deleteDate(d.id)">Remove</button>
+          </div>
+        </div>
+      }
+      @if (filtered().length === 0) {
+        <div class="empty-state"><p>No dates in this category. Add one or switch filters.</p></div>
+      }
+    </div>
+  }
+
+</div>
+
+
+@if (showAddModal()) {
+  <div class="modal-backdrop" (click)="closeAddModal()">
+    <div class="modal-panel" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <h3>{{ editingId() ? 'Edit date' : 'Add important date' }}</h3>
+      <div class="form-group">
+        <label class="form-label">Title</label>
+        <input class="form-input" [(ngModel)]="form.title" placeholder="e.g. Domain renewal" />
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Due date</label>
+          <input type="date" class="form-input" [(ngModel)]="form.dueDate" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Category</label>
+          <select class="form-input" [(ngModel)]="form.category">
+            <option value="Tax">Tax</option>
+            <option value="Domain">Domain</option>
+            <option value="ISBN">ISBN</option>
+            <option value="Software">Software</option>
+            <option value="Trademark">Trademark</option>
+            <option value="Contract">Contract</option>
+            <option value="Filing">Filing</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes (optional)</label>
+        <textarea class="form-input" rows="3" [(ngModel)]="form.notes"></textarea>
+      </div>
+      <label class="check-row">
+        <input type="checkbox" [(ngModel)]="form.recurring" />
+        <span>Recurring annually</span>
+      </label>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" (click)="closeAddModal()">Cancel</button>
+        <button type="button" class="btn-primary" (click)="saveDate()" [disabled]="!form.title.trim() || !form.dueDate">
+          {{ editingId() ? 'Save' : 'Add date' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

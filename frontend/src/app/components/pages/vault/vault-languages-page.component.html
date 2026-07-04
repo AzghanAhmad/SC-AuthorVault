@@ -1,0 +1,257 @@
+<div class="page">
+
+  <!-- ── STEP 1: Language selector ── -->
+  <div class="page-header">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem">
+      <div>
+        <div class="page-title-wrap">
+          <svg class="header-icon-svg" viewBox="0 0 24 24" aria-hidden="true" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
+          </svg>
+          <h1 class="page-title" style="margin:0;">Languages</h1>
+        </div>
+        <p class="page-subtitle">
+          @if (!selectedLanguage) { Select a language to see all titles published in that language }
+          @if (selectedLanguage && !selectedEdition) { Showing all <strong>{{ selectedLanguage }}</strong> titles — click a title to view its book file }
+          @if (selectedEdition) { {{ selectedEdition.bookTitle }} · {{ selectedLanguage }} edition }
+        </p>
+      </div>
+      <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap">
+        <!-- Language selector always visible -->
+        <select [(ngModel)]="selectedLanguage" (change)="onLanguageChange()" class="lang-select">
+          <option value="">— Select Language —</option>
+          @for (lang of availableLanguages; track lang) {
+            <option [value]="lang">{{ lang }} ({{ countByLanguage(lang) }})</option>
+          }
+        </select>
+        <button class="add-lang-btn" (click)="showAddLang = !showAddLang">+ Add Language</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add language panel -->
+  @if (showAddLang) {
+    <div class="card" style="margin-bottom:1.25rem">
+      <h3 class="section-title">Add a Language Edition</h3>
+      <p class="section-subtitle">AI translation makes it easy to publish in almost any language. Each translation requires its own ISBN per format.</p>
+      <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap">
+        <select [(ngModel)]="newLanguage" style="padding:.6rem 1rem;border:1.5px solid var(--border-color);border-radius:9px;font-size:.875rem;font-family:inherit;color:var(--text-primary);background:var(--surface);outline:none;min-width:220px">
+          <option value="">Select a language...</option>
+          @for (lang of ALL_LANGUAGES; track lang) {
+            <option [value]="lang">{{ lang }}</option>
+          }
+        </select>
+        <button (click)="addLanguage()" style="padding:.6rem 1.25rem;background:var(--accent-blue);color:#fff;border:none;border-radius:9px;font-size:.875rem;font-weight:600;cursor:pointer;font-family:inherit" [disabled]="!newLanguage">Add Language</button>
+        <button (click)="showAddLang=false" style="padding:.6rem 1rem;background:var(--surface);border:1.5px solid var(--border-color);border-radius:9px;font-size:.875rem;cursor:pointer;font-family:inherit;color:var(--text-secondary)">Cancel</button>
+      </div>
+    </div>
+  }
+
+  <!-- ── No language selected: show language chips ── -->
+  @if (!selectedLanguage) {
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-value">{{ availableLanguages.length }}</div><div class="stat-label">Languages</div></div>
+      <div class="stat-card"><div class="stat-value">{{ primaryCount }}</div><div class="stat-label">English (Primary)</div></div>
+      <div class="stat-card"><div class="stat-value">{{ translationCount }}</div><div class="stat-label">Translations</div></div>
+      <div class="stat-card"><div class="stat-value">{{ totalFormats }}</div><div class="stat-label">Total Formats</div></div>
+    </div>
+    <div class="card">
+      <h3 class="section-title">Published Languages</h3>
+      <p class="section-subtitle">Click a language to browse titles</p>
+      <div class="lang-chips">
+        @for (lang of availableLanguages; track lang) {
+          <button class="lang-chip" (click)="selectedLanguage = lang">
+            {{ lang }}
+            <span class="lang-chip-count">{{ countByLanguage(lang) }} title{{ countByLanguage(lang) !== 1 ? 's' : '' }}</span>
+          </button>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- ── STEP 2: Title list for selected language ── -->
+  @if (selectedLanguage && !selectedEdition) {
+    <div class="breadcrumb-bar">
+      <span class="bc-link" (click)="selectedLanguage = ''">All Languages</span>
+      <span class="bc-sep">›</span>
+      <span class="bc-current">{{ selectedLanguage }}</span>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-value">{{ titlesForLanguage().length }}</div><div class="stat-label">Titles in {{ selectedLanguage }}</div></div>
+      <div class="stat-card"><div class="stat-value">{{ publishedInLanguage() }}</div><div class="stat-label">Published</div></div>
+      <div class="stat-card"><div class="stat-value">{{ inProgressInLanguage() }}</div><div class="stat-label">In Progress</div></div>
+      <div class="stat-card"><div class="stat-value">{{ formatsInLanguage() }}</div><div class="stat-label">Formats</div></div>
+    </div>
+
+    <div class="card">
+      <h3 class="section-title">{{ selectedLanguage }} Titles</h3>
+      <p class="section-subtitle">Click any title to view its full book file in {{ selectedLanguage }}</p>
+      <table class="data-table">
+        <thead>
+          <tr><th>Title</th><th>Series</th><th>Pen Name</th><th>Status</th><th>Formats</th><th>ISBNs</th><th>Words</th></tr>
+        </thead>
+        <tbody>
+          @for (be of titlesForLanguage(); track be.branch.id) {
+            <tr class="clickable-row" (click)="selectEdition(be)">
+              <td class="td-primary">{{ be.bookTitle }}</td>
+              <td class="td-muted">{{ be.seriesName }}</td>
+              <td class="td-muted">{{ be.penName }}</td>
+              <td><span class="status" [ngClass]="be.branch.edition.publicationStatus==='Published'?'status-green':be.branch.edition.publicationStatus==='In Progress'?'status-amber':'status-default'">{{ be.branch.edition.publicationStatus }}</span></td>
+              <td>{{ be.branch.formats.length }}</td>
+              <td style="font-size:.75rem;color:var(--text-muted)">
+                {{ be.branch.identifiers.isbnEbook ? '✓ Ebook' : '' }}{{ be.branch.identifiers.isbnPaperback ? ' ✓ PB' : '' }}{{ be.branch.identifiers.isbnAudiobook ? ' ✓ Audio' : '' }}
+              </td>
+              <td>{{ be.branch.edition.wordCount | number }}</td>
+            </tr>
+          }
+          @if (titlesForLanguage().length === 0) {
+            <tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:2rem">No titles in {{ selectedLanguage }} yet.</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  <!-- ── STEP 3: Individual book file in selected language ── -->
+  @if (selectedEdition; as be) {
+    <div class="breadcrumb-bar">
+      <span class="bc-link" (click)="selectedLanguage = ''; selectedEdition = null">All Languages</span>
+      <span class="bc-sep">›</span>
+      <span class="bc-link" (click)="selectedEdition = null">{{ selectedLanguage }}</span>
+      <span class="bc-sep">›</span>
+      <span class="bc-current">{{ be.bookTitle }}</span>
+    </div>
+
+    <div class="vault-layout" style="margin-top:1rem">
+      <nav class="vault-nav">
+        @for (t of detailTabs; track t.id) {
+          <button class="tab-item" [class.active]="detailTab() === t.id" (click)="detailTab.set(t.id)">
+            @switch (t.id) {
+              @case ('edition') {
+                <svg class="tab-icon-svg" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+              }
+              @case ('metadata') {
+                <svg class="tab-icon-svg" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              }
+              @case ('identifiers') {
+                <svg class="tab-icon-svg" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
+              }
+              @case ('formats') {
+                <svg class="tab-icon-svg" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+              }
+            }
+            {{ t.label }}
+          </button>
+        }
+      </nav>
+      <div class="vault-content">
+
+        @if (detailTab() === 'edition') {
+          <div class="card">
+            <h3 class="section-title">{{ be.bookTitle }} — {{ be.branch.edition.language }} Edition</h3>
+            <div class="form-grid">
+              <div class="form-group"><span class="form-label">Edition Name</span><div class="form-value">{{ be.branch.edition.editionName }}</div></div>
+              <div class="form-group"><span class="form-label">Edition Type</span><div class="form-value">{{ be.branch.edition.editionType }}</div></div>
+              <div class="form-group"><span class="form-label">Language</span><div class="form-value">{{ be.branch.edition.language }}</div></div>
+              <div class="form-group"><span class="form-label">Language Code</span><div class="form-value">{{ be.branch.edition.languageCode }}</div></div>
+              <div class="form-group"><span class="form-label">Locale Variant</span><div class="form-value">{{ be.branch.edition.localeVariant }}</div></div>
+              <div class="form-group"><span class="form-label">Primary Language</span><div class="form-value">{{ be.branch.edition.isPrimaryLanguage ? 'Yes (Default)' : 'No (Translation)' }}</div></div>
+              <div class="form-group"><span class="form-label">Publication Status</span><div class="form-value">{{ be.branch.edition.publicationStatus }}</div></div>
+              <div class="form-group"><span class="form-label">Release Date</span><div class="form-value">{{ be.branch.edition.releaseDate || '—' }}</div></div>
+              <div class="form-group"><span class="form-label">Word Count</span><div class="form-value">{{ be.branch.edition.wordCount | number }}</div></div>
+              <div class="form-group"><span class="form-label">Page Count</span><div class="form-value">{{ be.branch.edition.pageCount }}</div></div>
+              <div class="form-group"><span class="form-label">Chapter Count</span><div class="form-value">{{ be.branch.edition.chapterCount }}</div></div>
+              <div class="form-group"><span class="form-label">Series</span><div class="form-value">{{ be.seriesName }}</div></div>
+              <div class="form-group"><span class="form-label">Pen Name</span><div class="form-value">{{ be.penName }}</div></div>
+            </div>
+          </div>
+        }
+
+        @if (detailTab() === 'metadata') {
+          <div class="card">
+            <h3 class="section-title">Localized Metadata</h3>
+            <div class="form-grid">
+              <div class="form-group"><span class="form-label">Localized Title</span><div class="form-value">{{ be.branch.localizedMetadata.localizedTitle || '—' }}</div></div>
+              <div class="form-group"><span class="form-label">Localized Subtitle</span><div class="form-value">{{ be.branch.localizedMetadata.localizedSubtitle || '—' }}</div></div>
+              <div class="form-group"><span class="form-label">Localized Series Name</span><div class="form-value">{{ be.branch.localizedMetadata.localizedSeriesName || '—' }}</div></div>
+              <div class="form-group full"><span class="form-label">Localized Hook</span><div class="form-value">{{ be.branch.localizedMetadata.localizedHook || '—' }}</div></div>
+              <div class="form-group full"><span class="form-label">Short Description</span><div class="form-value">{{ be.branch.localizedMetadata.localizedShortDescription || '—' }}</div></div>
+              <div class="form-group full"><span class="form-label">Long Description</span><div class="form-value">{{ be.branch.localizedMetadata.localizedLongDescription || '—' }}</div></div>
+              <div class="form-group full"><span class="form-label">Author Bio (Localized)</span><div class="form-value">{{ be.branch.localizedMetadata.localizedAuthorBio || '—' }}</div></div>
+              <div class="form-group full"><span class="form-label">Translator Credit</span><div class="form-value">{{ be.branch.localizedMetadata.translatorCreditLine || '—' }}</div></div>
+              <div class="form-group full"><span class="form-label">Content Warnings</span><div class="form-value">{{ be.branch.localizedMetadata.localizedContentWarnings || '—' }}</div></div>
+            </div>
+          </div>
+        }
+
+        @if (detailTab() === 'identifiers') {
+          <div class="card">
+            <h3 class="section-title">ISBNs — {{ be.branch.edition.language }} Edition</h3>
+            <p class="section-subtitle">Each format requires its own ISBN. Translations get separate ISBNs from the English edition.</p>
+            <div class="form-grid">
+              <div class="form-group"><span class="form-label">Ebook ISBN</span><div class="form-value" style="font-family:monospace">{{ be.branch.identifiers.isbnEbook || '—' }}</div></div>
+              <div class="form-group"><span class="form-label">Paperback ISBN</span><div class="form-value" style="font-family:monospace">{{ be.branch.identifiers.isbnPaperback || '—' }}</div></div>
+              <div class="form-group"><span class="form-label">Hardcover ISBN</span><div class="form-value" style="font-family:monospace">{{ be.branch.identifiers.isbnHardcover || '—' }}</div></div>
+              <div class="form-group"><span class="form-label">Large Print ISBN</span><div class="form-value" style="font-family:monospace">{{ be.branch.identifiers.isbnLargePrint || '—' }}</div></div>
+              <div class="form-group"><span class="form-label">Audiobook ISBN</span><div class="form-value" style="font-family:monospace">{{ be.branch.identifiers.isbnAudiobook || '—' }}</div></div>
+              <div class="form-group"><span class="form-label">Assigned Date</span><div class="form-value">{{ be.branch.identifiers.isbnAssignedDate || '—' }}</div></div>
+              <div class="form-group"><span class="form-label">ISBN Status</span><div class="form-value">{{ be.branch.identifiers.isbnStatus }}</div></div>
+            </div>
+          </div>
+        }
+
+        @if (detailTab() === 'formats') {
+          <div class="card">
+            <h3 class="section-title">Formats — {{ be.branch.edition.language }} Edition</h3>
+            <p class="section-subtitle">Each format below is a separate file for a specific platform. Ebooks vary by platform metadata; paperbacks vary by trim size.</p>
+            @if (!be.branch.formats.length) {
+              <div class="empty-state">
+                <div class="empty-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="40" height="40" style="color:var(--text-muted)">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                  </svg>
+                </div>
+                <p>No formats yet for this edition</p>
+              </div>
+            }
+            @for (f of be.branch.formats; track f.id) {
+              <div class="record-card" style="margin-bottom:.75rem">
+                <div class="record-header">
+                  <h3 class="record-title">{{ f.specs.formatType }}</h3>
+                  <span class="status" [ngClass]="f.specs.status==='Live'?'status-green':f.specs.status==='Ready'?'status-blue':'status-amber'">{{ f.specs.status }}</span>
+                </div>
+                <div class="record-grid">
+                  <div class="record-field"><span class="label">Version</span><span class="value">v{{ f.specs.versionNumber }}</span></div>
+                  <div class="record-field"><span class="label">File Size</span><span class="value">{{ f.specs.fileSize || '—' }}</span></div>
+                  <div class="record-field"><span class="label">Pages</span><span class="value">{{ f.specs.pageCount }}</span></div>
+                  @if (f.specs.trimSize) { <div class="record-field"><span class="label">Trim Size</span><span class="value">{{ f.specs.trimSize }}</span></div> }
+                  @if (f.specs.printFinish) { <div class="record-field"><span class="label">Finish</span><span class="value">{{ f.specs.printFinish }}</span></div> }
+                  @if (f.specs.audioRuntime) { <div class="record-field"><span class="label">Runtime</span><span class="value">{{ f.specs.audioRuntime }}</span></div> }
+                  <div class="record-field"><span class="label">Platforms</span><span class="value">{{ f.platformVariants.length }}</span></div>
+                  <div class="record-field"><span class="label">DRM</span><span class="value">{{ f.specs.drmPreference || '—' }}</span></div>
+                </div>
+                @if (f.platformVariants.length) {
+                  <div style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--border-light)">
+                    <div style="font-size:.6875rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:.5rem">Platform Variants</div>
+                    <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+                      @for (pv of f.platformVariants; track pv.id) {
+                        <span style="font-size:.75rem;padding:2px 8px;background:var(--primary-light);border:1px solid var(--border-color);border-radius:5px;color:var(--text-secondary)">
+                          {{ pv.platformName }} · {{ pv.platformPrice }}
+                          <span class="status" style="margin-left:.25rem;font-size:.6rem" [ngClass]="pv.uploadStatus==='Live'?'status-green':'status-amber'">{{ pv.uploadStatus }}</span>
+                        </span>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        }
+
+      </div>
+    </div>
+  }
+
+</div>

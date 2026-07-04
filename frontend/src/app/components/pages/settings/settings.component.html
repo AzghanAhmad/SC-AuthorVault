@@ -1,0 +1,122 @@
+<div class="page">
+  <div class="page-header">
+    <h1 class="page-title">Settings</h1>
+    <p class="page-subtitle">Configure your AuthorVault preferences</p>
+  </div>
+
+  <div class="settings-layout">
+    <!-- Settings Navigation -->
+    <nav class="settings-nav">
+      <button *ngFor="let section of sections"
+              class="nav-item"
+              [class.active]="activeSection === section.id"
+              (click)="activeSection = section.id">
+        <div class="nav-icon" [innerHTML]="section.icon"></div>
+        {{ section.label }}
+      </button>
+    </nav>
+
+    <!-- Settings Content -->
+    <div class="settings-content">
+      <!-- Workspace -->
+      <div class="settings-section" *ngIf="activeSection === 'workspace'">
+        <div class="card">
+          <h2 class="section-title">AuthorVAULT Defaults</h2>
+          <p class="section-desc">Account, security, and payment settings are managed by the OS. Keep only AuthorVAULT-specific defaults here.</p>
+          <div class="form-group">
+            <label class="form-label">Author/Brand Name</label>
+            <input type="text" class="form-input" [(ngModel)]="authorName">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Default Landing Page</label>
+            <select class="form-input" [(ngModel)]="defaultPage">
+              <option value="dashboard">Dashboard</option>
+              <option value="books">Books</option>
+              <option value="vault">AuthorVAULT</option>
+            </select>
+          </div>
+          <button class="btn-primary" style="margin-top: 0.75rem;" (click)="saveSettings()" [disabled]="saving">
+            {{ saving ? 'Saving...' : 'Save Changes' }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Notifications -->
+      <div class="settings-section" *ngIf="activeSection === 'notifications'">
+        <div class="card">
+          <h2 class="section-title">Email Notifications</h2>
+          <p class="section-desc">Choose which emails you want to receive</p>
+          <div class="setting-item" *ngFor="let notif of emailNotifications">
+            <div class="setting-info">
+              <span class="setting-label">{{ notif.title }}</span>
+              <span class="setting-desc">{{ notif.description }}</span>
+            </div>
+            <input type="checkbox" class="toggle" [(ngModel)]="notif.enabled">
+          </div>
+          <button class="btn-primary" style="margin-top: 0.75rem;" (click)="saveSettings()" [disabled]="saving">
+            {{ saving ? 'Saving...' : 'Save Changes' }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Appearance -->
+      <div class="settings-section" *ngIf="activeSection === 'appearance'">
+        <div class="card">
+          <h2 class="section-title">Theme</h2>
+          <p class="section-desc">Change how the website looks</p>
+          <div class="theme-options">
+            <div class="theme-option" [class.active]="theme === 'light'" (click)="theme = 'light'">
+              <div class="theme-preview light">
+                <div class="preview-header"></div>
+                <div class="preview-sidebar"></div>
+                <div class="preview-content"></div>
+              </div>
+              <span class="theme-label">Light</span>
+            </div>
+            <div class="theme-option" [class.active]="theme === 'dark'" (click)="theme = 'dark'">
+              <div class="theme-preview dark">
+                <div class="preview-header"></div>
+                <div class="preview-sidebar"></div>
+                <div class="preview-content"></div>
+              </div>
+              <span class="theme-label">Dark</span>
+            </div>
+            <div class="theme-option" [class.active]="theme === 'auto'" (click)="theme = 'auto'">
+              <div class="theme-preview auto">
+                <div class="preview-header"></div>
+                <div class="preview-sidebar"></div>
+                <div class="preview-content"></div>
+              </div>
+              <span class="theme-label">Auto</span>
+            </div>
+          </div>
+          <button class="btn-primary" style="margin-top: 0.75rem;" (click)="saveSettings()" [disabled]="saving">
+            {{ saving ? 'Saving...' : 'Save Changes' }}
+          </button>
+        </div>
+
+        <div class="card">
+          <h2 class="section-title">Dashboard Preferences</h2>
+          <p class="section-desc">Set layout preferences for the app shell</p>
+          <div class="setting-item">
+            <div class="setting-info">
+              <span class="setting-label">Compact Sidebar</span>
+              <span class="setting-desc">Use a narrower sidebar for more content space</span>
+            </div>
+            <input type="checkbox" class="toggle" [(ngModel)]="compactSidebar">
+          </div>
+          <button class="btn-primary" style="margin-top: 0.75rem;" (click)="saveSettings()" [disabled]="saving">
+            {{ saving ? 'Saving...' : 'Save Changes' }}
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" [class.show]="showToast">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+    {{ toastMessage }}
+  </div>
+</div>

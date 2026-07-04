@@ -1,0 +1,73 @@
+<div class="detail-header">
+  <h1 class="page-title">🌐 {{branch.edition.editionName}}</h1>
+  <p class="page-subtitle">{{branch.edition.language}} · {{branch.edition.editionType}} · <span class="status" [ngClass]="branch.edition.publicationStatus==='Published'?'status-green':'status-amber'">{{branch.edition.publicationStatus}}</span></p>
+</div>
+<div class="stats-row">
+  <div class="stat-card"><div class="stat-value">{{branch.formats.length}}</div><div class="stat-label">Formats</div></div>
+  <div class="stat-card"><div class="stat-value">{{branch.edition.wordCount | number}}</div><div class="stat-label">Words</div></div>
+  <div class="stat-card"><div class="stat-value">{{branch.edition.pageCount}}</div><div class="stat-label">Pages</div></div>
+  <div class="stat-card"><div class="stat-value">{{branch.edition.chapterCount}}</div><div class="stat-label">Chapters</div></div>
+</div>
+<div class="vault-layout">
+  <nav class="vault-nav">
+    @for(t of tabs; track t.id) { <button class="tab-item" [class.active]="activeTab===t.id" (click)="tabChange.emit(t.id)">{{t.label}}</button> }
+  </nav>
+  <div class="vault-content">
+    @if(activeTab==='edition') {
+      <div class="card"><h2 class="section-title">Edition Identity</h2>
+        <div class="form-grid">
+          <div class="form-group"><span class="form-label">Edition Name</span><div class="form-value">{{branch.edition.editionName}}</div></div>
+          <div class="form-group"><span class="form-label">Type</span><div class="form-value">{{branch.edition.editionType}}</div></div>
+          <div class="form-group"><span class="form-label">Language</span><div class="form-value">{{branch.edition.language}}</div></div>
+          <div class="form-group"><span class="form-label">Code</span><div class="form-value">{{branch.edition.languageCode}}</div></div>
+          <div class="form-group"><span class="form-label">Primary?</span><div class="form-value">{{branch.edition.isPrimaryLanguage ? 'Yes' : 'No'}}</div></div>
+          <div class="form-group"><span class="form-label">Locale</span><div class="form-value">{{branch.edition.localeVariant}}</div></div>
+          <div class="form-group"><span class="form-label">Status</span><div class="form-value">{{branch.edition.publicationStatus}}</div></div>
+          <div class="form-group"><span class="form-label">Release Date</span><div class="form-value">{{branch.edition.releaseDate || '—'}}</div></div>
+        </div>
+      </div>
+    }
+    @if(activeTab==='metadata') {
+      <div class="card"><h2 class="section-title">Localized Metadata</h2>
+        <div class="form-grid">
+          <div class="form-group"><span class="form-label">Title</span><div class="form-value">{{branch.localizedMetadata.localizedTitle || '—'}}</div></div>
+          <div class="form-group"><span class="form-label">Subtitle</span><div class="form-value">{{branch.localizedMetadata.localizedSubtitle || '—'}}</div></div>
+          <div class="form-group full"><span class="form-label">Hook</span><div class="form-value">{{branch.localizedMetadata.localizedHook || '—'}}</div></div>
+          <div class="form-group full"><span class="form-label">Short Description</span><div class="form-value">{{branch.localizedMetadata.localizedShortDescription || '—'}}</div></div>
+          <div class="form-group full"><span class="form-label">Long Description</span><div class="form-value">{{branch.localizedMetadata.localizedLongDescription || '—'}}</div></div>
+          <div class="form-group full"><span class="form-label">Translator Credit</span><div class="form-value">{{branch.localizedMetadata.translatorCreditLine || '—'}}</div></div>
+        </div>
+      </div>
+    }
+    @if(activeTab==='identifiers') {
+      <div class="card"><h2 class="section-title">Language-Specific ISBNs</h2>
+        <div class="form-grid">
+          <div class="form-group"><span class="form-label">Ebook ISBN</span><div class="form-value">{{branch.identifiers.isbnEbook || '—'}}</div></div>
+          <div class="form-group"><span class="form-label">Paperback ISBN</span><div class="form-value">{{branch.identifiers.isbnPaperback || '—'}}</div></div>
+          <div class="form-group"><span class="form-label">Hardcover ISBN</span><div class="form-value">{{branch.identifiers.isbnHardcover || '—'}}</div></div>
+          <div class="form-group"><span class="form-label">Audiobook ISBN</span><div class="form-value">{{branch.identifiers.isbnAudiobook || '—'}}</div></div>
+          <div class="form-group"><span class="form-label">Assigned Date</span><div class="form-value">{{branch.identifiers.isbnAssignedDate || '—'}}</div></div>
+          <div class="form-group"><span class="form-label">Status</span><div class="form-value">{{branch.identifiers.isbnStatus}}</div></div>
+        </div>
+      </div>
+    }
+    @if(activeTab==='formats') {
+      <div class="card"><h2 class="section-title">Formats</h2>
+        <div class="entity-list">
+          @for(f of branch.formats; track f.id) {
+            <div class="entity-card" (click)="navigateTo.emit({level:'format', id:f.id, label:f.specs.formatType})">
+              <div class="entity-card-header"><h3 class="entity-name">📄 {{f.specs.formatType}}</h3>
+                <span class="status" [ngClass]="f.specs.status==='Live'?'status-green':f.specs.status==='Draft'?'status-amber':'status-blue'">{{f.specs.status}}</span></div>
+              <div class="entity-stats">
+                <span class="entity-stat"><strong>{{f.platformVariants.length}}</strong> Platforms</span>
+                <span class="entity-stat"><strong>v{{f.specs.versionNumber}}</strong></span>
+                @if(f.specs.fileSize) { <span class="entity-stat">{{f.specs.fileSize}}</span> }
+              </div>
+            </div>
+          }
+          @if(!branch.formats.length) { <div class="empty-state"><div class="empty-icon">📄</div><p>No formats created</p></div> }
+        </div>
+      </div>
+    }
+  </div>
+</div>

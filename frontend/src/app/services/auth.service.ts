@@ -105,13 +105,36 @@ export class AuthService {
     }
   }
 
+  refreshUser(): Observable<User | null> {
+    if (!this.tokenService.hasToken()) {
+      return of(this._user());
+    }
+    return this.http.get<User>(`${environment.apiUrl}/auth/me`).pipe(
+      tap(user => {
+        this._user.set(user);
+        localStorage.setItem('av_user', JSON.stringify(user));
+      }),
+      catchError(err => throwError(() => ({ message: getApiErrorMessage(err, 'Failed to load profile.') })))
+    );
+  }
+
+  updateProfile(name: string, email: string): Observable<User> {
+    return this.http.put<User>(`${environment.apiUrl}/auth/profile`, { name, email }).pipe(
+      tap(user => {
+        this._user.set(user);
+        localStorage.setItem('av_user', JSON.stringify(user));
+      }),
+      catchError(err => throwError(() => ({ message: getApiErrorMessage(err, 'Profile update failed.') })))
+    );
+  }
+
   changePassword(current: string, newPw: string): Observable<boolean> {
     return this.http.post<{ success: boolean }>(`${environment.apiUrl}/auth/change-password`, {
       currentPassword: current,
       newPassword: newPw
     }).pipe(
       map(() => true),
-      catchError(err => throwError(() => err.error ?? { message: 'Password change failed' }))
+      catchError(err => throwError(() => ({ message: getApiErrorMessage(err, 'Password change failed.') })))
     );
   }
 }

@@ -1,0 +1,190 @@
+<div class="page">
+  <app-page-action-bar
+    [editing]="editMode()"
+    deleteLabel="Delete all series"
+    (editToggle)="editMode.update(v => !v)"
+    (deleteAll)="deleteAllSeries()" />
+
+  <div class="page-header">
+    <div class="page-title-wrap">
+      <svg class="header-icon-svg" viewBox="0 0 24 24" aria-hidden="true" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
+      </svg>
+      <h1 class="page-title" style="margin:0;">Series</h1>
+    </div>
+    <p class="page-subtitle">All series across pen names — click any series to explore its books</p>
+  </div>
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-value">{{ allSeries().length }}</div><div class="stat-label">Total Series</div></div>
+    <div class="stat-card"><div class="stat-value">{{ totalBooks }}</div><div class="stat-label">Total Books</div></div>
+    <div class="stat-card"><div class="stat-value">{{ activeSeries }}</div><div class="stat-label">Active</div></div>
+    <div class="stat-card"><div class="stat-value">{{ totalBoxSets }}</div><div class="stat-label">Box Sets</div></div>
+  </div>
+
+  <!-- Series list -->
+  @if (!selected()) {
+    <div class="entity-list">
+      @for (sr of allSeries(); track sr.id) {
+        <div class="entity-card" (click)="selectItem(sr)">
+          <div class="entity-card-header">
+            <h3 class="entity-name" style="display:flex;align-items:center;gap:.35rem">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" style="color:var(--text-muted);"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+              {{ sr.identity.name }}
+            </h3>
+            <span class="status" [ngClass]="sr.identity.status==='Active'?'status-green':sr.identity.status==='Complete'?'status-blue':'status-amber'">{{ sr.identity.status }}</span>
+          </div>
+          <p class="entity-meta">{{ sr.identity.seriesType }} · {{ sr.identity.genre }} · {{ sr.identity.targetAudience }}</p>
+          <div class="entity-stats">
+            <span class="entity-stat"><strong>{{ sr.books.length }}</strong> / {{ sr.identity.plannedTotalBooks }} Books</span>
+            <span class="entity-stat"><strong>{{ sr.boxSets.length }}</strong> Box Sets</span>
+            <span class="entity-stat">Started {{ sr.identity.startDate }}</span>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Selected series detail -->
+  @if (selected(); as sr) {
+    <button class="back-btn" (click)="selected.set(null); tab.set('identity')">← All Series</button>
+
+    <div class="vault-layout" style="margin-top:1rem">
+      <nav class="vault-nav">
+        @for (t of tabs; track t.id) {
+          <button class="tab-item" [class.active]="tab() === t.id" (click)="tab.set(t.id)">
+            @switch (t.id) {
+              @case ('identity') {
+                <svg class="tab-icon-svg" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+              }
+              @case ('books') {
+                <svg class="tab-icon-svg" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><path d="M6 6h10M6 10h10M6 14h10"/></svg>
+              }
+              @case ('world') {
+                <svg class="tab-icon-svg" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20M2 12h20"/></svg>
+              }
+              @case ('branding') {
+                <svg class="tab-icon-svg" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z"/><circle cx="7.5" cy="10.5" r="1.5"/><circle cx="11.5" cy="7.5" r="1.5"/><circle cx="16.5" cy="9.5" r="1.5"/><circle cx="15.5" cy="14.5" r="1.5"/></svg>
+              }
+              @case ('boxsets') {
+                <svg class="tab-icon-svg" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+              }
+            }
+            {{ t.label }}
+          </button>
+        }
+      </nav>
+
+      <div class="vault-content">
+
+        @if (tab() === 'identity') {
+          <div class="card">
+            <h3 class="section-title">{{ sr.identity.name }}</h3>
+            <div class="form-grid">
+              <div class="form-group"><span class="form-label">Series Name</span><div class="form-value">{{ sr.identity.name }}</div></div>
+              <div class="form-group"><span class="form-label">Type</span><div class="form-value">{{ sr.identity.seriesType }}</div></div>
+              <div class="form-group"><span class="form-label">Genre</span><div class="form-value">{{ sr.identity.genre }}</div></div>
+              <div class="form-group"><span class="form-label">Subgenre</span><div class="form-value">{{ sr.identity.subgenre || '—' }}</div></div>
+              <div class="form-group"><span class="form-label">Target Audience</span><div class="form-value">{{ sr.identity.targetAudience }}</div></div>
+              <div class="form-group"><span class="form-label">Status</span><div class="form-value"><span class="status" [ngClass]="sr.identity.status==='Active'?'status-green':'status-blue'">{{ sr.identity.status }}</span></div></div>
+              <div class="form-group"><span class="form-label">Start Date</span><div class="form-value">{{ sr.identity.startDate }}</div></div>
+              <div class="form-group"><span class="form-label">Planned Books</span><div class="form-value">{{ sr.identity.plannedTotalBooks }}</div></div>
+              <div class="form-group"><span class="form-label">Current Books</span><div class="form-value">{{ sr.books.length }}</div></div>
+              <div class="form-group full"><span class="form-label">Universe Name</span><div class="form-value">{{ sr.identity.universeName || '—' }}</div></div>
+              <div class="form-group full"><span class="form-label">Reading Order Notes</span><div class="form-value">{{ sr.identity.readingOrderNotes || '—' }}</div></div>
+              <div class="form-group full"><span class="form-label">Interconnected Series</span><div class="form-value">{{ sr.identity.interconnectedSeries || '—' }}</div></div>
+            </div>
+          </div>
+        }
+
+        @if (tab() === 'books') {
+          <div class="card">
+            <h3 class="section-title">Books in {{ sr.identity.name }}</h3>
+            <table class="data-table">
+              <thead><tr><th>#</th><th>Title</th><th>Status</th><th>Languages</th><th>Formats</th><th>Awards</th><th>Pub Date</th></tr></thead>
+              <tbody>
+                @for (bk of sr.books; track bk.id) {
+                  <tr>
+                    <td style="font-weight:700;color:var(--text-muted)">{{ bk.coreWork.seriesNumber }}</td>
+                    <td class="td-primary">{{ bk.coreWork.masterTitle }}</td>
+                    <td><span class="status" [ngClass]="bk.coreWork.bookStatus==='Published'?'status-green':bk.coreWork.bookStatus==='Editing'?'status-amber':'status-default'">{{ bk.coreWork.bookStatus }}</span></td>
+                    <td>{{ bk.languageBranches.length }}</td>
+                    <td>{{ countFormats(bk) }}</td>
+                    <td>{{ bk.awards.length }}</td>
+                    <td>{{ bk.coreWork.firstPublicationDate || '—' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+
+        @if (tab() === 'world') {
+          <div class="card">
+            <h3 class="section-title">World & Continuity</h3>
+            <div class="form-grid">
+              <div class="form-group full"><span class="form-label">Setting Overview</span><div class="form-value">{{ sr.world.settingOverview }}</div></div>
+              <div class="form-group"><span class="form-label">Character Bible</span><div class="form-value">{{ sr.world.characterBibleFile || '—' }}</div></div>
+              <div class="form-group"><span class="form-label">Glossary</span><div class="form-value">{{ sr.world.glossary || '—' }}</div></div>
+              <div class="form-group"><span class="form-label">Maps</span><div class="form-value">{{ sr.world.mapsFiles || '—' }}</div></div>
+              <div class="form-group full"><span class="form-label">Timeline</span><div class="form-value">{{ sr.world.timeline || '—' }}</div></div>
+              <div class="form-group full"><span class="form-label">Continuity Notes</span><div class="form-value">{{ sr.world.continuityNotes || '—' }}</div></div>
+            </div>
+          </div>
+        }
+
+        @if (tab() === 'branding') {
+          <div class="card">
+            <h3 class="section-title">Series Branding & Marketing</h3>
+            <div class="form-grid">
+              <div class="form-group full"><span class="form-label">Tagline</span><div class="form-value">{{ sr.branding.tagline }}</div></div>
+              <div class="form-group full"><span class="form-label">One-Line Hook</span><div class="form-value">{{ sr.branding.oneLineHook }}</div></div>
+              <div class="form-group"><span class="form-label">Brand Colors</span><div class="form-value">{{ sr.branding.brandColors || '—' }}</div></div>
+              <div class="form-group"><span class="form-label">Website Page</span><div class="form-value">{{ sr.branding.websitePage || '—' }}</div></div>
+              <div class="form-group"><span class="form-label">Reader Magnet</span><div class="form-value">{{ sr.branding.readerMagnet || '—' }}</div></div>
+              <div class="form-group"><span class="form-label">Sales Page</span><div class="form-value">{{ sr.branding.salesPage || '—' }}</div></div>
+              <div class="form-group"><span class="form-label">Comp Titles</span><div class="form-value">{{ sr.branding.compTitles || '—' }}</div></div>
+              <div class="form-group"><span class="form-label">Comp Authors</span><div class="form-value">{{ sr.branding.compAuthors || '—' }}</div></div>
+            </div>
+          </div>
+        }
+
+        @if (tab() === 'boxsets') {
+          <div class="card">
+            <h3 class="section-title">Box Sets</h3>
+            @if (!sr.boxSets.length) {
+              <div class="empty-state">
+                <svg class="empty-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/>
+                </svg>
+                <p>No box sets for this series yet</p>
+                @if (editMode()) {
+                  <button style="margin-top:.75rem;padding:.5rem 1.25rem;background:var(--accent-blue);color:#fff;border:none;border-radius:8px;font-size:.8125rem;font-weight:600;cursor:pointer;font-family:inherit;">+ Create Box Set</button>
+                }
+              </div>
+            }
+            @for (bs of sr.boxSets; track bs.id) {
+              <div class="record-card">
+                <div class="record-header"><h3 class="record-title">{{ bs.title }}</h3><span class="status status-amber">{{ bs.status }}</span></div>
+                <div class="record-grid">
+                  <div class="record-field"><span class="label">Type</span><span class="value">{{ bs.type }}</span></div>
+                  <div class="record-field"><span class="label">Titles Included</span><span class="value">{{ bs.constituentTitles.length }}</span></div>
+                  <div class="record-field"><span class="label">Exclusive Content</span><span class="value">{{ bs.exclusiveContent ? 'Yes' : 'No' }}</span></div>
+                </div>
+                <div style="margin-top:.5rem;padding:.5rem .75rem;background:var(--primary-light);border-radius:6px;font-size:.8125rem;color:var(--text-secondary);">
+                  <p style="margin:0 0 .25rem;font-weight:600;color:var(--text-primary);">Box Set Details</p>
+                  <div class="boxset-detail-icons">
+                    <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg> Needs own ISBN</span>
+                    <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg> Needs own blurb</span>
+                    <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg> Needs own cover</span>
+                    <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> Separate pricing</span>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        }
+
+      </div>
+    </div>
+  }
+</div>

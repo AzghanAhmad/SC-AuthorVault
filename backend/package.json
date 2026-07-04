@@ -8,6 +8,7 @@
     "dev": "dotnet watch run",
     "build": "dotnet build",
     "db:migrate": "dotnet ef database update",
+    "db:repair": "dotnet run -- --repair-db",
     "db:add-migration": "dotnet ef migrations add"
   }
 }

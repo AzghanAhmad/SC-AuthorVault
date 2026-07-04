@@ -1,0 +1,103 @@
+<div class="auth-root">
+  <!-- NAVBAR -->
+  <header class="nav" [class.scrolled]="navScrolled">
+    <div class="nav-inner">
+      <a routerLink="/login" class="nav-logo">
+        <app-brand-icon size="sm" />
+        <span class="logo-text">ScribeCount</span>
+      </a>
+      <nav class="nav-links">
+        <a routerLink="/login" class="nav-active">Log In</a>
+        <a routerLink="/signup" class="btn-signup">Sign Up</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- SPLIT HERO + FORM -->
+  <section class="auth-hero">
+    <div class="auth-hero-inner">
+      <!-- LEFT: Hero copy -->
+      <div class="hero-left">
+        <h1 class="hero-title anim-up">Your Books,<br><span class="gradient-text">One Vault</span></h1>
+        <p class="hero-sub anim-up d2">
+          Manage every book asset, metadata, platform version, and marketing material from a single centralized dashboard — built for serious authors.
+        </p>
+        <div class="hero-badges anim-up d3">
+          <span class="badge-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg> Asset Vault</span>
+          <span class="badge-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg> Multi-Platform</span>
+          <span class="badge-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M12 2a4 4 0 0 0-4 4c0 2.5 2 4 4 6 2-2 4-3.5 4-6a4 4 0 0 0-4-4z"/><circle cx="12" cy="18" r="4"/></svg> AI Tools</span>
+        </div>
+      </div>
+
+      <!-- RIGHT: Form card -->
+      <div class="form-side anim-up d2">
+        <div class="auth-card">
+          <h2 class="card-title">Welcome to AuthorVault!</h2>
+          <p class="card-subtitle">By continuing you agree to our <a href="#" class="link-accent">Terms of Service</a> and <a href="#" class="link-accent">Privacy Policy</a>.</p>
+
+          <!-- General Error -->
+          <div class="auth-error animate-shake" *ngIf="generalError()">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd"/></svg>
+            {{ generalError() }}
+          </div>
+
+          <form (ngSubmit)="onSubmit()" class="auth-form" novalidate>
+            <div class="form-group">
+              <input id="login-email" type="email" [(ngModel)]="email" name="email"
+                placeholder="Enter your username or email" autocomplete="email"
+                (input)="clearError('email')" [class.input-error]="errors().email" class="auth-input" />
+              <p class="field-error" *ngIf="errors().email">{{ errors().email }}</p>
+            </div>
+            <div class="form-group">
+              <div class="input-wrapper">
+                <input id="login-password" [type]="showPassword ? 'text' : 'password'"
+                  [(ngModel)]="password" name="password" placeholder="Enter your password"
+                  autocomplete="current-password" (input)="clearError('password')"
+                  [class.input-error]="errors().password" class="auth-input" />
+                <button type="button" class="toggle-pw" (click)="showPassword = !showPassword">
+                  <svg *ngIf="!showPassword" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>
+                  <svg *ngIf="showPassword" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88"/></svg>
+                </button>
+              </div>
+              <p class="field-error" *ngIf="errors().password">{{ errors().password }}</p>
+            </div>
+
+            <button id="login-submit-btn" type="submit" class="auth-submit-btn" [disabled]="isSubmitting()">
+              <span class="spinner" *ngIf="isSubmitting()"></span>
+              {{ isSubmitting() ? 'Signing in...' : 'Login' }}
+            </button>
+          </form>
+
+          <div class="card-links">
+            <a href="#">Forgot password?</a>
+            <span class="dot">·</span>
+            <a href="#">Need Help?</a>
+          </div>
+
+          <div class="card-divider"><span>or</span></div>
+          <p class="card-alt-text">Don't have an account?</p>
+          <a routerLink="/signup" class="btn-outline">Create an account</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <a routerLink="/login" class="nav-logo">
+          <app-brand-icon size="sm" />
+          <span class="logo-text">ScribeCount</span>
+        </a>
+        <p class="footer-tagline">AuthorVault — your book asset command center.</p>
+      </div>
+      <div class="footer-links">
+        <div class="footer-col"><h4>Product</h4><a routerLink="/">AuthorVault</a><a routerLink="/">Pricing</a></div>
+        <div class="footer-col"><h4>Company</h4><a href="#">About</a><a href="#">Contact</a></div>
+        <div class="footer-col"><h4>Legal</h4><a href="#">Privacy Policy</a><a href="#">Terms of Service</a></div>
+      </div>
+    </div>
+    <div class="footer-bottom"><span>&copy; {{ year }} ScribeCount. All rights reserved.</span></div>
+  </footer>
+</div>

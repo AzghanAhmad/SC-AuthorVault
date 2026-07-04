@@ -1,0 +1,38 @@
+.imprint-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 1.25rem; }
+.imprint-hero-card {
+  background: var(--surface); border: 1px solid var(--border-light); border-radius: 16px;
+  padding: 1.5rem; cursor: pointer; transition: all .25s; box-shadow: var(--shadow-sm);
+}
+.imprint-hero-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-3px); border-color: rgba(139,92,246,.3); }
+.imprint-logo-area { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
+.imprint-logo-placeholder svg { width: 52px; height: 52px; flex-shrink: 0; }
+.imprint-hero-name { font-size: 1.125rem; font-weight: 700; color: var(--text-primary); margin: 0 0 .2rem; }
+.imprint-hero-focus { font-size: .8125rem; color: var(--text-muted); margin: 0 0 .4rem; }
+.pen-name-avatars { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: .875rem; }
+.pn-avatar {
+  width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-weight: 700; font-size: 12px; cursor: default;
+}
+.pn-avatar-lg { display: flex; flex-direction: column; align-items: center; gap: .3rem; }
+.pna-circle {
+  width: 44px; height: 44px; border-radius: 12px;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-weight: 700; font-size: 14px;
+}
+.pna-name { font-size: .6875rem; color: var(--text-muted); white-space: nowrap; }
+.imprint-stats-bar { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+.istat { display: flex; flex-direction: column; }
+.istat-val { font-size: 1.25rem; font-weight: 700; color: var(--text-primary); line-height: 1.1; }
+.istat-lbl { font-size: .6875rem; color: var(--text-muted); }
+.imprint-detail-header { background: var(--surface); border: 1px solid var(--border-light); border-radius: 16px; padding: 1.5rem; box-shadow: var(--shadow-sm); }
+.logo-upload-area {
+  border: 2px dashed var(--border-color); border-radius: 12px; padding: 2rem;
+  text-align: center; cursor: pointer; transition: border-color .2s;
+}
+.logo-upload-area:hover { border-color: var(--accent-blue); }
+.td-muted { color: var(--text-muted); font-size: .8125rem; }
+.entity-name { display: flex; align-items: center; gap: .5rem; }
+.entity-icon-svg { width: 18px; height: 18px; flex-shrink: 0; color: var(--accent-blue, #6366f1); }

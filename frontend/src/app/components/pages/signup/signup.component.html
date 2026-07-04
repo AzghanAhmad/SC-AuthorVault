@@ -1,0 +1,117 @@
+<div class="auth-root">
+  <!-- NAVBAR -->
+  <header class="nav" [class.scrolled]="navScrolled">
+    <div class="nav-inner">
+      <a routerLink="/signup" class="nav-logo">
+        <app-brand-icon size="sm" />
+        <span class="logo-text">ScribeCount</span>
+      </a>
+      <nav class="nav-links">
+        <a routerLink="/login">Log In</a>
+        <a routerLink="/signup" class="btn-signup nav-active">Sign Up</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- SPLIT HERO + FORM -->
+  <section class="auth-hero">
+    <div class="auth-hero-inner">
+      <div class="hero-left">
+        <h1 class="hero-title anim-up">Centralize Your<br><span class="gradient-text">Book Assets</span></h1>
+        <p class="hero-sub anim-up d2">
+          Join authors using AuthorVault to manage every file, blurb, platform version, and marketing asset from a single source of truth.
+        </p>
+        <div class="hero-badges anim-up d3">
+          <span class="badge-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><polyline points="20 6 9 17 4 12"/></svg> Free in Beta</span>
+          <span class="badge-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg> File Management</span>
+          <span class="badge-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg> 4+ Platforms</span>
+        </div>
+      </div>
+
+      <div class="form-side anim-up d2">
+        <div class="auth-card">
+          <h2 class="card-title">Create your account</h2>
+          <p class="card-subtitle">By continuing you agree to our <a href="#" class="link-accent">Terms of Service</a> and <a href="#" class="link-accent">Privacy Policy</a>.</p>
+
+          <div class="auth-success" *ngIf="successMessage()">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd"/></svg>
+            {{ successMessage() }}
+          </div>
+
+          <div class="auth-error animate-shake" *ngIf="generalError()">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd"/></svg>
+            {{ generalError() }}
+          </div>
+
+          <form (ngSubmit)="onSubmit()" class="auth-form" novalidate>
+            <div class="form-group">
+              <input id="signup-name" type="text" [(ngModel)]="name" name="name"
+                placeholder="Full name" autocomplete="name"
+                (input)="clearError('name')" [class.input-error]="errors().name" class="auth-input" />
+              <p class="field-error" *ngIf="errors().name">{{ errors().name }}</p>
+            </div>
+            <div class="form-group">
+              <input id="signup-email" type="email" [(ngModel)]="email" name="email"
+                placeholder="Email address" autocomplete="email"
+                (input)="clearError('email')" [class.input-error]="errors().email" class="auth-input" />
+              <p class="field-error" *ngIf="errors().email">{{ errors().email }}</p>
+            </div>
+            <div class="form-group">
+              <div class="input-wrapper">
+                <input id="signup-password" [type]="showPassword ? 'text' : 'password'"
+                  [(ngModel)]="password" name="password" placeholder="Password (min 6 characters)"
+                  autocomplete="new-password" (input)="clearError('password')"
+                  [class.input-error]="errors().password" class="auth-input" />
+                <button type="button" class="toggle-pw" (click)="showPassword = !showPassword">
+                  <svg *ngIf="!showPassword" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>
+                  <svg *ngIf="showPassword" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88"/></svg>
+                </button>
+              </div>
+              <p class="field-error" *ngIf="errors().password">{{ errors().password }}</p>
+            </div>
+            <div class="form-group">
+              <div class="input-wrapper">
+                <input id="signup-confirm-password" [type]="showConfirmPassword ? 'text' : 'password'"
+                  [(ngModel)]="confirmPassword" name="confirmPassword" placeholder="Confirm password"
+                  autocomplete="new-password" (input)="clearError('confirmPassword')"
+                  [class.input-error]="errors().confirmPassword" class="auth-input" />
+                <button type="button" class="toggle-pw" (click)="showConfirmPassword = !showConfirmPassword">
+                  <svg *ngIf="!showConfirmPassword" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>
+                  <svg *ngIf="showConfirmPassword" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88"/></svg>
+                </button>
+              </div>
+              <p class="field-error" *ngIf="errors().confirmPassword">{{ errors().confirmPassword }}</p>
+            </div>
+
+            <button id="signup-submit-btn" type="submit" class="auth-submit-btn" [disabled]="isSubmitting() || !!successMessage()">
+              <span class="spinner" *ngIf="isSubmitting()"></span>
+              {{ isSubmitting() ? 'Creating account...' : 'Create Account' }}
+            </button>
+          </form>
+
+          <div class="card-divider"><span>or</span></div>
+          <p class="card-alt-text">Already have an account?</p>
+          <a routerLink="/login" class="btn-outline">Log in</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <a routerLink="/signup" class="nav-logo">
+          <app-brand-icon size="sm" />
+          <span class="logo-text">ScribeCount</span>
+        </a>
+        <p class="footer-tagline">AuthorVault — your book asset command center.</p>
+      </div>
+      <div class="footer-links">
+        <div class="footer-col"><h4>Product</h4><a routerLink="/">AuthorVault</a><a routerLink="/">Pricing</a></div>
+        <div class="footer-col"><h4>Company</h4><a href="#">About</a><a href="#">Contact</a></div>
+        <div class="footer-col"><h4>Legal</h4><a href="#">Privacy Policy</a><a href="#">Terms of Service</a></div>
+      </div>
+    </div>
+    <div class="footer-bottom"><span>&copy; {{ year }} ScribeCount. All rights reserved.</span></div>
+  </footer>
+</div>

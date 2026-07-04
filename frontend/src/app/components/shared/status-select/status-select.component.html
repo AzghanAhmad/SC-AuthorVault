@@ -1,0 +1,41 @@
+
+<div class="status-select-wrap">
+
+  @if (readOnly) {
+
+    <span class="status-plain">{{ labelFor(value) || '—' }}</span>
+
+  } @else {
+
+    <div class="status-select-field">
+
+      <select
+
+        class="form-input status-select-input"
+
+        [ngModel]="value"
+
+        (ngModelChange)="onChange($event)"
+
+        [disabled]="disabled">
+
+        @for (opt of resolvedOptions; track opt) {
+
+          <option [value]="opt">{{ labelFor(opt) }}</option>
+
+        }
+
+      </select>
+
+      <svg class="status-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+
+        <polyline points="6 9 12 15 18 9"/>
+
+      </svg>
+
+    </div>
+
+  }
+
+</div>
+

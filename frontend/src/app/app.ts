@@ -82,6 +82,7 @@ export class App {
 
   isAuthPage = computed(() => {
     const url = this.currentUrl();
-    return url.startsWith('/login') || url.startsWith('/signup') || url === '/';
+    const publicPaths = ['/login', '/signup', '/about', '/contact', '/privacy', '/terms'];
+    return url === '/' || publicPaths.some(path => url.startsWith(path));
   });
 }

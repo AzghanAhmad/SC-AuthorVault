@@ -1,0 +1,121 @@
+<div class="detail-header">
+  <h1 class="page-title">🏢 {{company.identity.legalName}}</h1>
+  <p class="page-subtitle">{{company.identity.entityType}} · {{company.identity.stateOfIncorporation}} · {{company.identity.companyStatus}}</p>
+</div>
+
+<div class="stats-row">
+  <div class="stat-card"><div class="stat-value">{{company.imprints.length}}</div><div class="stat-label">Imprints</div></div>
+  <div class="stat-card"><div class="stat-value">{{penNameCount}}</div><div class="stat-label">Pen Names</div></div>
+  <div class="stat-card"><div class="stat-value">{{bookCount}}</div><div class="stat-label">Books</div></div>
+  <div class="stat-card"><div class="stat-value">{{company.identity.companyStatus}}</div><div class="stat-label">Status</div></div>
+</div>
+
+<div class="vault-layout">
+  <nav class="vault-nav">
+    @for(tab of tabs; track tab.id) {
+      <button class="tab-item" [class.active]="companyTab === tab.id" (click)="tabChange.emit(tab.id)">{{tab.label}}</button>
+    }
+  </nav>
+
+  <div class="vault-content">
+    <!-- IDENTITY -->
+    @if(companyTab === 'identity') {
+      <div class="card">
+        <h2 class="section-title">Company Identity</h2>
+        <div class="form-grid">
+          <div class="form-group"><span class="form-label">Legal Name</span><div class="form-value">{{company.identity.legalName}}</div></div>
+          <div class="form-group"><span class="form-label">DBA Name(s)</span><div class="form-value">{{company.identity.dbaNames}}</div></div>
+          <div class="form-group"><span class="form-label">Entity Type</span><div class="form-value">{{company.identity.entityType}}</div></div>
+          <div class="form-group"><span class="form-label">State of Incorporation</span><div class="form-value">{{company.identity.stateOfIncorporation}}</div></div>
+          <div class="form-group"><span class="form-label">Date of Formation</span><div class="form-value">{{company.identity.dateOfFormation}}</div></div>
+          <div class="form-group"><span class="form-label">EIN / Tax ID</span><div class="form-value">{{company.identity.einTaxId}}</div></div>
+          <div class="form-group"><span class="form-label">Registered Agent</span><div class="form-value">{{company.identity.registeredAgent}}</div></div>
+          <div class="form-group"><span class="form-label">Fiscal Year End</span><div class="form-value">{{company.identity.fiscalYearEnd}}</div></div>
+          <div class="form-group"><span class="form-label">Status</span><div class="form-value"><span class="status status-green">{{company.identity.companyStatus}}</span></div></div>
+          <div class="form-group"><span class="form-label">Phone</span><div class="form-value">{{company.identity.phone}}</div></div>
+          <div class="form-group full"><span class="form-label">Primary Address</span><div class="form-value">{{company.identity.primaryAddress}}</div></div>
+          <div class="form-group"><span class="form-label">Email</span><div class="form-value">{{company.identity.primaryEmail}}</div></div>
+          <div class="form-group"><span class="form-label">Website</span><div class="form-value">{{company.identity.website}}</div></div>
+        </div>
+      </div>
+    }
+
+    <!-- OWNERSHIP -->
+    @if(companyTab === 'ownership') {
+      <div class="card">
+        <h2 class="section-title">Ownership & Partners</h2>
+        <table class="data-table">
+          <thead><tr><th>Name</th><th>Ownership %</th><th>Role</th></tr></thead>
+          <tbody>
+            @for(o of company.ownership.owners; track o.name) {
+              <tr><td class="td-primary">{{o.name}}</td><td>{{o.ownershipPercent}}%</td><td>{{o.role}}</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <div class="card">
+        <h2 class="section-title">Legal Documents</h2>
+        <div class="form-grid">
+          <div class="form-group"><span class="form-label">Operating Agreement</span><div class="form-value">{{company.ownership.operatingAgreementFile || '—'}}</div></div>
+          <div class="form-group"><span class="form-label">S-Corp Election</span><div class="form-value">{{company.ownership.sCorpElectionFile || '—'}}</div></div>
+        </div>
+      </div>
+    }
+
+    <!-- FINANCIAL -->
+    @if(companyTab === 'financial') {
+      <div class="card">
+        <h2 class="section-title">Financial & Tax Records</h2>
+        <div class="form-grid">
+          <div class="form-group"><span class="form-label">Bank Name(s)</span><div class="form-value">{{company.financial.bankNames}}</div></div>
+          <div class="form-group"><span class="form-label">Checking Account</span><div class="form-value">{{company.financial.businessChecking}}</div></div>
+          <div class="form-group"><span class="form-label">Savings Account</span><div class="form-value">{{company.financial.businessSavings}}</div></div>
+          <div class="form-group"><span class="form-label">Payment Processors</span><div class="form-value">{{company.financial.paymentProcessors}}</div></div>
+          <div class="form-group"><span class="form-label">Accounting Software</span><div class="form-value">{{company.financial.accountingSoftware}}</div></div>
+          <div class="form-group"><span class="form-label">CPA Name</span><div class="form-value">{{company.financial.cpaName}}</div></div>
+          <div class="form-group"><span class="form-label">CPA Contact</span><div class="form-value">{{company.financial.cpaContact}}</div></div>
+          <div class="form-group"><span class="form-label">Payroll Provider</span><div class="form-value">{{company.financial.payrollProvider}}</div></div>
+          <div class="form-group full"><span class="form-label">Quarterly Tax Schedule</span><div class="form-value">{{company.financial.quarterlyTaxSchedule}}</div></div>
+          <div class="form-group full"><span class="form-label">State Tax Registrations</span><div class="form-value">{{company.financial.stateTaxRegistrations}}</div></div>
+        </div>
+      </div>
+    }
+
+    <!-- CONTRACTS -->
+    @if(companyTab === 'contracts') {
+      <div class="card">
+        <h2 class="section-title">Contracts & Legal</h2>
+        <div class="form-grid">
+          <div class="form-group"><span class="form-label">Operating Agreement</span><div class="form-value">{{company.contractsLegal.operatingAgreement}}</div></div>
+          <div class="form-group"><span class="form-label">Trademark Registrations</span><div class="form-value">{{company.contractsLegal.trademarkRegistrations}}</div></div>
+          <div class="form-group"><span class="form-label">Copyright Assignments</span><div class="form-value">{{company.contractsLegal.copyrightAssignments}}</div></div>
+          <div class="form-group"><span class="form-label">Insurance Policies</span><div class="form-value">{{company.contractsLegal.insurancePolicies}}</div></div>
+          <div class="form-group"><span class="form-label">Attorney</span><div class="form-value">{{company.contractsLegal.attorneyName}}</div></div>
+          <div class="form-group"><span class="form-label">Attorney Contact</span><div class="form-value">{{company.contractsLegal.attorneyContact}}</div></div>
+        </div>
+      </div>
+    }
+
+    <!-- IMPRINTS LIST -->
+    @if(companyTab === 'imprints') {
+      <div class="card">
+        <h2 class="section-title">Imprints</h2>
+        <div class="entity-list">
+          @for(imp of company.imprints; track imp.id) {
+            <div class="entity-card" (click)="navigateTo.emit({level:'imprint', id:imp.id, label:imp.identity.name})">
+              <div class="entity-card-header">
+                <h3 class="entity-name">📚 {{imp.identity.name}}</h3>
+                <span class="status" [ngClass]="imp.identity.status === 'Active' ? 'status-green' : 'status-amber'">{{imp.identity.status}}</span>
+              </div>
+              <p class="entity-meta">{{imp.identity.purposeGenreFocus}}</p>
+              <div class="entity-stats">
+                <span class="entity-stat"><strong>{{imp.penNames.length}}</strong> Pen Names</span>
+                <span class="entity-stat"><strong>{{imp.legalIsbn.isbnsRemaining}}</strong> ISBNs remaining</span>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    }
+  </div>
+</div>

@@ -1,0 +1,17 @@
+<div class="vault-table-footer">
+  @if (allowAdd) {
+    <button type="button" class="btn-secondary btn-sm" [disabled]="!editMode" (click)="addRow.emit()">+ Add Row</button>
+  }
+  <div class="vault-table-footer-meta">
+    @if (totalPages > 1) {
+      <nav class="table-pagination" aria-label="Table pagination">
+        <button type="button" class="page-btn" [disabled]="page <= 1" (click)="goPage(page - 1)">Previous</button>
+        <span class="page-info">Page {{ page }} of {{ totalPages }}</span>
+        <button type="button" class="page-btn" [disabled]="page >= totalPages" (click)="goPage(page + 1)">Next</button>
+      </nav>
+    }
+    @if (totalItems > 0) {
+      <span class="row-count">{{ totalItems }} row{{ totalItems === 1 ? '' : 's' }}</span>
+    }
+  </div>
+</div>

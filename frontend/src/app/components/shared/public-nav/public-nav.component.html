@@ -1,0 +1,12 @@
+<header class="nav" [class.scrolled]="navScrolled">
+  <div class="nav-inner">
+    <a routerLink="/login" class="nav-logo">
+      <app-brand-icon size="sm" />
+      <span class="logo-text">ScribeCount</span>
+    </a>
+    <nav class="nav-links">
+      <a routerLink="/login" routerLinkActive="nav-active">Log In</a>
+      <a routerLink="/signup" class="btn-signup" routerLinkActive="nav-active-signup">Sign Up</a>
+    </nav>
+  </div>
+</header>

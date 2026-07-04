@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable, of, tap, catchError } from 'rxjs';
+import { Observable, tap, catchError, throwError, map } from 'rxjs';
 import { ApiService } from './api.service';
+import { getApiErrorMessage } from '../utils/api-error.util';
 
 export interface AppSettings {
   name: string;
@@ -19,58 +20,54 @@ export interface AppSettings {
   notifProductUpdates: boolean;
 }
 
+const DEFAULT_SETTINGS: AppSettings = {
+  name: 'Author User',
+  email: 'author@scribecount.com',
+  authorName: 'Author User',
+  defaultCountry: 'US',
+  defaultFormat: 'ebook',
+  enableBridgePage: false,
+  autoGeoRouting: true,
+  theme: 'light',
+  defaultLandingPage: 'dashboard',
+  compactSidebar: false,
+  notifBrokenLink: true,
+  notifMilestones: true,
+  notifWeeklyReport: true,
+  notifProductUpdates: false
+};
+
 @Injectable({ providedIn: 'root' })
 export class SettingsService {
   private readonly api = inject(ApiService);
+  private settings: AppSettings = { ...DEFAULT_SETTINGS };
 
-  private settings: AppSettings = {
-    name: 'Author User',
-    email: 'author@scribecount.com',
-    authorName: 'Author User',
-    defaultCountry: 'US',
-    defaultFormat: 'ebook',
-    enableBridgePage: false,
-    autoGeoRouting: true,
-    theme: 'light',
-    defaultLandingPage: 'dashboard',
-    compactSidebar: false,
-    notifBrokenLink: true,
-    notifMilestones: true,
-    notifWeeklyReport: true,
-    notifProductUpdates: false
-  };
+  getSnapshot(): AppSettings {
+    return { ...this.settings };
+  }
 
   loadFromApi(): Observable<AppSettings> {
-    return this.api.get<AppSettings>('/settings').pipe(
-      tap(s => {
-        if (s && s.email) {
-          this.settings = { ...this.settings, ...s };
-        } else {
-          this.saveToApi(this.settings).subscribe();
-        }
-      }),
-      catchError(() => {
-        this.saveToApi(this.settings).subscribe();
-        return of(this.settings);
+    return this.api.get<Partial<AppSettings>>('/settings').pipe(
+      map(raw => this.normalize(raw)),
+      tap(s => { this.settings = s; }),
+      catchError(err => {
+        console.error('Settings load failed', err);
+        return throwError(() => ({ message: getApiErrorMessage(err, 'Failed to load settings.') }));
       })
     );
   }
 
-  getSettings(): Observable<AppSettings> {
-    return of({ ...this.settings });
-  }
-
-  updateSettings(s: AppSettings): Observable<AppSettings> {
-    this.settings = { ...s };
-    return this.saveToApi(this.settings);
-  }
-
-  private saveToApi(s: AppSettings): Observable<AppSettings> {
-    return this.api.put<AppSettings>('/settings', s).pipe(
-      tap(saved => {
-        if (saved) this.settings = { ...this.settings, ...saved };
-      }),
-      catchError(() => of(s))
+  updateSettings(partial: Partial<AppSettings>): Observable<AppSettings> {
+    const merged = { ...this.settings, ...partial };
+    this.settings = merged;
+    return this.api.put<Partial<AppSettings>>('/settings', merged).pipe(
+      map(raw => this.normalize({ ...merged, ...raw })),
+      tap(saved => { this.settings = saved; }),
+      catchError(err => throwError(() => ({ message: getApiErrorMessage(err, 'Failed to save settings.') })))
     );
+  }
+
+  private normalize(raw: Partial<AppSettings> | null | undefined): AppSettings {
+    return { ...DEFAULT_SETTINGS, ...(raw ?? {}) };
   }
 }

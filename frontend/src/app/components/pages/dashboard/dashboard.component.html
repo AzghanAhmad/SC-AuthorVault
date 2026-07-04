@@ -1,0 +1,342 @@
+<div class="page">
+  <app-page-action-bar
+    [editing]="editMode()"
+    deleteLabel="Delete company tree"
+    (editToggle)="editMode.update(v => !v)"
+    (deleteAll)="deleteCompanyTree()" />
+
+  <!-- ── WELCOME BANNER ── -->
+  <div class="welcome-banner glass-card">
+    <div class="welcome-content">
+      <h1 class="welcome-title">Welcome back, {{ auth.displayName() }}!</h1>
+      <p class="welcome-subtitle">Here is a live overview of your publishing vault. Keep track of your imprints, pen names, pipeline progress, and upcoming deadlines.</p>
+    </div>
+    <div class="welcome-date">
+      <span class="date-day">{{ currentDay }}</span>
+      <span class="date-month">{{ currentMonth }}</span>
+    </div>
+  </div>
+
+  <!-- ── TIER STATS ROW ── -->
+  <div class="stats-row-redesigned">
+    <div class="stat-card-glow blue" routerLink="/vault/series">
+      <div class="stat-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="m12 2 10 6.5-10 6.5L2 8.5Z"/>
+          <path d="m2 15.5 10 6.5 10-6.5"/>
+          <path d="m2 12 10 6.5L22 12"/>
+        </svg>
+      </div>
+      <div class="stat-body">
+        <span class="stat-value">{{ vs.totalSeries() }}</span>
+        <span class="stat-label">Series</span>
+      </div>
+    </div>
+
+    <div class="stat-card-glow indigo" routerLink="/books">
+      <div class="stat-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
+        </svg>
+      </div>
+      <div class="stat-body">
+        <span class="stat-value">{{ vs.totalBooks() }}</span>
+        <span class="stat-label">Total Books</span>
+      </div>
+    </div>
+
+    <div class="stat-card-glow green" routerLink="/books">
+      <div class="stat-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </div>
+      <div class="stat-body">
+        <span class="stat-value">{{ vs.pipelineStats().published }}</span>
+        <span class="stat-label">Published</span>
+      </div>
+    </div>
+
+    <div class="stat-card-glow amber" routerLink="/books">
+      <div class="stat-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+        </svg>
+      </div>
+      <div class="stat-body">
+        <span class="stat-value">{{ vs.pipelineStats().draft }}</span>
+        <span class="stat-label">In Draft</span>
+      </div>
+    </div>
+
+    <div class="stat-card-glow purple" routerLink="/vault/pen-names">
+      <div class="stat-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+        </svg>
+      </div>
+      <div class="stat-body">
+        <span class="stat-value">{{ vs.totalPenNames() }}</span>
+        <span class="stat-label">Pen Names</span>
+      </div>
+    </div>
+
+    <div class="stat-card-glow teal" routerLink="/vault/imprints">
+      <div class="stat-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+        </svg>
+      </div>
+      <div class="stat-body">
+        <span class="stat-value">{{ vs.totalImprints() }}</span>
+        <span class="stat-label">Imprints</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── DUAL COLUMN DASHBOARD GRID ── -->
+  <div class="dashboard-grid">
+    <!-- LEFT MAIN COLUMN -->
+    <div class="main-column">
+      <!-- 1. PUBLISHING PIPELINE DISTRIBUTION -->
+      <div class="visual-card glass-card">
+        <div class="card-header-visual">
+          <div>
+            <h2 class="visual-title">Publishing Pipeline Distribution</h2>
+            <p class="visual-subtitle">Current production breakdown across all format titles</p>
+          </div>
+          <span class="total-books-badge">{{ vs.totalBooks() }} Books</span>
+        </div>
+
+        <!-- Pipeline Bar -->
+        <div class="pipeline-bar-wrapper">
+          <div class="pipeline-bar">
+            <div class="pipeline-segment draft" [style.width.%]="stats.draftPct" [class.highlighted]="activeHoverSegment === 'draft'" (mouseenter)="activeHoverSegment = 'draft'" (mouseleave)="activeHoverSegment = null" title="Draft"></div>
+            <div class="pipeline-segment editing" [style.width.%]="stats.editingPct" [class.highlighted]="activeHoverSegment === 'editing'" (mouseenter)="activeHoverSegment = 'editing'" (mouseleave)="activeHoverSegment = null" title="Editing"></div>
+            <div class="pipeline-segment preorder" [style.width.%]="stats.preorderPct" [class.highlighted]="activeHoverSegment === 'preorder'" (mouseenter)="activeHoverSegment = 'preorder'" (mouseleave)="activeHoverSegment = null" title="Pre-Order"></div>
+            <div class="pipeline-segment published" [style.width.%]="stats.publishedPct" [class.highlighted]="activeHoverSegment === 'published'" (mouseenter)="activeHoverSegment = 'published'" (mouseleave)="activeHoverSegment = null" title="Published"></div>
+          </div>
+        </div>
+
+        <!-- Pipeline Legend -->
+        <div class="pipeline-legend">
+          <div class="legend-item" [class.dimmed]="activeHoverSegment && activeHoverSegment !== 'draft'" (mouseenter)="activeHoverSegment = 'draft'" (mouseleave)="activeHoverSegment = null">
+            <span class="legend-dot draft"></span>
+            <div class="legend-details">
+              <span class="legend-name">Draft</span>
+              <span class="legend-values"><strong>{{ stats.draft }}</strong> ({{ stats.draftPct | number:'1.0-1' }}%)</span>
+            </div>
+          </div>
+          <div class="legend-item" [class.dimmed]="activeHoverSegment && activeHoverSegment !== 'editing'" (mouseenter)="activeHoverSegment = 'editing'" (mouseleave)="activeHoverSegment = null">
+            <span class="legend-dot editing"></span>
+            <div class="legend-details">
+              <span class="legend-name">Editing</span>
+              <span class="legend-values"><strong>{{ stats.editing }}</strong> ({{ stats.editingPct | number:'1.0-1' }}%)</span>
+            </div>
+          </div>
+          <div class="legend-item" [class.dimmed]="activeHoverSegment && activeHoverSegment !== 'preorder'" (mouseenter)="activeHoverSegment = 'preorder'" (mouseleave)="activeHoverSegment = null">
+            <span class="legend-dot preorder"></span>
+            <div class="legend-details">
+              <span class="legend-name">Pre-Order</span>
+              <span class="legend-values"><strong>{{ stats.preorder }}</strong> ({{ stats.preorderPct | number:'1.0-1' }}%)</span>
+            </div>
+          </div>
+          <div class="legend-item" [class.dimmed]="activeHoverSegment && activeHoverSegment !== 'published'" (mouseenter)="activeHoverSegment = 'published'" (mouseleave)="activeHoverSegment = null">
+            <span class="legend-dot published"></span>
+            <div class="legend-details">
+              <span class="legend-name">Published</span>
+              <span class="legend-values"><strong>{{ stats.published }}</strong> ({{ stats.publishedPct | number:'1.0-1' }}%)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. AUTHOR VAULT HIERARCHY TREE -->
+      <div class="visual-card glass-card">
+        <h2 class="visual-title" style="margin-bottom:0.25rem;">Author Vault Hierarchy</h2>
+        <p class="visual-subtitle" style="margin-bottom:1.75rem;">Explore the structural relationship map of your assets</p>
+
+        <div class="hierarchy-tree">
+          @if (!hasCompany()) {
+            <div class="empty-widget-state hierarchy-empty">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="40" height="40" style="opacity:0.4;margin-bottom:0.5rem;">
+                <path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/>
+              </svg>
+              <p>No company added yet</p>
+              <span class="empty-hint">Set up your publishing company in Company File to see your vault hierarchy.</span>
+              <button class="btn-widget-action" routerLink="/vault/company">Go to Company File</button>
+            </div>
+          } @else {
+          <!-- LEVEL 1: COMPANY -->
+          <div class="tree-section level-company">
+            <div class="node-badge">Company</div>
+            <div class="company-node-card">
+              <label class="entity-avatar-upload company-avatar-lg" [class.edit-disabled]="!editMode()" title="Upload company avatar (Click to change)">
+                @if (vs.company().identity.avatarUrl) {
+                  <img [src]="vs.company().identity.avatarUrl" alt="" class="entity-avatar-img" />
+                } @else {
+                  <span class="entity-avatar-fallback">{{ companyInitials }}</span>
+                }
+                <input type="file" accept="image/*" hidden [disabled]="!editMode()" (change)="onCompanyAvatar($event)" />
+              </label>
+              <div class="company-node-info">
+                <h3 class="node-name" routerLink="/vault/company">{{ vs.company().identity.legalName }}</h3>
+                <span class="node-meta-tag">{{ vs.company().identity.entityType }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- CONNECTORS -->
+          <div class="tree-connector"><div class="connector-line-tall"></div></div>
+
+          <!-- LEVEL 2: IMPRINTS -->
+          <div class="tree-section level-imprints">
+            <div class="node-badge">Imprints</div>
+            <div class="imprints-node-grid">
+              @for (imp of vs.company().imprints; track imp.id) {
+                <div class="imprint-node-card">
+                  <label class="entity-avatar-upload" [class.edit-disabled]="!editMode()" title="Upload imprint avatar (Click to change)">
+                    @if (imp.identity.avatarUrl) {
+                      <img [src]="imp.identity.avatarUrl" alt="" class="entity-avatar-img" />
+                    } @else {
+                      <span class="entity-avatar-fallback">{{ initials(imp.identity.name) }}</span>
+                    }
+                    <input type="file" accept="image/*" hidden [disabled]="!editMode()" (change)="onImprintAvatar($event, imp.id)" />
+                  </label>
+                  <div class="node-details">
+                    <h4 class="node-subname" routerLink="/vault/imprints">{{ imp.identity.name }}</h4>
+                    <span class="node-stat-pill">{{ imp.penNames.length }} Pen Names</span>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- CONNECTORS -->
+          <div class="tree-connector"><div class="connector-line-tall"></div></div>
+
+          <!-- LEVEL 3: PEN NAMES -->
+          <div class="tree-section level-pennames">
+            <div class="node-badge">Pen Names</div>
+            <div class="pennames-node-grid">
+              <ng-container *ngFor="let imp of vs.company().imprints">
+                <div class="penname-node-card" *ngFor="let pn of imp.penNames">
+                  <label class="entity-avatar-upload" [class.edit-disabled]="!editMode()" title="Upload pen name avatar (Click to change)">
+                    @if (pn.identity.avatarUrl) {
+                      <img [src]="pn.identity.avatarUrl" alt="" class="entity-avatar-img" />
+                    } @else {
+                      <span class="entity-avatar-fallback" style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)">{{ initials(pn.identity.displayName) }}</span>
+                    }
+                    <input type="file" accept="image/*" hidden [disabled]="!editMode()" (change)="onPenNameAvatar($event, pn.id)" />
+                  </label>
+                  <div class="node-details">
+                    <h4 class="node-subname" routerLink="/vault/pen-names">{{ pn.identity.displayName }}</h4>
+                    <span class="node-stat-pill">{{ pn.series.length }} Series · {{ countBooks(pn) }} Books</span>
+                  </div>
+                </div>
+              </ng-container>
+            </div>
+          </div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT SIDEBAR COLUMN -->
+    <div class="sidebar-column">
+      <!-- 1. UPCOMING DEADLINES WIDGET -->
+      <div class="visual-card glass-card">
+        <div class="card-header-visual">
+          <div>
+            <h2 class="visual-title">Upcoming Deadlines</h2>
+            <p class="visual-subtitle">Renewals & tax deadlines</p>
+          </div>
+          <button class="icon-link-btn" routerLink="/company/calendar" title="View Calendar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="deadline-feed">
+          @for (date of upcomingDates(); track date.id) {
+            <div class="deadline-row-card" [class]="'urgency-' + date.urgency">
+              <div class="deadline-badge">
+                <span class="dl-day">{{ getDayNumber(date.dueDate) }}</span>
+                <span class="dl-month">{{ getMonthAbbr(date.dueDate) }}</span>
+              </div>
+              <div class="deadline-info-panel">
+                <h4 class="deadline-row-title">{{ date.title }}</h4>
+                <div class="deadline-row-meta">
+                  <span class="dl-cat-tag" [class]="'cat-' + date.category.toLowerCase()">{{ date.category }}</span>
+                  <span class="dl-countdown" [class]="'urgency-text-' + date.urgency">{{ getCountdownLabel(date.daysAway) }}</span>
+                </div>
+              </div>
+            </div>
+          } @empty {
+            <div class="empty-widget-state">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="36" height="36" style="opacity:0.4;margin-bottom:0.5rem;">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              <p>No upcoming dates scheduled</p>
+              <button class="btn-widget-action" routerLink="/company/calendar">+ Add Date</button>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- 2. ISBN USAGE STATUS WIDGET -->
+      <div class="visual-card glass-card">
+        <div class="card-header-visual">
+          <div>
+            <h2 class="visual-title">ISBN Block Usage</h2>
+            <p class="visual-subtitle">Assigned barcodes per imprint</p>
+          </div>
+          <button class="icon-link-btn" routerLink="/company/isbns" title="ISBN Master List">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+              <path d="M4 19.5V15h16v4.5M4 10V5h16v5M12 2v20"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="isbn-widget-list">
+          @for (imp of vs.company().imprints; track imp.id) {
+            <div class="isbn-widget-row">
+              <div class="isbn-widget-info">
+                <span class="isbn-imprint-name">{{ imp.identity.name }}</span>
+                <span class="isbn-imprint-numbers">{{ imp.legalIsbn.isbnsAssigned }} / {{ imp.legalIsbn.isbnBlockCount || 100 }} codes assigned</span>
+                <span class="isbn-imprint-left">{{ imp.legalIsbn.isbnsRemaining }} remaining</span>
+              </div>
+              <div class="isbn-ring-container">
+                <svg class="isbn-ring" width="44" height="44" viewBox="0 0 36 36">
+                  <!-- background path -->
+                  <path class="isbn-ring-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="3" />
+                  <!-- fill path -->
+                  <path class="isbn-ring-fg" [attr.stroke-dasharray]="getDashArray(imp.legalIsbn)" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="url(#isbnGrad)" stroke-width="3.5" stroke-linecap="round" />
+                  <defs>
+                    <linearGradient id="isbnGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stop-color="#3b82f6" />
+                      <stop offset="100%" stop-color="#8b5cf6" />
+                    </linearGradient>
+                  </defs>
+                  <text x="18" y="21.5" class="isbn-ring-text" text-anchor="middle" font-size="8.5" font-weight="700" fill="var(--text-primary)">
+                    {{ getPercentage(imp.legalIsbn) }}%
+                  </text>
+                </svg>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Nav Hint -->
+  <div class="nav-hint-redesigned glass-card">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+      <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+    </svg>
+    <span>Use the sidebar to navigate to <strong>Company</strong> or <strong>Library</strong> sections to update records.</span>
+  </div>
+</div>
