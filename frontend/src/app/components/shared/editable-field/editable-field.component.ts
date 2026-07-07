@@ -10,6 +10,20 @@ import { FormsModule } from '@angular/forms';
   styleUrls: ['./editable-field.component.css'],
   })
 export class EditableFieldComponent {
+  copied = false;
+
+  copyToClipboard(): void {
+    const textToCopy = this.value || '';
+    navigator.clipboard.writeText(textToCopy).then(() => {
+      this.copied = true;
+      setTimeout(() => {
+        this.copied = false;
+      }, 2000);
+    }).catch(err => {
+      console.error('Could not copy text: ', err);
+    });
+  }
+
   @Input() label = '';
   @Input() value = '';
   @Input() readOnly = false;

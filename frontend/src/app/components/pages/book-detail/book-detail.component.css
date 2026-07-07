@@ -239,3 +239,56 @@
   .core-flow-grid { grid-template-columns:1fr; }
   .core-flow-copy { flex-direction:column; }
 }
+
+.field-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.field-wrapper > .form-value {
+  flex: 1;
+  min-width: 0;
+}
+
+.field-wrapper > .form-input,
+.field-wrapper > .field-select-field {
+  flex: 1;
+  min-width: 0;
+}
+
+.copy-btn {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.copy-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--accent-blue);
+  border-color: var(--accent-blue);
+  transform: scale(1.05);
+}
+
+.copy-btn:active {
+  transform: scale(0.95);
+}
+
+.copy-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.copy-icon.success {
+  color: #10b981;
+}

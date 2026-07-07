@@ -1,13 +1,15 @@
 <div class="page-action-bar">
-  <button type="button" class="action-btn edit-btn" [class.active]="editing" (click)="editToggle.emit()">
-    @if (!editing) {
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
-        <path d="m15 5 4 4"/>
-      </svg>
-    }
-    {{ editing ? 'Done editing' : 'Edit' }}
-  </button>
+  @if (showEdit) {
+    <button type="button" class="action-btn edit-btn" [class.active]="editing" (click)="editToggle.emit()">
+      @if (!editing) {
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+          <path d="m15 5 4 4"/>
+        </svg>
+      }
+      {{ editing ? 'Save' : 'Edit' }}
+    </button>
+  }
   <button type="button" class="action-btn delete-btn" (click)="deleteAll.emit()">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <polyline points="3 6 5 6 21 6"/>

@@ -1,7 +1,7 @@
 import { Component, inject, signal, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { RouterModule, ActivatedRoute } from '@angular/router';
 import { AuthorVaultService } from '../../../services/author-vault.service';
 import { CompanyIdentity } from '../../../models/author-vault.model';
 import { ExcelImportService } from '../../../services/excel-import.service';
@@ -28,10 +28,351 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
   private companyStore = inject(VaultCompanyStoreService);
   private pinService = inject(CompanyPinService);
   private fileUpload = inject(FileUploadService);
+  private route = inject(ActivatedRoute);
   readonly company = this.vs.company;
   readonly uploadingOwnerDoc = signal<string | null>(null);
   readonly uploadingOwnershipFile = signal<string | null>(null);
   editMode = signal(false);
+  cardEditModes: Record<string, boolean> = {};
+
+  isCardEditing(cardId: string): boolean {
+    return this.cardEditModes[cardId] || false;
+  }
+
+  toggleCardEdit(cardId: string): void {
+    this.cardEditModes[cardId] = !this.cardEditModes[cardId];
+  }
+
+  formatDateInput(value: string | undefined): string {
+    if (!value) return '';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+    const parsed = new Date(value);
+    if (!isNaN(parsed.getTime())) {
+      return parsed.toISOString().split('T')[0];
+    }
+    return '';
+  }
+
+  activeImportBoxId = '';
+
+  triggerCSVImport(boxId: string): void {
+    this.activeImportBoxId = boxId;
+    const fileInput = document.getElementById('global-box-csv-input') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = '';
+      fileInput.click();
+    }
+  }
+
+  importKeyValueData(rows: any[]): void {
+    const identityPatch: any = {};
+    const financialPatch: any = {};
+    const contractsLegalPatch: any = {};
+    const ownershipPatch: any = {};
+    
+    rows.forEach(r => {
+      const path = this.excelImport.resolvePath(r.field);
+      if (!path) {
+        const lowerField = r.field.toLowerCase().trim();
+        if (lowerField === 'ein confirmation' || lowerField === 'ein confirmation file') this.patchTaxReg('einConfirmation', r.value);
+        else if (lowerField === 'sales tax registrations' || lowerField === 'sales tax') this.patchTaxReg('salesTaxRegistrations', r.value);
+        else if (lowerField === 'vat / gst' || lowerField === 'vat' || lowerField === 'gst') this.patchTaxReg('vatGst', r.value);
+        else if (lowerField === 'resale certificates' || lowerField === 'resale cert') this.patchTaxReg('resaleCertificates', r.value);
+        else if (lowerField === 'sender domain') this.patchComms('senderDomain', r.value);
+        else if (lowerField === 'email platform') this.patchComms('emailPlatform', r.value);
+        else if (lowerField === 'spf record') this.patchComms('spfRecord', r.value);
+        else if (lowerField === 'dkim status') this.patchComms('dkimStatus', r.value);
+        else if (lowerField === 'dmarc status') this.patchComms('dmarcStatus', r.value);
+        else if (lowerField === 'newsletter list size' || lowerField === 'list size') this.patchComms('newsletterListSize', r.value);
+        else if (lowerField === 'support inbox') this.patchComms('supportInbox', r.value);
+        else if (lowerField === 'po box') this.patchComms('poBox', r.value);
+        else if (lowerField === 'api key') this.patchComms('apiKey', r.value);
+        else if (lowerField === 'smtp password') this.patchComms('smtpPassword', r.value);
+        else if (lowerField === 'fulfillment partner') this.patchFulfillment('fulfillmentPartner', r.value);
+        else if (lowerField === 'shipping account') this.patchFulfillment('shippingAccount', r.value);
+        else if (lowerField === 'packaging vendor') this.patchFulfillment('packagingVendor', r.value);
+        else if (lowerField === 'delivery policy' || lowerField === 'shipping policy') this.patchFulfillment('deliveryPolicy', r.value);
+        else if (lowerField === 'emergency access') this.patchSecurityNotes('emergencyAccess', r.value);
+        else if (lowerField === 'offboarding steps') this.patchSecurityNotes('offboardingSteps', r.value);
+        return;
+      }
+      
+      const parts = path.split('.');
+      const section = parts[0];
+      const field = parts[1];
+      if (section === 'identity') identityPatch[field] = r.value;
+      else if (section === 'financial') financialPatch[field] = r.value;
+      else if (section === 'contractsLegal') contractsLegalPatch[field] = r.value;
+      else if (section === 'ownership') ownershipPatch[field] = r.value;
+    });
+
+    if (Object.keys(identityPatch).length > 0) this.vs.patchIdentity(identityPatch);
+    if (Object.keys(financialPatch).length > 0) this.vs.patchFinancial(financialPatch);
+    if (Object.keys(contractsLegalPatch).length > 0) this.vs.patchContractsLegal(contractsLegalPatch);
+    if (Object.keys(ownershipPatch).length > 0) this.vs.patchOwnership(ownershipPatch);
+  }
+
+  mapListRow(boxId: string, rawObj: any): any {
+    const cleanObj: any = {};
+    const keys = Object.keys(rawObj);
+    
+    const findValue = (possibleHeaders: string[]): string | undefined => {
+      const match = keys.find(k => possibleHeaders.map(ph => ph.toLowerCase().replace(/\s+/g, '')).includes(k.toLowerCase().replace(/\s+/g, '')));
+      return match ? String(rawObj[match]).trim() : undefined;
+    };
+
+    if (boxId === 'owners') {
+      cleanObj.name = findValue(['name', 'owner', 'full name']) ?? '';
+      cleanObj.role = findValue(['role', 'title', 'position']) ?? '';
+      cleanObj.ownershipPct = findValue(['ownership pct', 'percentage', 'share', 'ownership%']) ?? '';
+      cleanObj.email = findValue(['email', 'email address']) ?? '';
+      cleanObj.phone = findValue(['phone', 'phone number']) ?? '';
+      cleanObj.canSign = (findValue(['can sign', 'signatory']) ?? 'true').toLowerCase() === 'true';
+      cleanObj.canManageFinances = (findValue(['can manage finances', 'financial manage']) ?? 'false').toLowerCase() === 'true';
+      cleanObj.showNda = false;
+    } else if (boxId === 'corporate_docs') {
+      cleanObj.document = findValue(['document', 'doc name', 'title']) ?? '';
+      cleanObj.fileRef = findValue(['file ref', 'file name', 'file']) ?? '';
+      cleanObj.status = findValue(['status', 'state']) ?? 'Pending';
+    } else if (boxId === 'banks') {
+      cleanObj.bankName = findValue(['bank name', 'bank']) ?? '';
+      cleanObj.accountType = findValue(['account type', 'type']) ?? 'Checking';
+      cleanObj.routingNumber = findValue(['routing number', 'routing']) ?? '';
+      cleanObj.accountNumber = findValue(['account number', 'account']) ?? '';
+      cleanObj.status = findValue(['status']) ?? 'Active';
+      cleanObj.currency = findValue(['currency']) ?? 'USD';
+    } else if (boxId === 'payments') {
+      cleanObj.platformName = findValue(['platform name', 'platform']) ?? '';
+      cleanObj.email = findValue(['email', 'username', 'login']) ?? '';
+      cleanObj.status = findValue(['status']) ?? 'Active';
+      cleanObj.notes = findValue(['notes', 'comment']) ?? '';
+    } else if (boxId === 'tax_docs') {
+      cleanObj.month = findValue(['month']) ?? '';
+      cleanObj.year = findValue(['year']) ?? '';
+      cleanObj.category = findValue(['category', 'type']) ?? '';
+      cleanObj.fileName = findValue(['file name', 'file', 'fileName']) ?? '';
+      cleanObj.status = findValue(['status']) ?? 'Pending';
+    } else if (boxId === 'platforms') {
+      cleanObj.platformName = findValue(['platform name', 'platform']) ?? '';
+      cleanObj.email = findValue(['email', 'username']) ?? '';
+      cleanObj.status = findValue(['status']) ?? 'Active';
+      cleanObj.notes = findValue(['notes']) ?? '';
+    } else if (boxId === 'isbns') {
+      cleanObj.isbn = findValue(['isbn', 'number']) ?? '';
+      cleanObj.format = findValue(['format']) ?? '';
+      cleanObj.title = findValue(['title', 'book title', 'book']) ?? '';
+      cleanObj.imprint = findValue(['imprint']) ?? '';
+      cleanObj.series = findValue(['series']) ?? '';
+      cleanObj.pubDate = findValue(['pub date', 'assigned date', 'date', 'assignedDate']) ?? '';
+      cleanObj.status = findValue(['status']) ?? 'unused';
+    } else if (boxId === 'contracts') {
+      cleanObj.title = findValue(['title', 'contract name', 'name']) ?? '';
+      cleanObj.counterparty = findValue(['counterparty', 'vendor', 'partner']) ?? '';
+      cleanObj.category = findValue(['category', 'type']) ?? '';
+      cleanObj.executionDate = findValue(['execution date', 'date']) ?? '';
+      cleanObj.status = findValue(['status']) ?? 'Active';
+      cleanObj.fileRef = findValue(['file ref', 'file']) ?? '';
+    } else if (boxId === 'team') {
+      cleanObj.name = findValue(['name', 'member', 'full name']) ?? '';
+      cleanObj.role = findValue(['role', 'title']) ?? '';
+      cleanObj.email = findValue(['email', 'email address']) ?? '';
+      cleanObj.phone = findValue(['phone', 'phone number']) ?? '';
+      cleanObj.status = findValue(['status']) ?? 'Active';
+      cleanObj.department = findValue(['department', 'dept']) ?? '';
+      cleanObj.accessLevel = findValue(['access level', 'access']) ?? 'View';
+    } else if (boxId === 'domains') {
+      cleanObj.domainName = findValue(['domain name', 'domain']) ?? '';
+      cleanObj.registrar = findValue(['registrar']) ?? '';
+      cleanObj.expiryDate = findValue(['expiry date', 'expiry']) ?? '';
+      cleanObj.autoRenew = (findValue(['auto renew', 'autorenew']) ?? 'true').toLowerCase() === 'true';
+      cleanObj.status = findValue(['status']) ?? 'Active';
+      cleanObj.hostName = findValue(['host name', 'host']) ?? '';
+    } else if (boxId === 'sops') {
+      cleanObj.title = findValue(['title', 'sop name', 'name']) ?? '';
+      cleanObj.department = findValue(['department', 'dept']) ?? '';
+      cleanObj.status = findValue(['status']) ?? 'Active';
+      cleanObj.lastReviewed = findValue(['last reviewed', 'date']) ?? '';
+      cleanObj.fileRef = findValue(['file ref', 'file']) ?? '';
+    }
+    
+    return cleanObj;
+  }
+
+  importListDocs(boxId: string, list: any[]): void {
+    const mapped = list.map(item => this.mapListRow(boxId, item)).filter(obj => Object.keys(obj).length > 0);
+    if (mapped.length === 0) return;
+
+    if (boxId === 'owners') {
+      this.companyStore.updateOwners([...this.ownerProfiles, ...mapped]);
+    } else if (boxId === 'corporate_docs') {
+      this.companyStore.updateCorporateDocs([...this.corporateDocs, ...mapped]);
+    } else if (boxId === 'banks') {
+      this.companyStore.updateBankAccounts([...this.bankAccounts, ...mapped]);
+    } else if (boxId === 'payments') {
+      this.companyStore.updatePaymentPlatforms([...this.paymentPlatforms, ...mapped]);
+    } else if (boxId === 'tax_docs') {
+      this.companyStore.updateTaxDocs([...this.taxDocs, ...mapped]);
+    } else if (boxId === 'platforms') {
+      this.companyStore.updatePlatforms([...this.publishingPlatforms, ...mapped]);
+    } else if (boxId === 'isbns') {
+      this.companyStore.updateIsbnRecords([...this.isbnRecords, ...mapped]);
+    } else if (boxId === 'contracts') {
+      this.companyStore.updateContracts([...this.contractRecords, ...mapped]);
+    } else if (boxId === 'team') {
+      this.companyStore.updateTeam([...this.teamMembers, ...mapped]);
+    } else if (boxId === 'domains') {
+      this.companyStore.updateDomains([...this.domainRecords, ...mapped]);
+    } else if (boxId === 'sops') {
+      this.companyStore.updateSops([...this.sopTemplates, ...mapped]);
+    }
+  }
+
+  isListHeadersMatched(boxId: string, firstItem: any): boolean {
+    if (!firstItem) return false;
+    const keys = Object.keys(firstItem);
+    
+    let expectedHeaders: string[] = [];
+    if (boxId === 'owners') {
+      expectedHeaders = ['name', 'owner', 'full name', 'role', 'title', 'position', 'ownership pct', 'percentage', 'share', 'ownership%', 'email', 'email address', 'phone', 'phone number', 'can sign', 'signatory', 'can manage finances', 'financial manage'];
+    } else if (boxId === 'corporate_docs') {
+      expectedHeaders = ['document', 'doc name', 'title', 'file ref', 'file name', 'file', 'status', 'state'];
+    } else if (boxId === 'banks') {
+      expectedHeaders = ['bank name', 'bank', 'account type', 'type', 'routing number', 'routing', 'account number', 'account', 'status', 'currency'];
+    } else if (boxId === 'payments') {
+      expectedHeaders = ['platform name', 'platform', 'email', 'username', 'login', 'status', 'notes', 'comment'];
+    } else if (boxId === 'tax_docs') {
+      expectedHeaders = ['month', 'year', 'category', 'type', 'file name', 'file', 'fileName', 'status'];
+    } else if (boxId === 'platforms') {
+      expectedHeaders = ['platform name', 'platform', 'email', 'username', 'status', 'notes'];
+    } else if (boxId === 'isbns') {
+      expectedHeaders = ['isbn', 'number', 'format', 'title', 'book title', 'book', 'imprint', 'series', 'pub date', 'assigned date', 'date', 'assigneddate', 'status'];
+    } else if (boxId === 'contracts') {
+      expectedHeaders = ['title', 'contract name', 'name', 'counterparty', 'vendor', 'partner', 'category', 'type', 'execution date', 'date', 'status', 'file ref', 'file'];
+    } else if (boxId === 'team') {
+      expectedHeaders = ['name', 'member', 'full name', 'role', 'title', 'email', 'email address', 'phone', 'phone number', 'status', 'department', 'dept', 'access level', 'access'];
+    } else if (boxId === 'domains') {
+      expectedHeaders = ['domain name', 'domain', 'registrar', 'expiry date', 'expiry', 'auto renew', 'autorenew', 'status', 'host name', 'host'];
+    } else if (boxId === 'sops') {
+      expectedHeaders = ['title', 'sop name', 'name', 'department', 'dept', 'status', 'last reviewed', 'date', 'file ref', 'file'];
+    } else {
+      return true;
+    }
+    
+    const cleanExpected = expectedHeaders.map(eh => eh.toLowerCase().replace(/\s+/g, ''));
+    for (const key of keys) {
+      const cleanKey = key.toLowerCase().replace(/\s+/g, '');
+      if (!cleanExpected.includes(cleanKey)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  onBoxCSVFileSelected(event: Event): void {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file || !this.activeImportBoxId) return;
+
+    const boxId = this.activeImportBoxId;
+    const isList = ['owners', 'corporate_docs', 'banks', 'payments', 'tax_docs', 'platforms', 'isbns', 'contracts', 'team', 'domains', 'sops'].includes(boxId);
+
+    if (isList) {
+      this.excelImport.parseFileList(file).then(list => {
+        if (list.length > 0 && !this.isListHeadersMatched(boxId, list[0])) {
+          alert("No data imported as column name doesn't match");
+          return;
+        }
+        this.importListDocs(boxId, list);
+        alert(`Successfully imported ${list.length} rows to this section.`);
+      }).catch(err => {
+        alert(err.message || 'Import failed.');
+      });
+    } else {
+      this.excelImport.parseFile(file).then(rows => {
+        let hasUnmatched = false;
+        rows.forEach(r => {
+          const path = this.excelImport.resolvePath(r.field);
+          if (!path) {
+            const lowerField = r.field.toLowerCase().trim();
+            let matchedFallback = false;
+            if (lowerField === 'ein confirmation' || lowerField === 'ein confirmation file') matchedFallback = true;
+            else if (lowerField === 'sales tax registrations' || lowerField === 'sales tax') matchedFallback = true;
+            else if (lowerField === 'vat / /gst' || lowerField === 'vat' || lowerField === 'gst') matchedFallback = true;
+            else if (lowerField === 'resale certificates' || lowerField === 'resale cert') matchedFallback = true;
+            else if (lowerField === 'sender domain') matchedFallback = true;
+            else if (lowerField === 'email platform') matchedFallback = true;
+            else if (lowerField === 'spf record') matchedFallback = true;
+            else if (lowerField === 'dkim status') matchedFallback = true;
+            else if (lowerField === 'dmarc status') matchedFallback = true;
+            else if (lowerField === 'newsletter list size' || lowerField === 'list size') matchedFallback = true;
+            else if (lowerField === 'support inbox') matchedFallback = true;
+            else if (lowerField === 'po box') matchedFallback = true;
+            else if (lowerField === 'api key') matchedFallback = true;
+            else if (lowerField === 'smtp password') matchedFallback = true;
+            else if (lowerField === 'fulfillment partner') matchedFallback = true;
+            else if (lowerField === 'shipping account') matchedFallback = true;
+            else if (lowerField === 'packaging vendor') matchedFallback = true;
+            else if (lowerField === 'delivery policy' || lowerField === 'shipping policy') matchedFallback = true;
+            else if (lowerField === 'emergency access') matchedFallback = true;
+            else if (lowerField === 'offboarding steps') matchedFallback = true;
+            
+            if (!matchedFallback) hasUnmatched = true;
+          }
+        });
+        
+        if (hasUnmatched) {
+          alert("No data imported as column name doesn't match");
+          return;
+        }
+        this.importKeyValueData(rows);
+        alert(`Successfully imported data fields to this section.`);
+      }).catch(err => {
+        alert(err.message || 'Import failed.');
+      });
+    }
+  }
+
+  deleteBoxDetails(boxId: string): void {
+    if (!confirm('Are you sure you want to delete this section\'s details?')) return;
+    
+    if (boxId === 'owners') this.companyStore.updateOwners([]);
+    else if (boxId === 'corporate_docs') this.companyStore.updateCorporateDocs([]);
+    else if (boxId === 'banks') this.companyStore.updateBankAccounts([]);
+    else if (boxId === 'payments') this.companyStore.updatePaymentPlatforms([]);
+    else if (boxId === 'tax_docs') this.companyStore.updateTaxDocs([]);
+    else if (boxId === 'platforms') this.companyStore.updatePlatforms([]);
+    else if (boxId === 'isbns') this.companyStore.updateIsbnRecords([]);
+    else if (boxId === 'contracts') this.companyStore.updateContracts([]);
+    else if (boxId === 'team') this.companyStore.updateTeam([]);
+    else if (boxId === 'domains') this.companyStore.updateDomains([]);
+    else if (boxId === 'sops') this.companyStore.updateSops([]);
+    else if (boxId === 'identity') {
+      this.vs.patchIdentity({
+        legalName: '', dbaNames: '', entityType: '', stateOfIncorporation: '', dateOfFormation: '',
+        einTaxId: '', registeredAgent: '', fiscalYearEnd: '', companyStatus: 'Active',
+        primaryAddress: '', mailingAddress: '', phone: '', primaryEmail: '', website: ''
+      });
+    } else if (boxId === 'operating_agreement') {
+      this.vs.patchOwnership({ operatingAgreementFile: '', sCorpElectionFile: '', operatingAgreementFileUrl: '', sCorpElectionFileUrl: '', operatingAgreementFileId: undefined, sCorpElectionFileId: undefined });
+    } else if (boxId === 'tax_legal') {
+      this.vs.patchIdentity({ einTaxId: '', registeredAgent: '' });
+    } else if (boxId === 'trademarks') {
+      this.vs.patchContractsLegal({ trademarkRegistrations: '', copyrightAssignments: '', insurancePolicies: '', attorneyName: '', attorneyContact: '' });
+      this.companyStore.updateCopyrightOffice({ country: 'US', customUrl: '' });
+    } else if (boxId === 'tax_registrations') {
+      this.companyStore.updateTaxRegistrations({ einConfirmation: '', salesTaxRegistrations: '', vatGst: '', resaleCertificates: '' });
+      this.vs.patchFinancial({ cpaName: '', cpaContact: '' });
+    } else if (boxId === 'communications') {
+      this.companyStore.updateCommunications({
+        senderDomain: '', emailPlatform: '', spfRecord: '', dkimStatus: '', dmarcStatus: '',
+        newsletterListSize: '', supportInbox: '', poBox: '', apiKey: '', smtpPassword: ''
+      });
+    } else if (boxId === 'fulfillment') {
+      this.companyStore.updateInventoryFulfillment({ fulfillmentPartner: '', shippingAccount: '', packagingVendor: '', deliveryPolicy: '' });
+    } else if (boxId === 'security_notes') {
+      this.companyStore.updateSecurityNotes({ emergencyAccess: '', offboardingSteps: '' });
+    }
+  }
+
   tablePages: Record<string, number> = {};
   readonly TABLE_PAGE_SIZE = 8;
 
@@ -109,14 +450,14 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
     this.companyStore.updateInventory(list);
   }
   patchSecurity(i: number, key: string, val: string): void {
-    if (!this.editMode()) return;
+    if (!this.editMode() && !this.isCardEditing('security_registry')) return;
     const list = [...this.securityEntries];
     list[i] = { ...list[i], [key]: val };
     this.companyStore.updateSecurity(list);
   }
 
   addSecurityEntry(): void {
-    if (!this.editMode()) return;
+    if (!this.editMode() && !this.isCardEditing('security_registry')) return;
     this.companyStore.updateSecurity([
       ...this.securityEntries,
       { resource: '', owner: '', accessLevel: '', twoFa: '', recoveryEmail: '', notes: '' }
@@ -124,7 +465,7 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
   }
 
   removeSecurityEntry(index: number): void {
-    if (!this.editMode()) return;
+    if (!this.editMode() && !this.isCardEditing('security_registry')) return;
     this.companyStore.updateSecurity(this.securityEntries.filter((_, i) => i !== index));
   }
   patchLogo(i: number, key: string, val: string): void {
@@ -205,7 +546,7 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
   }
 
   addOwnerRow(): void {
-    if (!this.editMode()) return;
+    if (!this.editMode() && !this.isCardEditing('owners')) return;
     this.companyStore.updateOwners([
       ...this.ownerProfiles,
       { name: '', role: '', ownershipPct: '', email: '', phone: '', canSign: true, canManageFinances: false, showNda: false },
@@ -213,7 +554,7 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
   }
 
   addCorpDocRow(): void {
-    if (!this.editMode()) return;
+    if (!this.editMode() && !this.isCardEditing('corporate_docs')) return;
     this.companyStore.updateCorporateDocs([
       ...this.corporateDocs,
       { document: '', fileRef: '', status: 'Pending' },
@@ -221,7 +562,7 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
   }
 
   addBankRow(): void {
-    if (!this.editMode()) return;
+    if (!this.editMode() && !this.isCardEditing('banks')) return;
     this.companyStore.updateBankAccounts([
       ...this.bankAccounts,
       { bank: '', nickname: '', account: '', routing: '', wire: '', swift: '', showAccount: false, showRouting: false },
@@ -229,7 +570,7 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
   }
 
   addTaxDocRow(): void {
-    if (!this.editMode()) return;
+    if (!this.editMode() && !this.isCardEditing('tax_docs')) return;
     this.companyStore.updateTaxDocs([
       ...this.taxDocs,
       { name: '', type: '', year: new Date().getFullYear().toString(), status: 'Pending' },
@@ -237,7 +578,7 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
   }
 
   addContractRow(): void {
-    if (!this.editMode()) return;
+    if (!this.editMode() && !this.isCardEditing('contracts')) return;
     this.companyStore.updateContracts([
       ...this.contractRecords,
       { name: '', counterparty: '', type: '', date: new Date().toISOString().split('T')[0], status: 'Draft', file: '' },
@@ -245,7 +586,7 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
   }
 
   addFinancialRow(): void {
-    if (!this.editMode()) return;
+    if (!this.editMode() && !this.isCardEditing('financial')) return;
     this.companyStore.updateFinancialRecords([
       ...this.financialRecords,
       { month: '', revenue: '', expenses: '', net: '' },
@@ -253,7 +594,7 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
   }
 
   addFinancialDocRow(): void {
-    if (!this.editMode()) return;
+    if (!this.editMode() && !this.isCardEditing('financial')) return;
     this.companyStore.updateFinancialDocs([
       ...this.financialDocs,
       { month: '', year: new Date().getFullYear().toString(), category: '', fileName: '', status: 'Pending' },
@@ -261,7 +602,7 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
   }
 
   addTeamRow(): void {
-    if (!this.editMode()) return;
+    if (!this.editMode() && !this.isCardEditing('team')) return;
     this.companyStore.updateTeam([
       ...this.teamMembers,
       { name: '', role: '', company: '', email: '', phone: '', contractDate: '', rate: '', notes: '' },
@@ -269,7 +610,7 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
   }
 
   addDomainRow(): void {
-    if (!this.editMode()) return;
+    if (!this.editMode() && !this.isCardEditing('domains')) return;
     this.companyStore.updateDomains([
       ...this.domainRecords,
       { domain: '', registrar: '', renewal: '', host: '', dns: '', ssl: '', cms: '', contact: '' },
@@ -277,7 +618,7 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
   }
 
   addInventoryRow(): void {
-    if (!this.editMode()) return;
+    if (!this.editMode() && !this.isCardEditing('inventory')) return;
     this.companyStore.updateInventory([
       ...this.inventoryItems,
       { sku: '', title: '', format: '', stock: 0, reorderPoint: 0, printer: '' },
@@ -285,7 +626,7 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
   }
 
   addIsbnRow(): void {
-    if (!this.editMode()) return;
+    if (!this.editMode() && !this.isCardEditing('isbns')) return;
     this.companyStore.updateIsbnRecords([
       ...this.isbnRecords,
       { isbn: '', format: '', title: '', imprint: '', pubDate: '', series: '', trimSize: '', edition: '', asin: '', status: 'unused' },
@@ -349,7 +690,7 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
   }
 
   onCorpDocFileUpload(event: Event, rowIndex: number): void {
-    if (!this.editMode()) return;
+    if (!this.editMode() && !this.isCardEditing('corporate_docs')) return;
     const file = (event.target as HTMLInputElement).files?.[0];
     if (!file) return;
     this.fileUpload.upload(file, `corporate-doc/${rowIndex}`).subscribe({
@@ -406,6 +747,29 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
   }
   patchTaxReg(key: string, val: string): void {
     this.companyStore.updateTaxRegistrations({ ...this.taxRegistrations, [key]: val });
+  }
+
+  onTaxRegFileUpload(event: Event, key: 'einConfirmation' | 'resaleCertificates'): void {
+    if (!this.editMode()) return;
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    this.fileUpload.upload(file, `tax-reg-${key}`).subscribe({
+      next: uploaded => {
+        this.patchTaxReg(key, uploaded.fileName);
+        (event.target as HTMLInputElement).value = '';
+      },
+      error: () => alert('Upload failed.'),
+    });
+  }
+
+  openTaxRegFile(key: 'einConfirmation' | 'resaleCertificates'): void {
+    const val = this.taxRegistrations?.[key];
+    if (val) {
+      alert(`Opening file: ${val}`);
+    } else {
+      const defaultName = key === 'einConfirmation' ? 'ein-confirmation-cp575.pdf' : 'resale-cert-ny.pdf';
+      alert(`Opening file: ${defaultName}`);
+    }
   }
 
   // ── Lock state ──
@@ -1031,6 +1395,12 @@ Contractor: ____________________________`;
 
   // ── PIN methods ──
   ngOnInit(): void {
+    this.route.queryParams.subscribe(params => {
+      if (params['tab']) {
+        this.activeTab.set(params['tab']);
+      }
+    });
+
     this.pinService.getStatus().subscribe({
       next: status => {
         this.isFirstTime = !status.hasPin;
@@ -1215,9 +1585,23 @@ Contractor: ____________________________`;
     this.importError = false;
     try {
       const rows = await this.excelImport.parseFile(file);
+      
+      let hasUnmatched = false;
+      rows.forEach(r => {
+        const path = this.excelImport.resolvePath(r.field);
+        if (!path) hasUnmatched = true;
+      });
+
+      if (hasUnmatched) {
+        alert("No data imported as column name doesn't match");
+        this.importMessage = "No data imported as column name doesn't match";
+        this.importError = true;
+        input.value = '';
+        return;
+      }
+
       const result = this.vs.importFieldRows(rows);
-      this.importMessage = `Imported ${result.applied} field(s).` +
-        (result.skipped.length ? ` Skipped unknown: ${result.skipped.slice(0, 5).join(', ')}${result.skipped.length > 5 ? '…' : ''}` : '');
+      this.importMessage = `Imported ${result.applied} field(s).`;
       this.importError = result.applied === 0;
     } catch (e: unknown) {
       this.importMessage = e instanceof Error ? e.message : 'Import failed';

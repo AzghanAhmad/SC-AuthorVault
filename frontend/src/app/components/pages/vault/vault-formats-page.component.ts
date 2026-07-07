@@ -1,6 +1,7 @@
 import { Component, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { AuthorVaultService } from '../../../services/author-vault.service';
 import { BookFormat } from '../../../models/author-vault.model';
 
@@ -20,6 +21,9 @@ interface FormatWithContext extends BookFormat {
   })
 export class VaultFormatsPageComponent {
   private vs = inject(AuthorVaultService);
+  private router = inject(Router);
+
+  goTo(r: string) { this.router.navigate([r]); }
 
   allFormats = computed((): FormatWithContext[] => {
     const fs: FormatWithContext[] = [];

@@ -1,5 +1,6 @@
 import { Component, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { AuthorVaultService } from '../../../services/author-vault.service';
 import { Series } from '../../../models/author-vault.model';
 import { PageActionBarComponent } from '../../shared/page-action-bar/page-action-bar.component';
@@ -13,7 +14,10 @@ import { PageActionBarComponent } from '../../shared/page-action-bar/page-action
   })
 export class VaultSeriesPageComponent {
   private vs = inject(AuthorVaultService);
+  private router = inject(Router);
   editMode = signal(false);
+
+  goTo(r: string) { this.router.navigate([r]); }
   allSeries = computed(() => {
     const s: Series[] = [];
     for (const i of this.vs.company().imprints) for (const p of i.penNames) s.push(...p.series);

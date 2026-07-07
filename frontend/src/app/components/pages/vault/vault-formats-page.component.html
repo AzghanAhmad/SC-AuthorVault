@@ -68,39 +68,50 @@
 
   <!-- Format list grouped by book -->
   @if (!selected()) {
-    @for (group of groupedFormats(); track group.bookTitle) {
-      <div class="book-group">
-        <div class="book-group-header">
-          <div class="book-group-title">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="18" height="18"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
-            {{ group.bookTitle }}
+    @if (allFormats().length === 0) {
+      <div class="empty-state" style="text-align:center;padding:4rem 2rem;background:var(--surface);border:1px solid var(--border-light);border-radius:16px;box-shadow:var(--shadow-sm);margin-top:1rem;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="48" height="48" style="margin:0 auto 1.25rem;color:var(--text-muted);">
+          <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
+        </svg>
+        <h3 style="font-size:1.125rem;font-weight:700;color:var(--text-primary);margin:0 0 .5rem;">No Book Formats Configured</h3>
+        <p style="font-size:.875rem;color:var(--text-muted);margin:0 0 1.5rem;">To configure book formats (ebooks, paperbacks, hardcovers), go to Languages page.</p>
+        <button class="back-btn" (click)="goTo('/vault/languages')" style="display:inline-flex;float:none;cursor:pointer;background:var(--accent-blue);color:#fff;border:none;padding:.5rem 1.25rem;border-radius:8px;font-weight:600;">Go to Languages page</button>
+      </div>
+    } @else {
+      @for (group of groupedFormats(); track group.bookTitle) {
+        <div class="book-group">
+          <div class="book-group-header">
+            <div class="book-group-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="18" height="18"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+              {{ group.bookTitle }}
+            </div>
+            <span class="book-group-meta">{{ group.seriesName }} · {{ group.penName }}</span>
           </div>
-          <span class="book-group-meta">{{ group.seriesName }} · {{ group.penName }}</span>
+          <table class="data-table">
+            <thead>
+              <tr><th>Format</th><th>Language</th><th>Status</th><th>Version</th><th>Trim / Runtime</th><th>File Size</th><th>Platforms</th></tr>
+            </thead>
+            <tbody>
+              @for (f of group.formats; track f.id) {
+                <tr class="clickable-row" (click)="selectItem(f)">
+                  <td><span class="tag">{{ f.specs.formatType }}</span></td>
+                  <td>{{ f.language }}</td>
+                  <td><span class="status" [ngClass]="f.specs.status==='Live'?'status-green':f.specs.status==='Ready'?'status-blue':'status-amber'">{{ f.specs.status }}</span></td>
+                  <td>v{{ f.specs.versionNumber }}</td>
+                  <td>{{ f.specs.trimSize || f.specs.audioRuntime || '—' }}</td>
+                  <td>{{ f.specs.fileSize || '—' }}</td>
+                  <td>{{ f.platformVariants.length }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
         </div>
-        <table class="data-table">
-          <thead>
-            <tr><th>Format</th><th>Language</th><th>Status</th><th>Version</th><th>Trim / Runtime</th><th>File Size</th><th>Platforms</th></tr>
-          </thead>
-          <tbody>
-            @for (f of group.formats; track f.id) {
-              <tr class="clickable-row" (click)="selectItem(f)">
-                <td><span class="tag">{{ f.specs.formatType }}</span></td>
-                <td>{{ f.language }}</td>
-                <td><span class="status" [ngClass]="f.specs.status==='Live'?'status-green':f.specs.status==='Ready'?'status-blue':'status-amber'">{{ f.specs.status }}</span></td>
-                <td>v{{ f.specs.versionNumber }}</td>
-                <td>{{ f.specs.trimSize || f.specs.audioRuntime || '—' }}</td>
-                <td>{{ f.specs.fileSize || '—' }}</td>
-                <td>{{ f.platformVariants.length }}</td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-    }
-    @if (filteredFormats().length === 0) {
-      <div class="empty-state" style="text-align:center;padding:3rem;color:var(--text-muted)">
-        <p>No formats match your filters. <button (click)="clearFilters()" style="background:none;border:none;color:var(--accent-blue);cursor:pointer;font-family:inherit;font-size:inherit">Clear filters</button></p>
-      </div>
+      }
+      @if (filteredFormats().length === 0) {
+        <div class="empty-state" style="text-align:center;padding:3rem;color:var(--text-muted)">
+          <p>No formats match your filters. <button (click)="clearFilters()" style="background:none;border:none;color:var(--accent-blue);cursor:pointer;font-family:inherit;font-size:inherit">Clear filters</button></p>
+        </div>
+      }
     }
   }
 

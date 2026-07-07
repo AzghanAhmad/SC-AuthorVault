@@ -59,6 +59,38 @@ export const COMPANY_FIELD_MAP: Record<string, string> = {
 @Injectable({ providedIn: 'root' })
 export class ExcelImportService {
 
+  async parseFileList(file: File): Promise<any[]> {
+    const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
+    if (ext === 'csv') {
+      const text = await file.text();
+      return this.parseCsvList(text);
+    }
+    if (ext === 'xlsx' || ext === 'xls') {
+      const buffer = await file.arrayBuffer();
+      const workbook = XLSX.read(buffer, { type: 'array' });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      return XLSX.utils.sheet_to_json<any>(sheet, { defval: '' });
+    }
+    throw new Error('Please upload a .csv, .xlsx, or .xls file.');
+  }
+
+  private parseCsvList(text: string): any[] {
+    const lines = text.split(/\r?\n/).filter(l => l.trim());
+    if (lines.length === 0) return [];
+    const delimiter = lines[0].includes('\t') ? '\t' : (lines[0].split(';').length > lines[0].split(',').length ? ';' : ',');
+    const headers = this.splitCsvLine(lines[0], delimiter).map(h => h.trim());
+    const list: any[] = [];
+    for (let i = 1; i < lines.length; i++) {
+      const cols = this.splitCsvLine(lines[i], delimiter);
+      const obj: any = {};
+      headers.forEach((h, idx) => {
+        obj[h] = cols[idx]?.trim() ?? '';
+      });
+      list.push(obj);
+    }
+    return list;
+  }
+
   async parseFile(file: File): Promise<ParsedFieldRow[]> {
     const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
     if (ext === 'csv') {

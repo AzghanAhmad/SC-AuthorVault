@@ -8,9 +8,11 @@
       <a routerLink="/books/new" class="btn-add-book">+ Add New Book</a>
       <div class="search-box">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          <circle cx="11" cy="11" r="8" />
+          <line x1="21" y1="21" x2="16.65" y2="16.65" />
         </svg>
-        <input type="text" placeholder="Search books or authors..." [(ngModel)]="searchQuery" (input)="applyFilters()" class="search-input" />
+        <input type="text" placeholder="Search books or authors..." [(ngModel)]="searchQuery" (input)="applyFilters()"
+          class="search-input" />
       </div>
       <select [(ngModel)]="filterStatus" (change)="applyFilters()" class="filter-select">
         <option value="">All Statuses</option>
@@ -23,22 +25,30 @@
       <div class="view-toggle">
         <button [class.active]="viewMode === 'list'" (click)="viewMode = 'list'" title="List view">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="9" y1="6" x2="20" y2="6"/><circle cx="4" cy="6" r="1.5" fill="currentColor" stroke="none"/>
-            <line x1="9" y1="12" x2="20" y2="12"/><circle cx="4" cy="12" r="1.5" fill="currentColor" stroke="none"/>
-            <line x1="9" y1="18" x2="20" y2="18"/><circle cx="4" cy="18" r="1.5" fill="currentColor" stroke="none"/>
+            <line x1="9" y1="6" x2="20" y2="6" />
+            <circle cx="4" cy="6" r="1.5" fill="currentColor" stroke="none" />
+            <line x1="9" y1="12" x2="20" y2="12" />
+            <circle cx="4" cy="12" r="1.5" fill="currentColor" stroke="none" />
+            <line x1="9" y1="18" x2="20" y2="18" />
+            <circle cx="4" cy="18" r="1.5" fill="currentColor" stroke="none" />
           </svg>
         </button>
         <button [class.active]="viewMode === 'grid'" (click)="viewMode = 'grid'" title="Grid view">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/>
-            <rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/>
+            <rect x="3" y="3" width="8" height="8" rx="1" />
+            <rect x="13" y="3" width="8" height="8" rx="1" />
+            <rect x="3" y="13" width="8" height="8" rx="1" />
+            <rect x="13" y="13" width="8" height="8" rx="1" />
           </svg>
         </button>
         <button [class.active]="viewMode === 'table'" (click)="viewMode = 'table'" title="Table view">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="3" width="8" height="5" rx="1"/><rect x="13" y="3" width="8" height="5" rx="1"/>
-            <rect x="3" y="10" width="8" height="5" rx="1"/><rect x="13" y="10" width="8" height="5" rx="1"/>
-            <rect x="3" y="17" width="8" height="4" rx="1"/><rect x="13" y="17" width="8" height="4" rx="1"/>
+            <rect x="3" y="3" width="8" height="5" rx="1" />
+            <rect x="13" y="3" width="8" height="5" rx="1" />
+            <rect x="3" y="10" width="8" height="5" rx="1" />
+            <rect x="13" y="10" width="8" height="5" rx="1" />
+            <rect x="3" y="17" width="8" height="4" rx="1" />
+            <rect x="13" y="17" width="8" height="4" rx="1" />
           </svg>
         </button>
       </div>
@@ -61,31 +71,38 @@
   <ng-container *ngIf="!loading()">
 
     @if (filteredBooks().length === 0) {
-      <div class="books-empty">
-        <p>No books in your library yet.</p>
-        <a routerLink="/books/new" class="btn-add-book">+ Add Your First Book</a>
+      <div class="empty-state" style="text-align:center;padding:4rem 2rem;background:var(--surface);border:1px solid var(--border-light);border-radius:16px;box-shadow:var(--shadow-sm);margin-top:1rem;width:100%;box-sizing:border-box;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="48" height="48" style="margin:0 auto 1.25rem;color:var(--text-muted);">
+          <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
+        </svg>
+        <h3 style="font-size:1.125rem;font-weight:700;color:var(--text-primary);margin:0 0 .5rem;">No Books in Library</h3>
+        <p style="font-size:.875rem;color:var(--text-muted);margin:0 0 1.5rem;">To get started, add your first book to ScribeCount.</p>
+        <a routerLink="/books/new" class="btn-add-book" style="display:inline-flex;float:none;cursor:pointer;background:var(--accent-blue);color:#fff;border:none;padding:.5rem 1.25rem;border-radius:8px;font-weight:600;text-decoration:none;align-items:center;justify-content:center;max-width:220px;margin:0 auto;">+ Add Your First Book</a>
       </div>
     } @else {
 
     <!-- ── LIST VIEW ── -->
     <ng-container *ngIf="viewMode === 'list'">
-      <div class="book-card animate-fade-in" *ngFor="let book of filteredBooks(); let i = index" [style.animation-delay.ms]="i * 60">
+      <div class="book-card animate-fade-in" *ngFor="let book of filteredBooks(); let i = index"
+        [style.animation-delay.ms]="i * 60">
         <div class="book-cover" [style.background]="getCoverGradient(i)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="cover-icon">
-            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
+            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
           </svg>
           <span class="status-pill" [class]="'badge-' + book.status">{{ book.status }}</span>
         </div>
         <div class="card-body">
           <h2 class="book-title">{{ book.title }}</h2>
           <p class="book-author">{{ book.author }}</p>
-          <div class="book-meta-row" style="font-size: 0.875rem; color: var(--text-muted); display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+          <div class="book-meta-row"
+            style="font-size: 0.875rem; color: var(--text-muted); display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
             <span>{{ book.metadata.pageCount ? book.metadata.pageCount + ' pages' : 'No pages' }}</span>
             <span>·</span>
             <span>{{ book.files.length }} file(s)</span>
           </div>
           <p class="series-info" *ngIf="book.metadata.seriesName">
-            Series: {{ book.metadata.seriesName }}<span *ngIf="book.metadata.seriesNumber"> #{{ book.metadata.seriesNumber }}</span>
+            Series: {{ book.metadata.seriesName }}<span *ngIf="book.metadata.seriesNumber"> #{{
+              book.metadata.seriesNumber }}</span>
           </p>
           <div class="platforms-row" *ngIf="book.platforms.length">
             <span class="platforms-label">AVAILABLE IN:</span>
@@ -104,18 +121,18 @@
     <!-- ── GRID VIEW ── -->
     <div class="grid-view" *ngIf="viewMode === 'grid'">
       <a [routerLink]="['/books', book.id]" class="grid-card animate-fade-in"
-         *ngFor="let book of filteredBooks(); let i = index"
-         [style.animation-delay.ms]="i * 50">
+        *ngFor="let book of filteredBooks(); let i = index" [style.animation-delay.ms]="i * 50">
         <div class="grid-cover" [style.background]="getCoverGradient(i)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="cover-icon">
-            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
+            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
           </svg>
           <span class="status-pill" [class]="'badge-' + book.status">{{ book.status }}</span>
         </div>
         <div class="grid-info">
           <h3 class="book-title">{{ book.title }}</h3>
           <p class="book-author">{{ book.author }}</p>
-          <div class="book-meta-row" style="font-size: 0.8125rem; color: var(--text-muted); display: flex; gap: 0.5rem; margin-top: 0.25rem;">
+          <div class="book-meta-row"
+            style="font-size: 0.8125rem; color: var(--text-muted); display: flex; gap: 0.5rem; margin-top: 0.25rem;">
             <span>{{ book.metadata.pageCount ? book.metadata.pageCount + ' pages' : 'No pages' }}</span>
             <span>·</span>
             <span>{{ book.files.length }} file(s)</span>
@@ -143,7 +160,8 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let book of filteredBooks(); let i = index" class="table-row animate-fade-in" [style.animation-delay.ms]="i * 40">
+          <tr *ngFor="let book of filteredBooks(); let i = index" class="table-row animate-fade-in"
+            [style.animation-delay.ms]="i * 40">
             <td class="td-title">
               <div class="td-cover-wrap">
                 <div class="td-cover" [style.background]="getCoverGradient(i)"></div>
@@ -154,7 +172,8 @@
             <td><span class="badge" [class]="'badge-' + book.status">{{ book.status }}</span></td>
             <td>
               <div style="font-size: 0.8125rem; color: var(--text-muted);">
-                {{ book.metadata.pageCount ? book.metadata.pageCount + ' pages' : '—' }} · {{ book.files.length }} file(s)
+                {{ book.metadata.pageCount ? book.metadata.pageCount + ' pages' : '—' }} · {{ book.files.length }}
+                file(s)
               </div>
             </td>
             <td class="td-muted">{{ book.metadata.seriesName || '—' }}</td>

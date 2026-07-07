@@ -1,6 +1,7 @@
 import { Component, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { VaultCompanyStoreService, VaultIsbnRecord } from '../../../services/vault-company-store.service';
 import { PageActionBarComponent } from '../../shared/page-action-bar/page-action-bar.component';
 
@@ -41,6 +42,7 @@ function toDisplayRecord(r: VaultIsbnRecord): IsbnRecord {
   })
 export class CompanyIsbnsComponent {
   private readonly vaultStore = inject(VaultCompanyStoreService);
+  private readonly router = inject(Router);
   editMode = signal(false);
 
   searchQuery = '';
@@ -64,6 +66,10 @@ export class CompanyIsbnsComponent {
   }
 
   applyFilters() {}
+
+  goToCompanyIsbnsTab(): void {
+    this.router.navigate(['/vault/company'], { queryParams: { tab: 'isbns' } });
+  }
 
   deleteAllIsbns(): void {
     if (!confirm('Delete all ISBN records? This cannot be undone.')) return;

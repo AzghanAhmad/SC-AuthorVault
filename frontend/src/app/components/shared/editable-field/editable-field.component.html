@@ -1,51 +1,66 @@
 <div class="form-group" [class.full]="full">
   <label class="form-label">{{ label }}</label>
-  @if (readOnly) {
-    <div class="form-value">
-      @if (type === 'date') {
-        {{ displayDate(value) }}
-      } @else if (type === 'url' && value.trim()) {
-        <a class="field-url-link" [href]="urlHref(value)" target="_blank" rel="noopener noreferrer">{{ displayUrl(value) }}</a>
-      } @else {
-        {{ value || '—' }}
-      }
-    </div>
-  } @else if (type === 'textarea') {
-    <textarea
-      class="form-input vault-edit-input"
-      [ngModel]="value"
-      (ngModelChange)="onChange($event)"
-      [rows]="rows"
-      [placeholder]="placeholder || label"></textarea>
-  } @else if (type === 'select') {
-    <div class="field-select-field">
-      <select
-        class="form-input vault-edit-input field-select-input"
-        [ngModel]="value"
-        (ngModelChange)="onChange($event)">
-        <option value="" disabled hidden>{{ placeholder || 'Select…' }}</option>
-        @for (opt of selectOptions; track opt) {
-          <option [value]="opt">{{ opt }}</option>
+  <div class="field-wrapper">
+    @if (readOnly) {
+      <div class="form-value">
+        @if (type === 'date') {
+          {{ displayDate(value) }}
+        } @else if (type === 'url' && value.trim()) {
+          <a class="field-url-link" [href]="urlHref(value)" target="_blank" rel="noopener noreferrer">{{ displayUrl(value) }}</a>
+        } @else {
+          {{ value || '—' }}
         }
-      </select>
-      <svg class="field-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <polyline points="6 9 12 15 18 9"/>
-      </svg>
-    </div>
-  } @else if (type === 'date') {
-    <input
-      type="date"
-      class="form-input vault-edit-input"
-      [ngModel]="dateInputValue"
-      (ngModelChange)="onChange($event)" />
-  } @else {
-    <input
-      [type]="inputType"
-      class="form-input vault-edit-input"
-      [ngModel]="value"
-      (ngModelChange)="onChange($event)"
-      [placeholder]="resolvedPlaceholder" />
-  }
+      </div>
+    } @else if (type === 'textarea') {
+      <textarea
+        class="form-input vault-edit-input"
+        [ngModel]="value"
+        (ngModelChange)="onChange($event)"
+        [rows]="rows"
+        [placeholder]="placeholder || label"></textarea>
+    } @else if (type === 'select') {
+      <div class="field-select-field">
+        <select
+          class="form-input vault-edit-input field-select-input"
+          [ngModel]="value"
+          (ngModelChange)="onChange($event)">
+          <option value="" disabled hidden>{{ placeholder || 'Select…' }}</option>
+          @for (opt of selectOptions; track opt) {
+            <option [value]="opt">{{ opt }}</option>
+          }
+        </select>
+        <svg class="field-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </div>
+    } @else if (type === 'date') {
+      <input
+        type="date"
+        class="form-input vault-edit-input"
+        [ngModel]="dateInputValue"
+        (ngModelChange)="onChange($event)" />
+    } @else {
+      <input
+        [type]="inputType"
+        class="form-input vault-edit-input"
+        [ngModel]="value"
+        (ngModelChange)="onChange($event)"
+        [placeholder]="resolvedPlaceholder" />
+    }
+
+    <button type="button" class="copy-btn" (click)="copyToClipboard()" title="Copy to clipboard">
+      @if (copied) {
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="copy-icon success">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      } @else {
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="copy-icon">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+        </svg>
+      }
+    </button>
+  </div>
   @if (type === 'email' && value.trim()) {
     <a class="sc-email-link" [href]="scEmailUrl(value)" target="_blank" rel="noopener noreferrer">
       Open in SC Email

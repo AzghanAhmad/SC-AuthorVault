@@ -23,25 +23,36 @@
 
   <!-- Series list -->
   @if (!selected()) {
-    <div class="entity-list">
-      @for (sr of allSeries(); track sr.id) {
-        <div class="entity-card" (click)="selectItem(sr)">
-          <div class="entity-card-header">
-            <h3 class="entity-name" style="display:flex;align-items:center;gap:.35rem">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" style="color:var(--text-muted);"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
-              {{ sr.identity.name }}
-            </h3>
-            <span class="status" [ngClass]="sr.identity.status==='Active'?'status-green':sr.identity.status==='Complete'?'status-blue':'status-amber'">{{ sr.identity.status }}</span>
+    @if (allSeries().length === 0) {
+      <div class="empty-state" style="text-align:center;padding:4rem 2rem;background:var(--surface);border:1px solid var(--border-light);border-radius:16px;box-shadow:var(--shadow-sm);margin-top:1rem;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="48" height="48" style="margin:0 auto 1.25rem;color:var(--text-muted);">
+          <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
+        </svg>
+        <h3 style="font-size:1.125rem;font-weight:700;color:var(--text-primary);margin:0 0 .5rem;">No Series Registered</h3>
+        <p style="font-size:.875rem;color:var(--text-muted);margin:0 0 1.5rem;">To get started, add a series under one of your pen names.</p>
+        <button class="back-btn" (click)="goTo('/vault/pen-names')" style="display:inline-flex;float:none;cursor:pointer;background:var(--accent-blue);color:#fff;border:none;padding:.5rem 1.25rem;border-radius:8px;font-weight:600;">Go to Pen Names page</button>
+      </div>
+    } @else {
+      <div class="entity-list">
+        @for (sr of allSeries(); track sr.id) {
+          <div class="entity-card" (click)="selectItem(sr)">
+            <div class="entity-card-header">
+              <h3 class="entity-name" style="display:flex;align-items:center;gap:.35rem">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" style="color:var(--text-muted);"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+                {{ sr.identity.name }}
+              </h3>
+              <span class="status" [ngClass]="sr.identity.status==='Active'?'status-green':sr.identity.status==='Complete'?'status-blue':'status-amber'">{{ sr.identity.status }}</span>
+            </div>
+            <p class="entity-meta">{{ sr.identity.seriesType }} · {{ sr.identity.genre }} · {{ sr.identity.targetAudience }}</p>
+            <div class="entity-stats">
+              <span class="entity-stat"><strong>{{ sr.books.length }}</strong> / {{ sr.identity.plannedTotalBooks }} Books</span>
+              <span class="entity-stat"><strong>{{ sr.boxSets.length }}</strong> Box Sets</span>
+              <span class="entity-stat">Started {{ sr.identity.startDate }}</span>
+            </div>
           </div>
-          <p class="entity-meta">{{ sr.identity.seriesType }} · {{ sr.identity.genre }} · {{ sr.identity.targetAudience }}</p>
-          <div class="entity-stats">
-            <span class="entity-stat"><strong>{{ sr.books.length }}</strong> / {{ sr.identity.plannedTotalBooks }} Books</span>
-            <span class="entity-stat"><strong>{{ sr.boxSets.length }}</strong> Box Sets</span>
-            <span class="entity-stat">Started {{ sr.identity.startDate }}</span>
-          </div>
-        </div>
-      }
-    </div>
+        }
+      </div>
+    }
   }
 
   <!-- Selected series detail -->

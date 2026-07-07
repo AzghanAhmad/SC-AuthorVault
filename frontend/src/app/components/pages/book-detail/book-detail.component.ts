@@ -30,6 +30,22 @@ export class BookDetailComponent implements OnInit {
   private router = inject(Router);
 
   book = signal<Book | null>(null);
+  copiedField = '';
+
+  copyField(text: string | number | undefined | null, fieldName: string): void {
+    const val = text === undefined || text === null ? '' : String(text);
+    navigator.clipboard.writeText(val).then(() => {
+      this.copiedField = fieldName;
+      setTimeout(() => {
+        if (this.copiedField === fieldName) {
+          this.copiedField = '';
+        }
+      }, 2000);
+    }).catch(err => {
+      console.error('Could not copy field: ', err);
+    });
+  }
+
   activeTab = signal<TabId>('overview');
   notFound = false;
 

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("AuthorVault.Api")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a33f3d95f11d7404020cbe831a701ff0275358aa")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+57ba87237cb6763a0ffddebdcbc8ae3f8f16262f")]
 [assembly: System.Reflection.AssemblyProductAttribute("AuthorVault.Api")]
 [assembly: System.Reflection.AssemblyTitleAttribute("AuthorVault.Api")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

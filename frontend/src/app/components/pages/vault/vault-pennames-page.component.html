@@ -7,55 +7,66 @@
 
   <!-- ── PEN NAME LIST ── -->
   @if (!selected()) {
-    <div class="page-header">
-      <div class="page-title-wrap">
-        <svg class="header-icon-svg" viewBox="0 0 24 24" aria-hidden="true" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    @if (allPenNames().length === 0) {
+      <div class="empty-state" style="text-align:center;padding:4rem 2rem;background:var(--surface);border:1px solid var(--border-light);border-radius:16px;box-shadow:var(--shadow-sm);margin-top:1rem;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="48" height="48" style="margin:0 auto 1.25rem;color:var(--text-muted);">
           <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
         </svg>
-        <h1 class="page-title" style="margin:0;">Pen Names</h1>
+        <h3 style="font-size:1.125rem;font-weight:700;color:var(--text-primary);margin:0 0 .5rem;">No Pen Names Registered</h3>
+        <p style="font-size:.875rem;color:var(--text-muted);margin:0 0 1.5rem;">To get started, add a pen name to one of your imprints.</p>
+        <button class="back-btn" (click)="goTo('/vault/imprints')" style="display:inline-flex;float:none;cursor:pointer;background:var(--accent-blue);color:#fff;border:none;padding:.5rem 1.25rem;border-radius:8px;font-weight:600;">Go to Imprints page</button>
       </div>
-      <p class="page-subtitle">Each pen name is a completely separate author identity</p>
-    </div>
-    <div class="stats-row">
-      <div class="stat-card"><div class="stat-value">{{ allPenNames().length }}</div><div class="stat-label">Pen Names</div></div>
-      <div class="stat-card"><div class="stat-value">{{ totalSeries }}</div><div class="stat-label">Series</div></div>
-      <div class="stat-card"><div class="stat-value">{{ totalBooks }}</div><div class="stat-label">Books</div></div>
-      <div class="stat-card"><div class="stat-value">{{ totalSubscribers | number }}</div><div class="stat-label">Subscribers</div></div>
-    </div>
+    } @else {
+      <div class="page-header">
+        <div class="page-title-wrap">
+          <svg class="header-icon-svg" viewBox="0 0 24 24" aria-hidden="true" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
+          </svg>
+          <h1 class="page-title" style="margin:0;">Pen Names</h1>
+        </div>
+        <p class="page-subtitle">Each pen name is a completely separate author identity</p>
+      </div>
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-value">{{ allPenNames().length }}</div><div class="stat-label">Pen Names</div></div>
+        <div class="stat-card"><div class="stat-value">{{ totalSeries }}</div><div class="stat-label">Series</div></div>
+        <div class="stat-card"><div class="stat-value">{{ totalBooks }}</div><div class="stat-label">Books</div></div>
+        <div class="stat-card"><div class="stat-value">{{ totalSubscribers | number }}</div><div class="stat-label">Subscribers</div></div>
+      </div>
 
-    <div class="pn-grid">
-      @for (pn of allPenNames(); track pn.id) {
-        <div class="pn-card" (click)="selectItem(pn)">
-          <div class="pn-card-top">
-            <label class="entity-avatar-upload" title="Upload pen name avatar (Click to change)" (click)="$event.stopPropagation()" style="margin-right:.5rem;">
-              @if (pn.identity.avatarUrl) {
-                <img [src]="pn.identity.avatarUrl" alt="" class="entity-avatar-img" style="width:52px;height:52px;border-radius:14px;" />
-              } @else {
-                <div class="pn-big-avatar" style="width:52px;height:52px;border-radius:14px;margin:0;">
-                  {{ initials(pn.identity.displayName) }}
+      <div class="pn-grid">
+        @for (pn of allPenNames(); track pn.id) {
+          <div class="pn-card" (click)="selectItem(pn)">
+            <div class="pn-card-top">
+              <label class="entity-avatar-upload" title="Upload pen name avatar (Click to change)" (click)="$event.stopPropagation()" style="margin-right:.5rem;">
+                @if (pn.identity.avatarUrl) {
+                  <img [src]="pn.identity.avatarUrl" alt="" class="entity-avatar-img" style="width:52px;height:52px;border-radius:14px;" />
+                } @else {
+                  <div class="pn-big-avatar" style="width:52px;height:52px;border-radius:14px;margin:0;">
+                    {{ initials(pn.identity.displayName) }}
+                  </div>
+                }
+                <input type="file" accept="image/*" hidden (change)="onPenNameAvatarUpload($event, pn.id)" />
+              </label>
+              <div class="pn-card-info">
+                <h2 class="pn-card-name">{{ pn.identity.displayName }}</h2>
+                <p class="pn-card-genre">{{ pn.identity.genre }}{{ pn.identity.subgenre ? ' · ' + pn.identity.subgenre : '' }}</p>
+                <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.35rem">
+                  <span class="status status-green">{{ pn.identity.status }}</span>
+                  <span class="tag">{{ pn.identity.penNameType }}</span>
+                  <span class="tag">{{ pn.identity.privacyLevel }}</span>
                 </div>
-              }
-              <input type="file" accept="image/*" hidden (change)="onPenNameAvatarUpload($event, pn.id)" />
-            </label>
-            <div class="pn-card-info">
-              <h2 class="pn-card-name">{{ pn.identity.displayName }}</h2>
-              <p class="pn-card-genre">{{ pn.identity.genre }}{{ pn.identity.subgenre ? ' · ' + pn.identity.subgenre : '' }}</p>
-              <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.35rem">
-                <span class="status status-green">{{ pn.identity.status }}</span>
-                <span class="tag">{{ pn.identity.penNameType }}</span>
-                <span class="tag">{{ pn.identity.privacyLevel }}</span>
               </div>
             </div>
+            <div class="pn-card-stats">
+              <div class="pnstat"><span class="pnstat-val">{{ pn.series.length }}</span><span class="pnstat-lbl">Series</span></div>
+              <div class="pnstat"><span class="pnstat-val">{{ countBooks(pn) }}</span><span class="pnstat-lbl">Books</span></div>
+              <div class="pnstat"><span class="pnstat-val">{{ pn.platformAccounts.length }}</span><span class="pnstat-lbl">Platforms</span></div>
+              <div class="pnstat"><span class="pnstat-val">{{ pn.onlinePresence.subscriberCount | number }}</span><span class="pnstat-lbl">Subscribers</span></div>
+            </div>
           </div>
-          <div class="pn-card-stats">
-            <div class="pnstat"><span class="pnstat-val">{{ pn.series.length }}</span><span class="pnstat-lbl">Series</span></div>
-            <div class="pnstat"><span class="pnstat-val">{{ countBooks(pn) }}</span><span class="pnstat-lbl">Books</span></div>
-            <div class="pnstat"><span class="pnstat-val">{{ pn.platformAccounts.length }}</span><span class="pnstat-lbl">Platforms</span></div>
-            <div class="pnstat"><span class="pnstat-val">{{ pn.onlinePresence.subscriberCount | number }}</span><span class="pnstat-lbl">Subscribers</span></div>
-          </div>
-        </div>
-      }
-    </div>
+        }
+      </div>
+    }
   }
 
   <!-- ── SELECTED PEN NAME DETAIL ── -->

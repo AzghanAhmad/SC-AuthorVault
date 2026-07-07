@@ -1,5 +1,6 @@
 import { Component, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthorVaultService } from '../../../services/author-vault.service';
 import { LanguageBranch } from '../../../models/author-vault.model';
@@ -31,8 +32,11 @@ interface BookEdition {
   templateUrl: './vault-languages-page.component.html',
   })
 export class VaultLanguagesPageComponent {
-  private vs = inject(AuthorVaultService);
+  private readonly vs = inject(AuthorVaultService);
+  private readonly router = inject(Router);
   readonly ALL_LANGUAGES = ALL_LANGUAGES;
+
+  goTo(r: string) { this.router.navigate([r]); }
 
   allEditions = computed((): BookEdition[] => {
     const result: BookEdition[] = [];

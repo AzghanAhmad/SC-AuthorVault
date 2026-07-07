@@ -10,6 +10,7 @@ import { CommonModule } from '@angular/common';
   })
 export class PageActionBarComponent {
   @Input() editing = false;
+  @Input() showEdit = true;
   @Input() deleteLabel = 'Delete all';
   @Output() editToggle = new EventEmitter<void>();
   @Output() deleteAll = new EventEmitter<void>();

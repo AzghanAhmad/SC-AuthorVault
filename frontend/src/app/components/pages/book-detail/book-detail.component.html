@@ -484,15 +484,48 @@
         <div class="card section-card">
           <div class="form-group">
             <label class="form-label">One-Line Hook</label>
-            <input type="text" class="form-input" [(ngModel)]="book()!.metadata.oneLineHook" placeholder="A compelling one-liner..." />
+            <div class="field-wrapper">
+              <input type="text" class="form-input" [(ngModel)]="book()!.metadata.oneLineHook" placeholder="A compelling one-liner..." />
+              <button type="button" class="copy-btn" (click)="copyField(book()!.metadata.oneLineHook, 'oneLineHook')" title="Copy to clipboard">
+                @if (copiedField === 'oneLineHook') {
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="copy-icon success"><polyline points="20 6 9 17 4 12"/></svg>
+                } @else {
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="copy-icon">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                  </svg>
+                }
+              </button>
+            </div>
           </div>
           <div class="form-group">
             <label class="form-label">Short Blurb</label>
-            <textarea class="form-input" rows="3" [(ngModel)]="book()!.metadata.shortBlurb" placeholder="2-3 sentence blurb..."></textarea>
+            <div class="field-wrapper">
+              <textarea class="form-input" rows="3" [(ngModel)]="book()!.metadata.shortBlurb" placeholder="2-3 sentence blurb..."></textarea>
+              <button type="button" class="copy-btn" (click)="copyField(book()!.metadata.shortBlurb, 'shortBlurb')" title="Copy to clipboard">
+                @if (copiedField === 'shortBlurb') {
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="copy-icon success"><polyline points="20 6 9 17 4 12"/></svg>
+                } @else {
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="copy-icon">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                  </svg>
+                }
+              </button>
+            </div>
           </div>
           <div class="form-group">
             <label class="form-label">Long Blurb</label>
-            <textarea class="form-input" rows="6" [(ngModel)]="book()!.metadata.longBlurb" placeholder="Full book description..."></textarea>
+            <div class="field-wrapper">
+              <textarea class="form-input" rows="6" [(ngModel)]="book()!.metadata.longBlurb" placeholder="Full book description..."></textarea>
+              <button type="button" class="copy-btn" (click)="copyField(book()!.metadata.longBlurb, 'longBlurb')" title="Copy to clipboard">
+                @if (copiedField === 'longBlurb') {
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="copy-icon success"><polyline points="20 6 9 17 4 12"/></svg>
+                } @else {
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="copy-icon">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                  </svg>
+                }
+              </button>
+            </div>
           </div>
         </div>
 
@@ -524,42 +557,119 @@
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">Author Bio</label>
-              <textarea class="form-input" rows="3" [(ngModel)]="book()!.metadata.authorBio" placeholder="About the author..."></textarea>
+              <div class="field-wrapper">
+                <textarea class="form-input" rows="3" [(ngModel)]="book()!.metadata.authorBio" placeholder="About the author..."></textarea>
+                <button type="button" class="copy-btn" (click)="copyField(book()!.metadata.authorBio, 'authorBio')" title="Copy to clipboard">
+                  @if (copiedField === 'authorBio') {
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="copy-icon success"><polyline points="20 6 9 17 4 12"/></svg>
+                  } @else {
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="copy-icon">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                  }
+                </button>
+              </div>
             </div>
           </div>
           <div class="form-row two-col">
             <div class="form-group">
               <label class="form-label">Series Name</label>
-              <input type="text" class="form-input" [(ngModel)]="book()!.metadata.seriesName" placeholder="Series name (if any)" />
+              <div class="field-wrapper">
+                <input type="text" class="form-input" [(ngModel)]="book()!.metadata.seriesName" placeholder="Series name (if any)" />
+                <button type="button" class="copy-btn" (click)="copyField(book()!.metadata.seriesName, 'seriesName')" title="Copy to clipboard">
+                  @if (copiedField === 'seriesName') {
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="copy-icon success"><polyline points="20 6 9 17 4 12"/></svg>
+                  } @else {
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="copy-icon">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                  }
+                </button>
+              </div>
             </div>
             <div class="form-group">
               <label class="form-label">Series Number</label>
-              <input type="number" class="form-input" [(ngModel)]="book()!.metadata.seriesNumber" placeholder="#" />
+              <div class="field-wrapper">
+                <input type="number" class="form-input" [(ngModel)]="book()!.metadata.seriesNumber" placeholder="#" />
+                <button type="button" class="copy-btn" (click)="copyField(book()!.metadata.seriesNumber, 'seriesNumber')" title="Copy to clipboard">
+                  @if (copiedField === 'seriesNumber') {
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="copy-icon success"><polyline points="20 6 9 17 4 12"/></svg>
+                  } @else {
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="copy-icon">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                  }
+                </button>
+              </div>
             </div>
           </div>
           <div class="form-row two-col">
             <div class="form-group">
               <label class="form-label">ISBN</label>
-              <input type="text" class="form-input" [(ngModel)]="book()!.metadata.isbn" placeholder="978-..." />
+              <div class="field-wrapper">
+                <input type="text" class="form-input" [(ngModel)]="book()!.metadata.isbn" placeholder="978-..." />
+                <button type="button" class="copy-btn" (click)="copyField(book()!.metadata.isbn, 'isbn')" title="Copy to clipboard">
+                  @if (copiedField === 'isbn') {
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="copy-icon success"><polyline points="20 6 9 17 4 12"/></svg>
+                  } @else {
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="copy-icon">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                  }
+                </button>
+              </div>
             </div>
             <div class="form-group">
               <label class="form-label">Copyright</label>
-              <input type="text" class="form-input" [(ngModel)]="book()!.metadata.copyright" placeholder="© 2024..." />
+              <div class="field-wrapper">
+                <input type="text" class="form-input" [(ngModel)]="book()!.metadata.copyright" placeholder="© 2024..." />
+                <button type="button" class="copy-btn" (click)="copyField(book()!.metadata.copyright, 'copyright')" title="Copy to clipboard">
+                  @if (copiedField === 'copyright') {
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="copy-icon success"><polyline points="20 6 9 17 4 12"/></svg>
+                  } @else {
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="copy-icon">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                  }
+                </button>
+              </div>
             </div>
           </div>
           <div class="form-row two-col">
             <div class="form-group">
               <label class="form-label">Language</label>
-              <select class="form-input" [(ngModel)]="book()!.metadata.language">
-                <option value="en">English</option>
-                <option value="es">Spanish</option>
-                <option value="fr">French</option>
-                <option value="de">German</option>
-              </select>
+              <div class="field-wrapper">
+                <select class="form-input" [(ngModel)]="book()!.metadata.language">
+                  <option value="en">English</option>
+                  <option value="es">Spanish</option>
+                  <option value="fr">French</option>
+                  <option value="de">German</option>
+                </select>
+                <button type="button" class="copy-btn" (click)="copyField(book()!.metadata.language, 'language')" title="Copy to clipboard">
+                  @if (copiedField === 'language') {
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="copy-icon success"><polyline points="20 6 9 17 4 12"/></svg>
+                  } @else {
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="copy-icon">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                  }
+                </button>
+              </div>
             </div>
             <div class="form-group">
               <label class="form-label">Publish Date</label>
-              <input type="date" class="form-input" [(ngModel)]="book()!.metadata.publishDate" />
+              <div class="field-wrapper">
+                <input type="date" class="form-input" [(ngModel)]="book()!.metadata.publishDate" />
+                <button type="button" class="copy-btn" (click)="copyField(book()!.metadata.publishDate, 'publishDate')" title="Copy to clipboard">
+                  @if (copiedField === 'publishDate') {
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="copy-icon success"><polyline points="20 6 9 17 4 12"/></svg>
+                  } @else {
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="copy-icon">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                  }
+                </button>
+              </div>
             </div>
           </div>
         </div>

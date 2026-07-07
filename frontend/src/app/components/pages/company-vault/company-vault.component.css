@@ -70,8 +70,28 @@
 .status-blue { background: rgba(59,130,246,.12); color: #3b82f6; }
 .status-default { background: var(--primary-light); color: var(--text-muted); }
 
-/* Data table */
-.data-table { width: 100%; border-collapse: collapse; }
+/* Data table – horizontal scroll wrapper */
+.table-scroll-wrap {
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 0 0 10px 10px;
+}
+.table-scroll-wrap::-webkit-scrollbar {
+  height: 6px;
+}
+.table-scroll-wrap::-webkit-scrollbar-track {
+  background: var(--background);
+  border-radius: 3px;
+}
+.table-scroll-wrap::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 3px;
+}
+.table-scroll-wrap::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-blue);
+}
+.data-table { width: 100%; border-collapse: collapse; min-width: 500px; }
 .data-table th { padding: .6rem .85rem; text-align: left; font-size: .6875rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); border-bottom: 1.5px solid var(--border-light); background: var(--background); }
 .data-table td {
   padding: .65rem .85rem;
@@ -925,3 +945,75 @@
   .vault-overview-grid { grid-template-columns: 1fr; }
 }
 
+
+.card-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.box-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.box-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: var(--surface);
+  border: 1.5px solid var(--border-color);
+  color: var(--text-secondary);
+}
+
+.box-action-btn svg {
+  flex-shrink: 0;
+}
+
+.box-action-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.box-action-btn.edit {
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+  background: rgba(59, 130, 246, 0.03);
+}
+.box-action-btn.edit:hover {
+  background: rgba(59, 130, 246, 0.08);
+}
+.box-action-btn.edit.active {
+  background: #3b82f6;
+  color: #ffffff;
+  border-color: #3b82f6;
+}
+
+.box-action-btn.load {
+  border-color: #10b981;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.03);
+}
+.box-action-btn.load:hover {
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.box-action-btn.delete {
+  border-color: #ef4444;
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.03);
+}
+.box-action-btn.delete:hover {
+  background: rgba(239, 68, 68, 0.08);
+}
