@@ -1823,7 +1823,7 @@
             </div>
           </div>
           <p class="section-hint" style="margin-top:.5rem">Update credentials, or write notes. Notes appear in the last column — hover or expand the field to read longer text.</p>
-          <table class="data-table security-registry-table">
+          <div class="table-scroll-wrap"><table class="data-table security-registry-table">
             <thead><tr><th>Resource</th><th>Owner</th><th>Access Level</th><th>2FA Device</th><th>Recovery Email</th><th style="min-width:220px">Notes</th>@if (isCardEditing('security')) {<th></th>}</tr></thead>
             <tbody>
               @for(row of pageSliceIndexed('security', securityEntries); track row.index) {
