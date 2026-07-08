@@ -94,6 +94,11 @@ export interface ImprintLegalISBN {
   isbnsAssigned: number;
   isbnsRemaining: number;
   copyrightPageTemplate: string;
+  copyrightPageTemplateUrl?: string;
+  copyrightPageTemplateFileId?: number;
+  contractTemplateFile?: string;
+  contractTemplateUrl?: string;
+  contractTemplateFileId?: number;
   dbaRegistration: string;
   trademark: string;
 }
@@ -164,6 +169,10 @@ export interface OnlinePresence {
   newsletterName: string;
   subscriberCount: number;
   socialAccounts: { platform: string; handle: string; url: string }[];
+  penNameEmail?: string;
+  directStoreUrl?: string;
+  goodreadsUrl?: string;
+  bookbubUrl?: string;
 }
 
 export interface ReaderCommunity {

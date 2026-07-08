@@ -1,6 +1,7 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { Observable, tap, map, catchError, of } from 'rxjs';
 import { ApiService } from './api.service';
+import { AuthorVaultService } from './author-vault.service';
 import {
   Book, BookFile, PlatformVersion, MarketingAsset,
   BookStatus, FileFormat
@@ -55,11 +56,16 @@ function createBook(partial: Partial<Book>): Book {
 @Injectable({ providedIn: 'root' })
 export class BookService {
   private readonly api = inject(ApiService);
+  private readonly vault = inject(AuthorVaultService);
   private readonly books = signal<Book[]>([]);
   private loaded = false;
 
   readonly allBooks = this.books.asReadonly();
   readonly bookCount = computed(() => this.books().length);
+
+  private syncCatalog(): void {
+    this.vault.setCatalogBooks(this.books());
+  }
 
   getBooks(): Observable<Book[]> {
     if (this.loaded) {
@@ -70,13 +76,21 @@ export class BookService {
       tap(list => {
         this.books.set(list);
         this.loaded = true;
+        this.syncCatalog();
       }),
       catchError(() => {
         this.books.set([]);
         this.loaded = true;
+        this.syncCatalog();
         return of([]);
       })
     );
+  }
+
+  /** Force refresh from API (used by workspace loader). */
+  reloadBooks(): Observable<Book[]> {
+    this.loaded = false;
+    return this.getBooks();
   }
 
   private persist(): Observable<void> {
@@ -92,12 +106,14 @@ export class BookService {
   updateBook(book: Book): Observable<Book> {
     const updated = { ...book, updatedAt: new Date().toISOString().split('T')[0] };
     this.books.update(list => list.map(b => b.id === book.id ? updated : b));
+    this.syncCatalog();
     return this.persist().pipe(map(() => updated));
   }
 
   addBook(book: Partial<Book>): Observable<Book> {
     const newBook = createBook(book);
     this.books.update(list => [newBook, ...list]);
+    this.syncCatalog();
     return this.persist().pipe(map(() => newBook));
   }
 
@@ -117,6 +133,7 @@ export class BookService {
     this.books.update(list =>
       list.map(b => b.id === bookId ? { ...b, files: [...b.files, newFile] } : b)
     );
+    this.syncCatalog();
     return this.persist().pipe(map(() => newFile));
   }
 
@@ -142,6 +159,7 @@ export class BookService {
 
   deleteBook(id: string): Observable<boolean> {
     this.books.update(list => list.filter(b => b.id !== id));
+    this.syncCatalog();
     return this.persist().pipe(map(() => true));
   }
 }

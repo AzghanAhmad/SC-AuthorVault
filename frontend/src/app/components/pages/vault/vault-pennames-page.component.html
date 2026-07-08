@@ -1,4 +1,6 @@
 <div class="page">
+  <input type="file" id="penname-csv-input" accept=".csv,.xlsx,.xls" style="display:none" (change)="onCsvSelected($event)" />
+
   <app-page-action-bar
     [editing]="editMode()"
     deleteLabel="Delete all pen names"
@@ -13,18 +15,24 @@
           <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
         </svg>
         <h3 style="font-size:1.125rem;font-weight:700;color:var(--text-primary);margin:0 0 .5rem;">No Pen Names Registered</h3>
-        <p style="font-size:.875rem;color:var(--text-muted);margin:0 0 1.5rem;">To get started, add a pen name to one of your imprints.</p>
-        <button class="back-btn" (click)="goTo('/vault/imprints')" style="display:inline-flex;float:none;cursor:pointer;background:var(--accent-blue);color:#fff;border:none;padding:.5rem 1.25rem;border-radius:8px;font-weight:600;">Go to Imprints page</button>
+        <p style="font-size:.875rem;color:var(--text-muted);margin:0 0 1.5rem;">Add a pen name directly, or set one up under one of your imprints.</p>
+        <div style="display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap;">
+          <button type="button" class="box-action-btn edit" (click)="addPenNameToList()">+ Add Pen Name</button>
+          <button class="back-btn" (click)="goTo('/vault/imprints')" style="display:inline-flex;float:none;cursor:pointer;background:var(--accent-blue);color:#fff;border:none;padding:.5rem 1.25rem;border-radius:8px;font-weight:600;">Go to Imprints page</button>
+        </div>
       </div>
     } @else {
       <div class="page-header">
-        <div class="page-title-wrap">
-          <svg class="header-icon-svg" viewBox="0 0 24 24" aria-hidden="true" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
-          </svg>
-          <h1 class="page-title" style="margin:0;">Pen Names</h1>
+        <div>
+          <div class="page-title-wrap">
+            <svg class="header-icon-svg" viewBox="0 0 24 24" aria-hidden="true" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
+            </svg>
+            <h1 class="page-title" style="margin:0;">Pen Names</h1>
+          </div>
+          <p class="page-subtitle">Each pen name is a completely separate author identity</p>
         </div>
-        <p class="page-subtitle">Each pen name is a completely separate author identity</p>
+        <button type="button" class="box-action-btn edit" (click)="addPenNameToList()">+ Add Pen Name</button>
       </div>
       <div class="stats-row">
         <div class="stat-card"><div class="stat-value">{{ allPenNames().length }}</div><div class="stat-label">Pen Names</div></div>
@@ -73,7 +81,7 @@
   @if (selected(); as pn) {
     <!-- Header -->
     <div class="pn-detail-header">
-      <button class="back-btn" (click)="selected.set(null); tab.set('identity')">← All Pen Names</button>
+      <button class="back-btn" (click)="clearSelection()">← All Pen Names</button>
       <div class="pn-detail-top">
         <label class="entity-avatar-upload" title="Upload pen name avatar (Click to change)" style="margin-right:.5rem;">
           @if (pn.identity.avatarUrl) {
@@ -135,12 +143,21 @@
         <!-- Identity -->
         @if (tab() === 'identity') {
           <div class="card">
-            <h3 class="section-title">Pen Name Identity</h3>
+            <div class="card-header-row">
+              <h3 class="section-title" style="margin:0">Pen Name Identity</h3>
+              <div class="box-actions">
+                <button type="button" class="box-action-btn edit" [class.active]="isCardEditing('identity')" (click)="toggleCardEdit('identity')">
+                  {{ isCardEditing('identity') ? 'Save' : 'Edit' }}
+                </button>
+                <button type="button" class="box-action-btn load" (click)="triggerIdentityLoad()">Load</button>
+                <button type="button" class="box-action-btn delete" (click)="deleteIdentitySection(pn)">Delete</button>
+              </div>
+            </div>
             <div class="form-grid">
-              <app-editable-field [readOnly]="!editMode()" label="Display Name" [value]="pn.identity.displayName" (valueChange)="vs.updatePenName(pn.id, { displayName: $event })" />
-              <app-editable-field [readOnly]="!editMode()" label="Legal Name Linked" [value]="pn.identity.legalNameLinked" (valueChange)="vs.updatePenName(pn.id, { legalNameLinked: $event })" />
-              <app-editable-field [readOnly]="!editMode()" label="Primary Genre" [value]="pn.identity.genre" (valueChange)="vs.updatePenName(pn.id, { genre: $event })" />
-              <app-editable-field [readOnly]="!editMode()" label="Subgenre" [value]="pn.identity.subgenre || ''" (valueChange)="vs.updatePenName(pn.id, { subgenre: $event })" />
+              <app-editable-field [readOnly]="!isCardEditing('identity')" label="Display Name" [value]="pn.identity.displayName" (valueChange)="vs.updatePenName(pn.id, { displayName: $event })" />
+              <app-editable-field [readOnly]="!isCardEditing('identity')" label="Legal Name Linked" [value]="pn.identity.legalNameLinked" (valueChange)="vs.updatePenName(pn.id, { legalNameLinked: $event })" />
+              <app-editable-field [readOnly]="!isCardEditing('identity')" label="Primary Genre" [value]="pn.identity.genre" (valueChange)="vs.updatePenName(pn.id, { genre: $event })" />
+              <app-editable-field [readOnly]="!isCardEditing('identity')" label="Subgenre" [value]="pn.identity.subgenre || ''" (valueChange)="vs.updatePenName(pn.id, { subgenre: $event })" />
               
               <!-- Genres Tag chips -->
               <div class="form-group full"><span class="form-label">Genres & Sub-genres</span>
@@ -152,23 +169,27 @@
                   @for (g of getAdditionalGenres(pn); track g) {
                     <span class="tag" style="display:inline-flex;align-items:center;gap:.25rem;">
                       {{ g }}
-                      <span style="cursor:pointer;font-weight:700;color:var(--error);" (click)="removeAdditionalGenre(pn, g)" title="Remove genre">✕</span>
+                      @if (isCardEditing('identity')) {
+                        <span style="cursor:pointer;font-weight:700;color:var(--error);" (click)="removeAdditionalGenre(pn, g)" title="Remove genre">✕</span>
+                      }
                     </span>
                   }
-                  @if (addingGenre()) {
-                    <div style="display:inline-flex;gap:.25rem;align-items:center;">
-                      <input type="text" #newGenreInput (keyup.enter)="addAdditionalGenre(pn, newGenreInput.value); addingGenre.set(false)" style="padding:.2rem .4rem;border:1px solid var(--border-color);border-radius:4px;font-size:.75rem;background:var(--background);color:var(--text-primary);width:120px;" placeholder="Press Enter" />
-                      <button (click)="addingGenre.set(false)" style="background:none;border:none;cursor:pointer;color:var(--error);font-size:.75rem;font-weight:600;">Cancel</button>
-                    </div>
-                  } @else {
-                    <span class="tag" style="border-style:dashed;cursor:pointer;color:var(--text-muted);" (click)="addingGenre.set(true)">+ Add Genre</span>
+                  @if (isCardEditing('identity')) {
+                    @if (addingGenre()) {
+                      <div style="display:inline-flex;gap:.25rem;align-items:center;">
+                        <input type="text" #newGenreInput (keyup.enter)="addAdditionalGenre(pn, newGenreInput.value); addingGenre.set(false)" style="padding:.2rem .4rem;border:1px solid var(--border-color);border-radius:4px;font-size:.75rem;background:var(--background);color:var(--text-primary);width:120px;" placeholder="Press Enter" />
+                        <button (click)="addingGenre.set(false)" style="background:none;border:none;cursor:pointer;color:var(--error);font-size:.75rem;font-weight:600;">Cancel</button>
+                      </div>
+                    } @else {
+                      <span class="tag" style="border-style:dashed;cursor:pointer;color:var(--text-muted);" (click)="addingGenre.set(true)">+ Add Genre</span>
+                    }
                   }
                 </div>
               </div>
 
               <div class="form-group">
                 <span class="form-label">Pen Name Type</span>
-                <select class="form-input" [ngModel]="pn.identity.penNameType" (ngModelChange)="vs.updatePenName(pn.id, { penNameType: $event })" style="width:100%;height:38px;padding:.55rem .75rem;border:1.5px solid var(--border-color);border-radius:8px;background:var(--surface);color:var(--text-primary);font-size:.875rem;font-family:inherit;">
+                <select class="form-input" [disabled]="!isCardEditing('identity')" [ngModel]="pn.identity.penNameType" (ngModelChange)="vs.updatePenName(pn.id, { penNameType: $event })" style="width:100%;height:38px;padding:.55rem .75rem;border:1.5px solid var(--border-color);border-radius:8px;background:var(--surface);color:var(--text-primary);font-size:.875rem;font-family:inherit;">
                   <option value="Sole author">Sole author</option>
                   <option value="Co-authored">Co-authored</option>
                   <option value="Ghostwritten">Ghostwritten</option>
@@ -177,7 +198,7 @@
               </div>
               <div class="form-group">
                 <span class="form-label">Privacy Level</span>
-                <select class="form-input" [ngModel]="pn.identity.privacyLevel" (ngModelChange)="vs.updatePenName(pn.id, { privacyLevel: $event })" style="width:100%;height:38px;padding:.55rem .75rem;border:1.5px solid var(--border-color);border-radius:8px;background:var(--surface);color:var(--text-primary);font-size:.875rem;font-family:inherit;">
+                <select class="form-input" [disabled]="!isCardEditing('identity')" [ngModel]="pn.identity.privacyLevel" (ngModelChange)="vs.updatePenName(pn.id, { privacyLevel: $event })" style="width:100%;height:38px;padding:.55rem .75rem;border:1.5px solid var(--border-color);border-radius:8px;background:var(--surface);color:var(--text-primary);font-size:.875rem;font-family:inherit;">
                   <option value="Internal only">Internal only</option>
                   <option value="Partially public">Partially public</option>
                   <option value="Fully public">Fully public</option>
@@ -185,22 +206,22 @@
               </div>
               <div class="form-group">
                 <span class="form-label">Publicly Disclosed</span>
-                <select class="form-input" [ngModel]="pn.identity.publiclyDisclosed" (ngModelChange)="vs.updatePenName(pn.id, { publiclyDisclosed: $event })" style="width:100%;height:38px;padding:.55rem .75rem;border:1.5px solid var(--border-color);border-radius:8px;background:var(--surface);color:var(--text-primary);font-size:.875rem;font-family:inherit;">
+                <select class="form-input" [disabled]="!isCardEditing('identity')" [ngModel]="pn.identity.publiclyDisclosed" (ngModelChange)="vs.updatePenName(pn.id, { publiclyDisclosed: $event })" style="width:100%;height:38px;padding:.55rem .75rem;border:1.5px solid var(--border-color);border-radius:8px;background:var(--surface);color:var(--text-primary);font-size:.875rem;font-family:inherit;">
                   <option [ngValue]="true">Yes</option>
                   <option [ngValue]="false">No</option>
                 </select>
               </div>
               <div class="form-group">
                 <span class="form-label">Status</span>
-                <select class="form-input" [ngModel]="pn.identity.status" (ngModelChange)="vs.updatePenName(pn.id, { status: $event })" style="width:100%;height:38px;padding:.55rem .75rem;border:1.5px solid var(--border-color);border-radius:8px;background:var(--surface);color:var(--text-primary);font-size:.875rem;font-family:inherit;">
+                <select class="form-input" [disabled]="!isCardEditing('identity')" [ngModel]="pn.identity.status" (ngModelChange)="vs.updatePenName(pn.id, { status: $event })" style="width:100%;height:38px;padding:.55rem .75rem;border:1.5px solid var(--border-color);border-radius:8px;background:var(--surface);color:var(--text-primary);font-size:.875rem;font-family:inherit;">
                   <option value="Active">Active</option>
                   <option value="Retired">Retired</option>
                   <option value="Paused">Paused</option>
                 </select>
               </div>
-              <app-editable-field [readOnly]="!editMode()" label="Date Created" [value]="pn.identity.dateCreated" (valueChange)="vs.updatePenName(pn.id, { dateCreated: $event })" />
-              <app-editable-field [readOnly]="!editMode()" label="Reason / Purpose" [value]="pn.identity.reason" (valueChange)="vs.updatePenName(pn.id, { reason: $event })" [full]="true" />
-              <app-editable-field [readOnly]="!editMode()" label="Private Notes" [value]="pn.identity.notes || ''" (valueChange)="vs.updatePenName(pn.id, { notes: $event })" [full]="true" />
+              <app-editable-field [readOnly]="!isCardEditing('identity')" type="date" label="Date Created" [value]="pn.identity.dateCreated" (valueChange)="vs.updatePenName(pn.id, { dateCreated: $event })" />
+              <app-editable-field [readOnly]="!isCardEditing('identity')" label="Reason / Purpose" [value]="pn.identity.reason" (valueChange)="vs.updatePenName(pn.id, { reason: $event })" [full]="true" />
+              <app-editable-field [readOnly]="!isCardEditing('identity')" label="Private Notes" [value]="pn.identity.notes || ''" (valueChange)="vs.updatePenName(pn.id, { notes: $event })" [full]="true" />
             </div>
           </div>
         }
@@ -208,18 +229,26 @@
         <!-- Branding -->
         @if (tab() === 'branding') {
           <div class="card">
-            <h3 class="section-title">Branding & Visual Identity</h3>
+            <div class="card-header-row">
+              <h3 class="section-title" style="margin:0">Branding & Visual Identity</h3>
+              <div class="box-actions">
+                <button type="button" class="box-action-btn edit" [class.active]="isCardEditing('branding')" (click)="toggleCardEdit('branding')">
+                  {{ isCardEditing('branding') ? 'Save' : 'Edit' }}
+                </button>
+                <button type="button" class="box-action-btn delete" (click)="deleteBrandingSection(pn)">Delete</button>
+              </div>
+            </div>
             <p class="section-subtitle">Everything here relates to {{ pn.identity.displayName }} specifically — not the company or imprint</p>
             <div class="form-grid">
-              <app-editable-field [readOnly]="!editMode()" label="Tagline" [value]="pn.branding.tagline" (valueChange)="updateBranding(pn, 'tagline', $event)" [full]="true" />
-              <app-editable-field [readOnly]="!editMode()" label="Bio — Short" [value]="pn.branding.bioShort" (valueChange)="updateBranding(pn, 'bioShort', $event)" [full]="true" />
-              <app-editable-field [readOnly]="!editMode()" label="Bio — Medium" [value]="pn.branding.bioMedium" (valueChange)="updateBranding(pn, 'bioMedium', $event)" [full]="true" />
-              <app-editable-field [readOnly]="!editMode()" label="Bio — Long" [value]="pn.branding.bioLong || ''" (valueChange)="updateBranding(pn, 'bioLong', $event)" [full]="true" />
-              <app-editable-field [readOnly]="!editMode()" label="Bio — First Person" [value]="pn.branding.bioFirstPerson || ''" (valueChange)="updateBranding(pn, 'bioFirstPerson', $event)" [full]="true" />
-              <app-editable-field [readOnly]="!editMode()" label="Bio — Third Person" [value]="pn.branding.bioThirdPerson || ''" (valueChange)="updateBranding(pn, 'bioThirdPerson', $event)" [full]="true" />
-              <app-editable-field [readOnly]="!editMode()" label="Brand Colors" [value]="pn.branding.brandColors" (valueChange)="updateBranding(pn, 'brandColors', $event)" />
-              <app-editable-field [readOnly]="!editMode()" label="Brand Fonts" [value]="pn.branding.brandFonts" (valueChange)="updateBranding(pn, 'brandFonts', $event)" />
-              <app-editable-field [readOnly]="!editMode()" label="Cover Style Notes" [value]="pn.branding.coverStyleNotes || ''" (valueChange)="updateBranding(pn, 'coverStyleNotes', $event)" [full]="true" />
+              <app-editable-field [readOnly]="!isCardEditing('branding')" label="Tagline" [value]="pn.branding.tagline" (valueChange)="updateBranding(pn, 'tagline', $event)" [full]="true" />
+              <app-editable-field [readOnly]="!isCardEditing('branding')" label="Bio — Short" [value]="pn.branding.bioShort" (valueChange)="updateBranding(pn, 'bioShort', $event)" [full]="true" />
+              <app-editable-field [readOnly]="!isCardEditing('branding')" label="Bio — Medium" [value]="pn.branding.bioMedium" (valueChange)="updateBranding(pn, 'bioMedium', $event)" [full]="true" />
+              <app-editable-field [readOnly]="!isCardEditing('branding')" label="Bio — Long" [value]="pn.branding.bioLong || ''" (valueChange)="updateBranding(pn, 'bioLong', $event)" [full]="true" />
+              <app-editable-field [readOnly]="!isCardEditing('branding')" label="Bio — First Person" [value]="pn.branding.bioFirstPerson || ''" (valueChange)="updateBranding(pn, 'bioFirstPerson', $event)" [full]="true" />
+              <app-editable-field [readOnly]="!isCardEditing('branding')" label="Bio — Third Person" [value]="pn.branding.bioThirdPerson || ''" (valueChange)="updateBranding(pn, 'bioThirdPerson', $event)" [full]="true" />
+              <app-editable-field [readOnly]="!isCardEditing('branding')" label="Brand Colors" [value]="pn.branding.brandColors" (valueChange)="updateBranding(pn, 'brandColors', $event)" />
+              <app-editable-field [readOnly]="!isCardEditing('branding')" label="Brand Fonts" [value]="pn.branding.brandFonts" (valueChange)="updateBranding(pn, 'brandFonts', $event)" />
+              <app-editable-field [readOnly]="!isCardEditing('branding')" label="Cover Style Notes" [value]="pn.branding.coverStyleNotes || ''" (valueChange)="updateBranding(pn, 'coverStyleNotes', $event)" [full]="true" />
             </div>
           </div>
 
@@ -239,16 +268,18 @@
                   <a [href]="composePressKitEmail(pn)" target="_blank" class="row-upload-btn" style="text-decoration:none;margin-right:.5rem;padding:.3rem .5rem;" title="Prefill template in email client">
                     ✉️ Compose Email
                   </a>
-                  <span class="doc-slot-btn-delete" style="cursor:pointer;" (click)="removePressKitFile(pn)">✕</span>
+                  @if (isCardEditing('branding')) {
+                    <span class="doc-slot-btn-delete" style="cursor:pointer;" (click)="removePressKitFile(pn)">✕</span>
+                  }
                 </div>
               } @else {
-                <label class="doc-upload-slot">
+                <label class="doc-upload-slot" [class.is-uploading]="!isCardEditing('branding')">
                   <span class="doc-slot-icon">📤</span>
                   <div class="doc-slot-body">
                     <span class="doc-slot-name">Upload Press Kit File</span>
                     <span class="doc-slot-hint">PDF or ZIP (max 15MB)</span>
                   </div>
-                  <input type="file" accept=".pdf,.zip" hidden (change)="onPressKitUpload($event, pn)" />
+                  <input type="file" accept=".pdf,.zip" hidden [disabled]="!isCardEditing('branding')" (change)="onPressKitUpload($event, pn)" />
                 </label>
               }
             </div>
@@ -259,7 +290,7 @@
               <div class="checklist">
                 @for (item of pressKitItems; track item) {
                   <label class="check-item" [class.done]="isPressKitItemChecked(pn, item)" style="cursor:pointer;user-select:none;">
-                    <input type="checkbox" [checked]="isPressKitItemChecked(pn, item)" (change)="togglePressKitItem(pn, item)" style="display:none;" />
+                    <input type="checkbox" [checked]="isPressKitItemChecked(pn, item)" [disabled]="!isCardEditing('branding')" (change)="togglePressKitItem(pn, item)" style="display:none;" />
                     <span class="check-dot">
                       @if (isPressKitItemChecked(pn, item)) { ✓ }
                     </span>
@@ -311,76 +342,193 @@
         <!-- Platforms -->
         @if (tab() === 'platforms') {
           <div class="card">
-            <h3 class="section-title">Publishing Platform Accounts</h3>
-            <p class="section-subtitle">All accounts belong to {{ pn.identity.displayName }}, not the company</p>
-            <table class="data-table">
-              <thead><tr><th>Platform</th><th>Account Info</th><th>URL</th></tr></thead>
+            <div class="card-header-row">
+              <h3 class="section-title" style="margin:0">Publishing Platform Accounts</h3>
+              <div class="box-actions">
+                <button type="button" class="box-action-btn edit" [class.active]="isCardEditing('platforms')" (click)="toggleCardEdit('platforms')">
+                  {{ isCardEditing('platforms') ? 'Save' : 'Edit' }}
+                </button>
+                <button type="button" class="box-action-btn delete" (click)="deletePlatformsSection(pn)">Delete</button>
+              </div>
+            </div>
+            <p class="section-subtitle">All accounts belong to {{ pn.identity.displayName }}, not the company.</p>
+            <div class="table-scroll-wrap">
+            <table class="data-table platforms-table">
+              <colgroup>
+                <col style="width:22%" />
+                <col style="width:28%" />
+                <col style="width:auto" />
+                @if (isCardEditing('platforms')) { <col style="width:70px" /> }
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>Platform</th>
+                  <th>Account Info</th>
+                  <th>URL</th>
+                  @if (isCardEditing('platforms')) { <th>Action</th> }
+                </tr>
+              </thead>
               <tbody>
-                @for (pa of pn.platformAccounts; track pa.platform) {
-                  <tr><td class="td-primary">{{ pa.platform }}</td><td>{{ pa.accountInfo }}</td><td>{{ pa.url || '—' }}</td></tr>
+                @for (pa of pn.platformAccounts; track $index; let i = $index) {
+                  <tr>
+                    @if (isCardEditing('platforms')) {
+                      <td><input class="form-input table-cell-field" [ngModel]="pa.platform" (ngModelChange)="patchPlatformAccount(pn, i, 'platform', $event)" placeholder="e.g. Amazon KDP" /></td>
+                      <td><input class="form-input table-cell-field" [ngModel]="pa.accountInfo" (ngModelChange)="patchPlatformAccount(pn, i, 'accountInfo', $event)" placeholder="e.g. login email or seller ID" /></td>
+                      <td><input class="form-input table-cell-field" [ngModel]="pa.url" (ngModelChange)="patchPlatformAccount(pn, i, 'url', $event)" placeholder="e.g. https://..." /></td>
+                      <td class="actions-cell">
+                        <button type="button" class="row-upload-btn" (click)="removePlatformAccount(pn, i)" title="Delete platform">✕</button>
+                      </td>
+                    } @else {
+                      <td class="td-primary">{{ pa.platform || '—' }}</td>
+                      <td>{{ pa.accountInfo || '—' }}</td>
+                      <td>{{ pa.url || '—' }}</td>
+                    }
+                  </tr>
+                }
+                @if (!pn.platformAccounts.length) {
+                  <tr><td [attr.colspan]="isCardEditing('platforms') ? 4 : 3" class="empty-table-hint">No platforms yet. @if (isCardEditing('platforms')) { Use the form below to add one. } @else { Turn on Edit to add accounts. }</td></tr>
                 }
               </tbody>
             </table>
+            </div>
+
+            @if (isCardEditing('platforms')) {
+              <div style="margin-top:1.25rem;padding:1rem;background:var(--background);border:1.5px dashed var(--border-color);border-radius:10px;">
+                <h4 style="margin:0 0 .75rem;font-size:.875rem;font-weight:600;color:var(--text-primary);">Add Publishing Platform</h4>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:.75rem;align-items:flex-end;">
+                  <div class="form-group">
+                    <span class="form-label" style="font-size:.7rem;">Platform Name</span>
+                    <input type="text" [(ngModel)]="newPlatformName" placeholder="e.g. Amazon KDP, Draft2Digital" class="form-input" style="padding:.4rem .6rem;font-size:.8125rem;" />
+                  </div>
+                  <div class="form-group">
+                    <span class="form-label" style="font-size:.7rem;">Account Info</span>
+                    <input type="text" [(ngModel)]="newPlatformInfo" placeholder="e.g. login email / seller ID" class="form-input" style="padding:.4rem .6rem;font-size:.8125rem;" />
+                  </div>
+                  <div class="form-group">
+                    <span class="form-label" style="font-size:.7rem;">URL</span>
+                    <input type="text" [(ngModel)]="newPlatformUrl" placeholder="e.g. https://..." class="form-input" style="padding:.4rem .6rem;font-size:.8125rem;" />
+                  </div>
+                  <button class="row-upload-btn" (click)="addPlatformAccount(pn)" style="height:36px;padding:0 1rem;font-weight:600;">Add Platform</button>
+                </div>
+              </div>
+            }
           </div>
         }
 
         <!-- Online Presence -->
         @if (tab() === 'presence') {
           <div class="card">
-            <h3 class="section-title">Online Presence</h3>
+            <div class="card-header-row">
+              <h3 class="section-title" style="margin:0">Online Presence</h3>
+              <div class="box-actions">
+                <button type="button" class="box-action-btn edit" [class.active]="isCardEditing('presence')" (click)="toggleCardEdit('presence')">
+                  {{ isCardEditing('presence') ? 'Save' : 'Edit' }}
+                </button>
+                <button type="button" class="box-action-btn delete" (click)="deletePresenceSection(pn)">Delete</button>
+              </div>
+            </div>
             <p class="section-subtitle">All web and social presence for {{ pn.identity.displayName }}</p>
             <div class="form-grid">
-              <div class="form-group"><span class="form-label">Author Website</span><div class="form-value"><a [href]="pn.onlinePresence.authorWebsite" target="_blank" style="color:var(--accent-blue)">{{ pn.onlinePresence.authorWebsite }}</a></div></div>
-              <div class="form-group"><span class="form-label">Newsletter Platform</span><div class="form-value">{{ pn.onlinePresence.newsletterPlatform }}</div></div>
-              <div class="form-group"><span class="form-label">Newsletter Name</span><div class="form-value">{{ pn.onlinePresence.newsletterName }}</div></div>
-              <div class="form-group"><span class="form-label">Subscribers</span><div class="form-value" style="font-weight:700;color:var(--accent-blue)">{{ pn.onlinePresence.subscriberCount | number }}</div></div>
+              <app-editable-field [readOnly]="!isCardEditing('presence')" type="url" label="Author Website" [value]="pn.onlinePresence.authorWebsite" (valueChange)="updatePresenceField(pn, 'authorWebsite', $event)" />
+              <app-editable-field [readOnly]="!isCardEditing('presence')" label="Newsletter Platform" [value]="pn.onlinePresence.newsletterPlatform" (valueChange)="updatePresenceField(pn, 'newsletterPlatform', $event)" />
+              <app-editable-field [readOnly]="!isCardEditing('presence')" label="Newsletter Name" [value]="pn.onlinePresence.newsletterName" (valueChange)="updatePresenceField(pn, 'newsletterName', $event)" />
+              <div class="form-group"><span class="form-label">Subscribers</span>
+                @if (isCardEditing('presence')) {
+                  <input type="number" class="form-input" [ngModel]="pn.onlinePresence.subscriberCount" (ngModelChange)="updatePresenceField(pn, 'subscriberCount', $event)" />
+                } @else {
+                  <div class="form-value" style="font-weight:700;color:var(--accent-blue)">{{ pn.onlinePresence.subscriberCount | number }}</div>
+                }
+              </div>
             </div>
           </div>
           <div class="card">
-            <h3 class="section-title">Social Media Accounts</h3>
-            <table class="data-table">
-              <thead><tr><th>Platform</th><th>Handle</th><th>URL</th><th style="width:50px;">Action</th></tr></thead>
+            <div class="card-header-row">
+              <h3 class="section-title" style="margin:0">Social Media Accounts</h3>
+              <div class="box-actions">
+                <button type="button" class="box-action-btn edit" [class.active]="isCardEditing('social')" (click)="toggleCardEdit('social')">
+                  {{ isCardEditing('social') ? 'Save' : 'Edit' }}
+                </button>
+                <button type="button" class="box-action-btn delete" (click)="deleteSocialSection(pn)">Delete</button>
+              </div>
+            </div>
+            <div class="table-scroll-wrap">
+            <table class="data-table platforms-table">
+              <colgroup>
+                <col style="width:22%" />
+                <col style="width:22%" />
+                <col style="width:auto" />
+                @if (isCardEditing('social') || isCardEditing('presence')) { <col style="width:70px" /> }
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>Platform</th>
+                  <th>Handle</th>
+                  <th>URL</th>
+                  @if (isCardEditing('social') || isCardEditing('presence')) { <th>Action</th> }
+                </tr>
+              </thead>
               <tbody>
-                @for (s of pn.onlinePresence.socialAccounts; track s.platform) {
+                @for (s of pn.onlinePresence.socialAccounts; track $index; let i = $index) {
                   <tr>
                     <td class="td-primary">{{ s.platform }}</td>
                     <td>{{ s.handle }}</td>
                     <td>{{ s.url || '—' }}</td>
-                    <td>
-                      <button (click)="removeSocialAccount(pn, s.platform)" style="background:none;border:none;cursor:pointer;color:var(--error);font-size:.875rem;" title="Delete channel">✕</button>
+                    @if (isCardEditing('social') || isCardEditing('presence')) {
+                      <td class="actions-cell">
+                        <button type="button" class="row-upload-btn" (click)="removeSocialAccount(pn, i)" title="Delete channel">✕</button>
+                      </td>
+                    }
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td [attr.colspan]="(isCardEditing('social') || isCardEditing('presence')) ? 4 : 3" class="empty-table-hint">
+                      No social channels yet.
+                      @if (isCardEditing('social') || isCardEditing('presence')) { Use the form below to add one. }
+                      @else { Click Edit to add channels. }
                     </td>
                   </tr>
                 }
               </tbody>
             </table>
-
-            <!-- Add Custom Channel Form -->
-            <div style="margin-top:1.25rem;padding:1rem;background:var(--background);border:1.5px dashed var(--border-color);border-radius:10px;">
-              <h4 style="margin:0 0 .75rem;font-size:.875rem;font-weight:600;color:var(--text-primary);">Add Custom Channel / Social Media</h4>
-              <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:.75rem;align-items:flex-end;">
-                <div class="form-group">
-                  <span class="form-label" style="font-size:.7rem;">Platform Name</span>
-                  <input type="text" [(ngModel)]="newSocialPlatform" placeholder="e.g. YouTube, Discord" class="form-input" style="padding:.4rem .6rem;font-size:.8125rem;" />
-                </div>
-                <div class="form-group">
-                  <span class="form-label" style="font-size:.7rem;">Handle</span>
-                  <input type="text" [(ngModel)]="newSocialHandle" placeholder="e.g. @veblackwood" class="form-input" style="padding:.4rem .6rem;font-size:.8125rem;" />
-                </div>
-                <div class="form-group">
-                  <span class="form-label" style="font-size:.7rem;">URL/Address</span>
-                  <input type="text" [(ngModel)]="newSocialUrl" placeholder="e.g. https://..." class="form-input" style="padding:.4rem .6rem;font-size:.8125rem;" />
-                </div>
-                <button class="row-upload-btn" (click)="addSocialAccount(pn)" style="height:36px;padding:0 1rem;font-weight:600;">Add Channel</button>
-              </div>
             </div>
+
+            @if (isCardEditing('social') || isCardEditing('presence')) {
+              <div style="margin-top:1.25rem;padding:1rem;background:var(--background);border:1.5px dashed var(--border-color);border-radius:10px;">
+                <h4 style="margin:0 0 .75rem;font-size:.875rem;font-weight:600;color:var(--text-primary);">Add Custom Channel / Social Media</h4>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:.75rem;align-items:flex-end;">
+                  <div class="form-group">
+                    <span class="form-label" style="font-size:.7rem;">Platform Name</span>
+                    <input type="text" [(ngModel)]="newSocialPlatform" placeholder="e.g. YouTube, Discord" class="form-input" style="padding:.4rem .6rem;font-size:.8125rem;" />
+                  </div>
+                  <div class="form-group">
+                    <span class="form-label" style="font-size:.7rem;">Handle</span>
+                    <input type="text" [(ngModel)]="newSocialHandle" placeholder="e.g. @veblackwood" class="form-input" style="padding:.4rem .6rem;font-size:.8125rem;" />
+                  </div>
+                  <div class="form-group">
+                    <span class="form-label" style="font-size:.7rem;">URL/Address</span>
+                    <input type="text" [(ngModel)]="newSocialUrl" placeholder="e.g. https://..." class="form-input" style="padding:.4rem .6rem;font-size:.8125rem;" />
+                  </div>
+                  <button type="button" class="row-upload-btn" (click)="addSocialAccount(pn)" style="height:36px;padding:0 1rem;font-weight:600;">Add Channel</button>
+                </div>
+              </div>
+            }
           </div>
           <div class="card">
-            <h3 class="section-title">Email & Store Accounts</h3>
+            <div class="card-header-row">
+              <h3 class="section-title" style="margin:0">Email & Store Accounts</h3>
+              <div class="box-actions">
+                <button type="button" class="box-action-btn edit" [class.active]="isCardEditing('email_store')" (click)="toggleCardEdit('email_store')">
+                  {{ isCardEditing('email_store') ? 'Save' : 'Edit' }}
+                </button>
+                <button type="button" class="box-action-btn load" (click)="loadEmailStoreDefaults(pn)">Load</button>
+                <button type="button" class="box-action-btn delete" (click)="deleteEmailStoreSection(pn)">Delete</button>
+              </div>
+            </div>
             <div class="form-grid">
-              <div class="form-group"><span class="form-label">Pen Name Email</span><div class="form-value">{{ pn.identity.displayName.toLowerCase().replace(' ','') }}@authorvaultpress.com</div></div>
-              <div class="form-group"><span class="form-label">Direct Store</span><div class="form-value">{{ pn.onlinePresence.authorWebsite }}/shop</div></div>
-              <div class="form-group"><span class="form-label">Goodreads</span><div class="form-value">goodreads.com/author/{{ pn.identity.displayName.toLowerCase().replace(' ','-') }}</div></div>
-              <div class="form-group"><span class="form-label">BookBub</span><div class="form-value">bookbub.com/authors/{{ pn.identity.displayName.toLowerCase().replace(' ','-') }}</div></div>
+              <app-editable-field [readOnly]="!isCardEditing('email_store')" type="email" label="Pen Name Email" [value]="emailStoreValue(pn, 'penNameEmail')" (valueChange)="updatePresenceField(pn, 'penNameEmail', $event)" />
+              <app-editable-field [readOnly]="!isCardEditing('email_store')" type="url" label="Direct Store" [value]="emailStoreValue(pn, 'directStoreUrl')" (valueChange)="updatePresenceField(pn, 'directStoreUrl', $event)" />
+              <app-editable-field [readOnly]="!isCardEditing('email_store')" label="Goodreads" [value]="emailStoreValue(pn, 'goodreadsUrl')" (valueChange)="updatePresenceField(pn, 'goodreadsUrl', $event)" />
+              <app-editable-field [readOnly]="!isCardEditing('email_store')" label="BookBub" [value]="emailStoreValue(pn, 'bookbubUrl')" (valueChange)="updatePresenceField(pn, 'bookbubUrl', $event)" />
             </div>
           </div>
         }
@@ -388,14 +536,22 @@
         <!-- Reader Community -->
         @if (tab() === 'community') {
           <div class="card">
-            <h3 class="section-title">Reader Community</h3>
+            <div class="card-header-row">
+              <h3 class="section-title" style="margin:0">Reader Community</h3>
+              <div class="box-actions">
+                <button type="button" class="box-action-btn edit" [class.active]="isCardEditing('community')" (click)="toggleCardEdit('community')">
+                  {{ isCardEditing('community') ? 'Save' : 'Edit' }}
+                </button>
+                <button type="button" class="box-action-btn delete" (click)="deleteCommunitySection(pn)">Delete</button>
+              </div>
+            </div>
             <div class="form-grid">
-              <div class="form-group"><span class="form-label">Primary Demographic</span><div class="form-value">{{ pn.readerCommunity.primaryDemographic }}</div></div>
-              <div class="form-group"><span class="form-label">ARC Team</span><div class="form-value">{{ pn.readerCommunity.arcTeam }}</div></div>
-              <div class="form-group"><span class="form-label">Beta Readers</span><div class="form-value">{{ pn.readerCommunity.betaReaderPool }}</div></div>
-              <div class="form-group"><span class="form-label">Facebook Group</span><div class="form-value">{{ pn.readerCommunity.readerFacebookGroup || '—' }}</div></div>
-              <div class="form-group full"><span class="form-label">Reader Persona</span><div class="form-value">{{ pn.readerCommunity.readerPersona }}</div></div>
-              <div class="form-group full"><span class="form-label">Engagement Notes</span><div class="form-value">{{ pn.readerCommunity.engagementNotes }}</div></div>
+              <app-editable-field [readOnly]="!isCardEditing('community')" label="Primary Demographic" [value]="pn.readerCommunity.primaryDemographic" (valueChange)="updateCommunityField(pn, 'primaryDemographic', $event)" />
+              <app-editable-field [readOnly]="!isCardEditing('community')" label="ARC Team" [value]="pn.readerCommunity.arcTeam" (valueChange)="updateCommunityField(pn, 'arcTeam', $event)" />
+              <app-editable-field [readOnly]="!isCardEditing('community')" label="Beta Readers" [value]="pn.readerCommunity.betaReaderPool" (valueChange)="updateCommunityField(pn, 'betaReaderPool', $event)" />
+              <app-editable-field [readOnly]="!isCardEditing('community')" label="Facebook Group" [value]="pn.readerCommunity.readerFacebookGroup || ''" (valueChange)="updateCommunityField(pn, 'readerFacebookGroup', $event)" />
+              <app-editable-field [readOnly]="!isCardEditing('community')" label="Reader Persona" [value]="pn.readerCommunity.readerPersona" (valueChange)="updateCommunityField(pn, 'readerPersona', $event)" [full]="true" />
+              <app-editable-field [readOnly]="!isCardEditing('community')" label="Engagement Notes" [value]="pn.readerCommunity.engagementNotes" (valueChange)="updateCommunityField(pn, 'engagementNotes', $event)" [full]="true" />
             </div>
           </div>
         }
@@ -403,9 +559,15 @@
         <!-- Box Sets Tab -->
         @if (tab() === 'boxsets') {
           <div class="card">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+            <div class="card-header-row">
               <h3 class="section-title" style="margin:0">Box Sets / Omnibus Collections</h3>
-              <button class="btn-primary" [disabled]="!editMode()" (click)="openAddBoxSet(pn)">+ Create Box Set</button>
+              <div class="box-actions">
+                <button type="button" class="box-action-btn edit" [class.active]="isCardEditing('boxsets')" (click)="toggleCardEdit('boxsets')">
+                  {{ isCardEditing('boxsets') ? 'Save' : 'Edit' }}
+                </button>
+                <button type="button" class="box-action-btn delete" (click)="deleteBoxsetsSection(pn)">Delete</button>
+                <button class="btn-primary" [disabled]="!isCardEditing('boxsets')" (click)="openAddBoxSet(pn)">+ Create Box Set</button>
+              </div>
             </div>
             
             @for (sr of pn.series; track sr.id) {
@@ -426,9 +588,11 @@
                         </div>
                         <p style="font-size:.8rem;color:var(--text-muted);margin:.2rem 0;">{{ bs.subtitle || 'No subtitle' }} · {{ bs.type }}</p>
                         <p style="font-size:.75rem;color:var(--text-secondary);margin:.2rem 0;">{{ bs.constituentTitles.length }} Books · {{ bs.totalWordCount | number }} words</p>
-                        <div style="display:flex;gap:.5rem;margin-top:.5rem;">
-                          <button (click)="$event.stopPropagation(); deleteBoxSet(pn, sr.id, bs.id)" style="background:none;border:none;color:var(--error);font-size:.75rem;cursor:pointer;padding:0;font-weight:600;">Remove</button>
-                        </div>
+                        @if (isCardEditing('boxsets')) {
+                          <div style="display:flex;gap:.5rem;margin-top:.5rem;">
+                            <button (click)="$event.stopPropagation(); deleteBoxSet(pn, sr.id, bs.id)" style="background:none;border:none;color:var(--error);font-size:.75rem;cursor:pointer;padding:0;font-weight:600;">Remove</button>
+                          </div>
+                        }
                       </div>
                     }
                   </div>
@@ -450,7 +614,16 @@
         <!-- Series -->
         @if (tab() === 'series') {
           <div class="card">
-            <h3 class="section-title">Series under {{ pn.identity.displayName }}</h3>
+            <div class="card-header-row">
+              <h3 class="section-title" style="margin:0">Series under {{ pn.identity.displayName }}</h3>
+              <div class="box-actions">
+                <button type="button" class="box-action-btn edit" [class.active]="isCardEditing('series')" (click)="toggleCardEdit('series')">
+                  {{ isCardEditing('series') ? 'Save' : 'Edit' }}
+                </button>
+                <button type="button" class="box-action-btn load" (click)="addSeriesToSelected(pn)">+ Add Series</button>
+                <button type="button" class="box-action-btn delete" (click)="deleteSeriesSection(pn)">Delete</button>
+              </div>
+            </div>
             <div class="entity-list">
               @for (sr of pn.series; track sr.id) {
                 <div class="entity-card" (click)="goTo('/vault/series')">
@@ -469,6 +642,9 @@
                     <span class="entity-stat"><strong>{{ sr.boxSets.length }}</strong> Box Sets</span>
                   </div>
                 </div>
+              }
+              @if (!pn.series.length) {
+                <p class="empty-table-hint">No series yet. @if (isCardEditing('series')) { Click "+ Add Series" above. } @else { Turn on Edit to add one. }</p>
               }
             </div>
           </div>
@@ -493,10 +669,16 @@
           <div class="form-group">
             <span class="form-label">Assign to Series</span>
             <select class="form-input" [(ngModel)]="selectedSeriesId" [disabled]="!!editingBoxSet()" style="height:38px;padding:.55rem .75rem;border:1.5px solid var(--border-color);border-radius:8px;background:var(--surface);color:var(--text-primary);font-size:.875rem;font-family:inherit;">
+              @if (!pn.series.length) {
+                <option value="">No series — one will be created on save</option>
+              }
               @for (sr of pn.series; track sr.id) {
-                <option [value]="sr.id">{{ sr.identity.name }}</option>
+                <option [ngValue]="sr.id">{{ sr.identity.name || 'Untitled series' }}</option>
               }
             </select>
+            @if (!pn.series.length) {
+              <p style="margin:.35rem 0 0;font-size:.75rem;color:var(--text-muted)">Add a series on the Series tab, or save and you’ll be prompted to create one.</p>
+            }
           </div>
 
           <div class="form-group">
@@ -606,8 +788,34 @@
       </div>
       <div class="modal-footer">
         <button class="btn-secondary" (click)="closeBoxSetModal()">Cancel</button>
-        <button class="btn-primary" (click)="saveBoxSet(pn)" [disabled]="!boxSetForm.title.trim() || !boxSetForm.bundleRightsConfirmed">Save Box Set</button>
+        <button type="button" class="btn-primary" (click)="saveBoxSet(pn)" [disabled]="!boxSetForm.title.trim()">Save Box Set</button>
       </div>
     </div>
   </div>
 }
+
+<app-vault-create-modal
+  [open]="showCreatePenName()"
+  title="Add Pen Name"
+  hint="Type the pen name first. After you create it, the full pen name profile opens so you can fill identity, platforms, series, and more."
+  note="Tip: enter the display name now — everything else unlocks after you click Create Pen Name."
+  nameLabel="Pen name"
+  placeholder="e.g. Jane A. Raven"
+  confirmLabel="Create Pen Name"
+  defaultName="New Pen Name"
+  parentLabel="Assign to Imprint"
+  [parentOptions]="imprintOptions()"
+  (cancelled)="showCreatePenName.set(false)"
+  (confirmed)="onCreatePenName($event)" />
+
+<app-vault-create-modal
+  [open]="showCreateSeries()"
+  title="Add Series"
+  hint="Type the series name first. It will be added under the currently selected pen name. You can then open the Series page to fill in the rest."
+  note="Tip: enter the series name now — identity, books, world, and branding unlock after creation."
+  nameLabel="Series name"
+  placeholder="e.g. Shadow Covenant"
+  confirmLabel="Create Series"
+  defaultName="New Series"
+  (cancelled)="showCreateSeries.set(false); createSeriesForPenNameId = ''"
+  (confirmed)="onCreateSeriesUnderPenName($event)" />

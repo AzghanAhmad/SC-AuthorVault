@@ -6,13 +6,16 @@
     (deleteAll)="deleteAllSeries()" />
 
   <div class="page-header">
-    <div class="page-title-wrap">
-      <svg class="header-icon-svg" viewBox="0 0 24 24" aria-hidden="true" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
-      </svg>
-      <h1 class="page-title" style="margin:0;">Series</h1>
+    <div>
+      <div class="page-title-wrap">
+        <svg class="header-icon-svg" viewBox="0 0 24 24" aria-hidden="true" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
+        </svg>
+        <h1 class="page-title" style="margin:0;">Series</h1>
+      </div>
+      <p class="page-subtitle">All series across pen names — click any series to explore its books</p>
     </div>
-    <p class="page-subtitle">All series across pen names — click any series to explore its books</p>
+    <button type="button" class="box-action-btn edit" (click)="addSeriesToList()">+ Add Series</button>
   </div>
   <div class="stats-row">
     <div class="stat-card"><div class="stat-value">{{ allSeries().length }}</div><div class="stat-label">Total Series</div></div>
@@ -29,8 +32,11 @@
           <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
         </svg>
         <h3 style="font-size:1.125rem;font-weight:700;color:var(--text-primary);margin:0 0 .5rem;">No Series Registered</h3>
-        <p style="font-size:.875rem;color:var(--text-muted);margin:0 0 1.5rem;">To get started, add a series under one of your pen names.</p>
-        <button class="back-btn" (click)="goTo('/vault/pen-names')" style="display:inline-flex;float:none;cursor:pointer;background:var(--accent-blue);color:#fff;border:none;padding:.5rem 1.25rem;border-radius:8px;font-weight:600;">Go to Pen Names page</button>
+        <p style="font-size:.875rem;color:var(--text-muted);margin:0 0 1.5rem;">Add a series directly, or set one up under one of your pen names.</p>
+        <div style="display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap;">
+          <button type="button" class="box-action-btn edit" (click)="addSeriesToList()">+ Add Series</button>
+          <button class="back-btn" (click)="goTo('/vault/pen-names')" style="display:inline-flex;float:none;cursor:pointer;background:var(--accent-blue);color:#fff;border:none;padding:.5rem 1.25rem;border-radius:8px;font-weight:600;">Go to Pen Names page</button>
+        </div>
       </div>
     } @else {
       <div class="entity-list">
@@ -57,7 +63,7 @@
 
   <!-- Selected series detail -->
   @if (selected(); as sr) {
-    <button class="back-btn" (click)="selected.set(null); tab.set('identity')">← All Series</button>
+    <button class="back-btn" (click)="clearSelection()">← All Series</button>
 
     <div class="vault-layout" style="margin-top:1rem">
       <nav class="vault-nav">
@@ -89,27 +95,69 @@
 
         @if (tab() === 'identity') {
           <div class="card">
-            <h3 class="section-title">{{ sr.identity.name }}</h3>
+            <div class="card-header-row">
+              <h3 class="section-title" style="margin:0">{{ sr.identity.name }}</h3>
+              <div class="box-actions">
+                <button type="button" class="box-action-btn edit" [class.active]="isCardEditing('identity')" (click)="toggleCardEdit('identity')">
+                  {{ isCardEditing('identity') ? 'Save' : 'Edit' }}
+                </button>
+                <button type="button" class="box-action-btn delete" (click)="deleteIdentitySection(sr)">Delete</button>
+              </div>
+            </div>
             <div class="form-grid">
-              <div class="form-group"><span class="form-label">Series Name</span><div class="form-value">{{ sr.identity.name }}</div></div>
-              <div class="form-group"><span class="form-label">Type</span><div class="form-value">{{ sr.identity.seriesType }}</div></div>
-              <div class="form-group"><span class="form-label">Genre</span><div class="form-value">{{ sr.identity.genre }}</div></div>
-              <div class="form-group"><span class="form-label">Subgenre</span><div class="form-value">{{ sr.identity.subgenre || '—' }}</div></div>
-              <div class="form-group"><span class="form-label">Target Audience</span><div class="form-value">{{ sr.identity.targetAudience }}</div></div>
-              <div class="form-group"><span class="form-label">Status</span><div class="form-value"><span class="status" [ngClass]="sr.identity.status==='Active'?'status-green':'status-blue'">{{ sr.identity.status }}</span></div></div>
-              <div class="form-group"><span class="form-label">Start Date</span><div class="form-value">{{ sr.identity.startDate }}</div></div>
-              <div class="form-group"><span class="form-label">Planned Books</span><div class="form-value">{{ sr.identity.plannedTotalBooks }}</div></div>
+              <app-editable-field [readOnly]="!isCardEditing('identity')" label="Series Name" [value]="sr.identity.name" (valueChange)="patchIdentity(sr, 'name', $event)" />
+              <div class="form-group">
+                <span class="form-label">Type</span>
+                <select class="form-input" [disabled]="!isCardEditing('identity')" [ngModel]="sr.identity.seriesType" (ngModelChange)="patchIdentity(sr, 'seriesType', $event)" style="width:100%;height:38px;padding:.55rem .75rem;border:1.5px solid var(--border-color);border-radius:8px;background:var(--surface);color:var(--text-primary);font-size:.875rem;font-family:inherit;">
+                  <option value="Main series">Main series</option>
+                  <option value="Spinoff">Spinoff</option>
+                  <option value="Standalone">Standalone</option>
+                  <option value="Universe">Universe</option>
+                  <option value="Box set">Box set</option>
+                </select>
+              </div>
+              <app-editable-field [readOnly]="!isCardEditing('identity')" label="Genre" [value]="sr.identity.genre" (valueChange)="patchIdentity(sr, 'genre', $event)" />
+              <app-editable-field [readOnly]="!isCardEditing('identity')" label="Subgenre" [value]="sr.identity.subgenre || ''" (valueChange)="patchIdentity(sr, 'subgenre', $event)" />
+              <app-editable-field [readOnly]="!isCardEditing('identity')" label="Target Audience" [value]="sr.identity.targetAudience" (valueChange)="patchIdentity(sr, 'targetAudience', $event)" />
+              <div class="form-group">
+                <span class="form-label">Status</span>
+                <select class="form-input" [disabled]="!isCardEditing('identity')" [ngModel]="sr.identity.status" (ngModelChange)="patchIdentity(sr, 'status', $event)" style="width:100%;height:38px;padding:.55rem .75rem;border:1.5px solid var(--border-color);border-radius:8px;background:var(--surface);color:var(--text-primary);font-size:.875rem;font-family:inherit;">
+                  <option value="Active">Active</option>
+                  <option value="Complete">Complete</option>
+                  <option value="Hiatus">Hiatus</option>
+                  <option value="Retired">Retired</option>
+                </select>
+              </div>
+              <app-editable-field [readOnly]="!isCardEditing('identity')" type="date" label="Start Date" [value]="sr.identity.startDate" (valueChange)="patchIdentity(sr, 'startDate', $event)" />
+              <div class="form-group"><span class="form-label">Planned Books</span>
+                @if (isCardEditing('identity')) {
+                  <input type="number" class="form-input" [ngModel]="sr.identity.plannedTotalBooks" (ngModelChange)="patchIdentity(sr, 'plannedTotalBooks', $event)" />
+                } @else {
+                  <div class="form-value">{{ sr.identity.plannedTotalBooks }}</div>
+                }
+              </div>
               <div class="form-group"><span class="form-label">Current Books</span><div class="form-value">{{ sr.books.length }}</div></div>
-              <div class="form-group full"><span class="form-label">Universe Name</span><div class="form-value">{{ sr.identity.universeName || '—' }}</div></div>
-              <div class="form-group full"><span class="form-label">Reading Order Notes</span><div class="form-value">{{ sr.identity.readingOrderNotes || '—' }}</div></div>
-              <div class="form-group full"><span class="form-label">Interconnected Series</span><div class="form-value">{{ sr.identity.interconnectedSeries || '—' }}</div></div>
+              <app-editable-field [readOnly]="!isCardEditing('identity')" label="Universe Name" [value]="sr.identity.universeName || ''" (valueChange)="patchIdentity(sr, 'universeName', $event)" [full]="true" />
+              <app-editable-field [readOnly]="!isCardEditing('identity')" label="Reading Order Notes" [value]="sr.identity.readingOrderNotes || ''" (valueChange)="patchIdentity(sr, 'readingOrderNotes', $event)" [full]="true" />
+              <app-editable-field [readOnly]="!isCardEditing('identity')" label="Interconnected Series" [value]="sr.identity.interconnectedSeries || ''" (valueChange)="patchIdentity(sr, 'interconnectedSeries', $event)" [full]="true" />
             </div>
           </div>
         }
 
         @if (tab() === 'books') {
           <div class="card">
-            <h3 class="section-title">Books in {{ sr.identity.name }}</h3>
+            <div class="card-header-row">
+              <h3 class="section-title" style="margin:0">Books in {{ sr.identity.name }}</h3>
+              <div class="box-actions">
+                <button type="button" class="box-action-btn edit" [class.active]="isCardEditing('books')" (click)="toggleCardEdit('books')">
+                  {{ isCardEditing('books') ? 'Save' : 'Edit' }}
+                </button>
+                <button type="button" class="box-action-btn load" (click)="goTo('/books')">Load</button>
+                <button type="button" class="box-action-btn delete" (click)="deleteBooksSection(sr)">Delete</button>
+              </div>
+            </div>
+            <p class="section-subtitle">Book-level details are managed on the <a href="javascript:void(0)" (click)="goTo('/books')" style="color:var(--accent-blue)">Books</a> page.</p>
+            <div class="table-scroll-wrap">
             <table class="data-table">
               <thead><tr><th>#</th><th>Title</th><th>Status</th><th>Languages</th><th>Formats</th><th>Awards</th><th>Pub Date</th></tr></thead>
               <tbody>
@@ -124,52 +172,81 @@
                     <td>{{ bk.coreWork.firstPublicationDate || '—' }}</td>
                   </tr>
                 }
+                @if (!sr.books.length) {
+                  <tr><td colspan="7" class="empty-table-hint">No books yet. Add books from the Books page.</td></tr>
+                }
               </tbody>
             </table>
+            </div>
           </div>
         }
 
         @if (tab() === 'world') {
           <div class="card">
-            <h3 class="section-title">World & Continuity</h3>
+            <div class="card-header-row">
+              <h3 class="section-title" style="margin:0">World & Continuity</h3>
+              <div class="box-actions">
+                <button type="button" class="box-action-btn edit" [class.active]="isCardEditing('world')" (click)="toggleCardEdit('world')">
+                  {{ isCardEditing('world') ? 'Save' : 'Edit' }}
+                </button>
+                <button type="button" class="box-action-btn delete" (click)="deleteWorldSection(sr)">Delete</button>
+              </div>
+            </div>
             <div class="form-grid">
-              <div class="form-group full"><span class="form-label">Setting Overview</span><div class="form-value">{{ sr.world.settingOverview }}</div></div>
-              <div class="form-group"><span class="form-label">Character Bible</span><div class="form-value">{{ sr.world.characterBibleFile || '—' }}</div></div>
-              <div class="form-group"><span class="form-label">Glossary</span><div class="form-value">{{ sr.world.glossary || '—' }}</div></div>
-              <div class="form-group"><span class="form-label">Maps</span><div class="form-value">{{ sr.world.mapsFiles || '—' }}</div></div>
-              <div class="form-group full"><span class="form-label">Timeline</span><div class="form-value">{{ sr.world.timeline || '—' }}</div></div>
-              <div class="form-group full"><span class="form-label">Continuity Notes</span><div class="form-value">{{ sr.world.continuityNotes || '—' }}</div></div>
+              <app-editable-field [readOnly]="!isCardEditing('world')" label="Setting Overview" [value]="sr.world.settingOverview" (valueChange)="patchWorld(sr, 'settingOverview', $event)" [full]="true" />
+              <app-editable-field [readOnly]="!isCardEditing('world')" label="Character Bible" [value]="sr.world.characterBibleFile || ''" (valueChange)="patchWorld(sr, 'characterBibleFile', $event)" />
+              <app-editable-field [readOnly]="!isCardEditing('world')" label="Glossary" [value]="sr.world.glossary || ''" (valueChange)="patchWorld(sr, 'glossary', $event)" />
+              <app-editable-field [readOnly]="!isCardEditing('world')" label="Maps" [value]="sr.world.mapsFiles || ''" (valueChange)="patchWorld(sr, 'mapsFiles', $event)" />
+              <app-editable-field [readOnly]="!isCardEditing('world')" label="Timeline" [value]="sr.world.timeline || ''" (valueChange)="patchWorld(sr, 'timeline', $event)" [full]="true" />
+              <app-editable-field [readOnly]="!isCardEditing('world')" label="Continuity Notes" [value]="sr.world.continuityNotes || ''" (valueChange)="patchWorld(sr, 'continuityNotes', $event)" [full]="true" />
+              <app-editable-field [readOnly]="!isCardEditing('world')" label="Spoiler Summary" [value]="sr.world.spoilerSummary || ''" (valueChange)="patchWorld(sr, 'spoilerSummary', $event)" [full]="true" />
             </div>
           </div>
         }
 
         @if (tab() === 'branding') {
           <div class="card">
-            <h3 class="section-title">Series Branding & Marketing</h3>
+            <div class="card-header-row">
+              <h3 class="section-title" style="margin:0">Series Branding & Marketing</h3>
+              <div class="box-actions">
+                <button type="button" class="box-action-btn edit" [class.active]="isCardEditing('branding')" (click)="toggleCardEdit('branding')">
+                  {{ isCardEditing('branding') ? 'Save' : 'Edit' }}
+                </button>
+                <button type="button" class="box-action-btn delete" (click)="deleteBrandingSection(sr)">Delete</button>
+              </div>
+            </div>
             <div class="form-grid">
-              <div class="form-group full"><span class="form-label">Tagline</span><div class="form-value">{{ sr.branding.tagline }}</div></div>
-              <div class="form-group full"><span class="form-label">One-Line Hook</span><div class="form-value">{{ sr.branding.oneLineHook }}</div></div>
-              <div class="form-group"><span class="form-label">Brand Colors</span><div class="form-value">{{ sr.branding.brandColors || '—' }}</div></div>
-              <div class="form-group"><span class="form-label">Website Page</span><div class="form-value">{{ sr.branding.websitePage || '—' }}</div></div>
-              <div class="form-group"><span class="form-label">Reader Magnet</span><div class="form-value">{{ sr.branding.readerMagnet || '—' }}</div></div>
-              <div class="form-group"><span class="form-label">Sales Page</span><div class="form-value">{{ sr.branding.salesPage || '—' }}</div></div>
-              <div class="form-group"><span class="form-label">Comp Titles</span><div class="form-value">{{ sr.branding.compTitles || '—' }}</div></div>
-              <div class="form-group"><span class="form-label">Comp Authors</span><div class="form-value">{{ sr.branding.compAuthors || '—' }}</div></div>
+              <app-editable-field [readOnly]="!isCardEditing('branding')" label="Tagline" [value]="sr.branding.tagline" (valueChange)="patchBranding(sr, 'tagline', $event)" [full]="true" />
+              <app-editable-field [readOnly]="!isCardEditing('branding')" label="One-Line Hook" [value]="sr.branding.oneLineHook" (valueChange)="patchBranding(sr, 'oneLineHook', $event)" [full]="true" />
+              <app-editable-field [readOnly]="!isCardEditing('branding')" label="Brand Colors" [value]="sr.branding.brandColors || ''" (valueChange)="patchBranding(sr, 'brandColors', $event)" />
+              <app-editable-field [readOnly]="!isCardEditing('branding')" type="url" label="Website Page" [value]="sr.branding.websitePage || ''" (valueChange)="patchBranding(sr, 'websitePage', $event)" />
+              <app-editable-field [readOnly]="!isCardEditing('branding')" label="Reader Magnet" [value]="sr.branding.readerMagnet || ''" (valueChange)="patchBranding(sr, 'readerMagnet', $event)" />
+              <app-editable-field [readOnly]="!isCardEditing('branding')" type="url" label="Sales Page" [value]="sr.branding.salesPage || ''" (valueChange)="patchBranding(sr, 'salesPage', $event)" />
+              <app-editable-field [readOnly]="!isCardEditing('branding')" label="Comp Titles" [value]="sr.branding.compTitles || ''" (valueChange)="patchBranding(sr, 'compTitles', $event)" />
+              <app-editable-field [readOnly]="!isCardEditing('branding')" label="Comp Authors" [value]="sr.branding.compAuthors || ''" (valueChange)="patchBranding(sr, 'compAuthors', $event)" />
             </div>
           </div>
         }
 
         @if (tab() === 'boxsets') {
           <div class="card">
-            <h3 class="section-title">Box Sets</h3>
+            <div class="card-header-row">
+              <h3 class="section-title" style="margin:0">Box Sets</h3>
+              <div class="box-actions">
+                <button type="button" class="box-action-btn edit" [class.active]="isCardEditing('boxsets')" (click)="toggleCardEdit('boxsets')">
+                  {{ isCardEditing('boxsets') ? 'Save' : 'Edit' }}
+                </button>
+                <button type="button" class="box-action-btn delete" (click)="deleteBoxsetsSection(sr)">Delete</button>
+              </div>
+            </div>
             @if (!sr.boxSets.length) {
               <div class="empty-state">
                 <svg class="empty-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/>
                 </svg>
                 <p>No box sets for this series yet</p>
-                @if (editMode()) {
-                  <button style="margin-top:.75rem;padding:.5rem 1.25rem;background:var(--accent-blue);color:#fff;border:none;border-radius:8px;font-size:.8125rem;font-weight:600;cursor:pointer;font-family:inherit;">+ Create Box Set</button>
+                @if (isCardEditing('boxsets')) {
+                  <button style="margin-top:.75rem;padding:.5rem 1.25rem;background:var(--accent-blue);color:#fff;border:none;border-radius:8px;font-size:.8125rem;font-weight:600;cursor:pointer;font-family:inherit;" (click)="goTo('/vault/pen-names')">Manage Box Sets under Pen Names</button>
                 }
               </div>
             }
@@ -199,3 +276,17 @@
     </div>
   }
 </div>
+
+<app-vault-create-modal
+  [open]="showCreateSeries()"
+  title="Add Series"
+  hint="Type the series name first. Choose which pen name it belongs to. After you create it, the Series Identity tab opens in Edit mode so you can fill the rest."
+  note="Tip: enter the name now — identity, books, world, branding, and box sets unlock after you click Create Series."
+  nameLabel="Series name"
+  placeholder="e.g. Shadow Covenant"
+  confirmLabel="Create Series"
+  defaultName="New Series"
+  parentLabel="Assign to Pen Name"
+  [parentOptions]="penNameOptions()"
+  (cancelled)="showCreateSeries.set(false)"
+  (confirmed)="onCreateSeries($event)" />

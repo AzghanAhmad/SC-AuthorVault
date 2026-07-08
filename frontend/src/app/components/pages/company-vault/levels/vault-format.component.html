@@ -51,11 +51,13 @@
     }
     @if(activeTab==='pricing') {
       <div class="card"><h2 class="section-title">Pricing History</h2>
+        <div class="table-scroll-wrap">
         <table class="data-table"><thead><tr><th>Regular</th><th>Launch</th><th>Pre-order</th><th>Sale</th><th>Currency</th><th>Start</th><th>Reason</th></tr></thead>
           <tbody>@for(p of format.pricingHistory; track p.startDate) {
             <tr><td class="td-primary">{{p.regularPrice}}</td><td>{{p.launchPrice}}</td><td>{{p.preOrderPrice || '—'}}</td><td>{{p.salePrice || '—'}}</td><td>{{p.currency}}</td><td>{{p.startDate}}</td><td>{{p.reason}}</td></tr>
           }</tbody>
         </table>
+        </div>
       </div>
     }
     @if(activeTab==='variants') {
@@ -80,13 +82,15 @@
     @if(activeTab==='logs') {
       <div class="card"><h2 class="section-title">Upload Logs</h2>
         @if(!format.uploadLogs.length) { <div class="empty-state"><div class="empty-icon">📝</div><p>No upload events logged</p></div> }
-        <table class="data-table" *ngIf="format.uploadLogs.length"><thead><tr><th>Event</th><th>Timestamp</th><th>By</th><th>Status</th><th>Response</th></tr></thead>
+        <div class="table-scroll-wrap" *ngIf="format.uploadLogs.length">
+        <table class="data-table"><thead><tr><th>Event</th><th>Timestamp</th><th>By</th><th>Status</th><th>Response</th></tr></thead>
           <tbody>@for(ul of format.uploadLogs; track ul.id) {
             <tr><td class="td-primary">{{ul.eventType}}</td><td>{{ul.timestamp}}</td><td>{{ul.performedBy}}</td>
               <td><span class="status" [ngClass]="ul.status==='Success'?'status-green':ul.status==='Failed'?'status-red':'status-amber'">{{ul.status}}</span></td>
               <td>{{ul.platformResponse}}</td></tr>
           }</tbody>
         </table>
+        </div>
       </div>
     }
   </div>

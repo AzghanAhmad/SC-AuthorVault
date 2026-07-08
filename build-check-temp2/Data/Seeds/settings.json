@@ -1,0 +1,16 @@
+{
+  "name": "Author User",
+  "email": "author@scribecount.com",
+  "authorName": "Author User",
+  "defaultCountry": "US",
+  "defaultFormat": "ebook",
+  "enableBridgePage": false,
+  "autoGeoRouting": true,
+  "theme": "light",
+  "defaultLandingPage": "dashboard",
+  "compactSidebar": false,
+  "notifBrokenLink": true,
+  "notifMilestones": true,
+  "notifWeeklyReport": true,
+  "notifProductUpdates": false
+}

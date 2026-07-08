@@ -1,4 +1,11 @@
 <div class="page">
+  @if (selectedEdition) {
+    <app-page-action-bar
+      [editing]="editMode()"
+      deleteLabel="Clear this edition"
+      (editToggle)="editMode.update(v => !v)"
+      (deleteAll)="deleteEditionSection(selectedEdition)" />
+  }
 
   <!-- ── STEP 1: Language selector ── -->
   <div class="page-header">
@@ -98,6 +105,7 @@
     <div class="card">
       <h3 class="section-title">{{ selectedLanguage }} Titles</h3>
       <p class="section-subtitle">Click any title to view its full book file in {{ selectedLanguage }}</p>
+      <div class="table-scroll-wrap">
       <table class="data-table">
         <thead>
           <tr><th>Title</th><th>Series</th><th>Pen Name</th><th>Status</th><th>Formats</th><th>ISBNs</th><th>Words</th></tr>
@@ -121,6 +129,7 @@
           }
         </tbody>
       </table>
+      </div>
     </div>
   }
 
@@ -160,7 +169,15 @@
 
         @if (detailTab() === 'edition') {
           <div class="card">
-            <h3 class="section-title">{{ be.bookTitle }} — {{ be.branch.edition.language }} Edition</h3>
+            <div class="card-header-row">
+              <h3 class="section-title" style="margin:0">{{ be.bookTitle }} — {{ be.branch.edition.language }} Edition</h3>
+              <div class="box-actions">
+                <button type="button" class="box-action-btn edit" [class.active]="isCardEditing('edition')" (click)="toggleCardEdit('edition')">
+                  {{ isCardEditing('edition') ? 'Save' : 'Edit' }}
+                </button>
+                <button type="button" class="box-action-btn delete" (click)="deleteEditionSection(be)">Delete</button>
+              </div>
+            </div>
             <div class="form-grid">
               <div class="form-group"><span class="form-label">Edition Name</span><div class="form-value">{{ be.branch.edition.editionName }}</div></div>
               <div class="form-group"><span class="form-label">Edition Type</span><div class="form-value">{{ be.branch.edition.editionType }}</div></div>
@@ -168,11 +185,43 @@
               <div class="form-group"><span class="form-label">Language Code</span><div class="form-value">{{ be.branch.edition.languageCode }}</div></div>
               <div class="form-group"><span class="form-label">Locale Variant</span><div class="form-value">{{ be.branch.edition.localeVariant }}</div></div>
               <div class="form-group"><span class="form-label">Primary Language</span><div class="form-value">{{ be.branch.edition.isPrimaryLanguage ? 'Yes (Default)' : 'No (Translation)' }}</div></div>
-              <div class="form-group"><span class="form-label">Publication Status</span><div class="form-value">{{ be.branch.edition.publicationStatus }}</div></div>
-              <div class="form-group"><span class="form-label">Release Date</span><div class="form-value">{{ be.branch.edition.releaseDate || '—' }}</div></div>
-              <div class="form-group"><span class="form-label">Word Count</span><div class="form-value">{{ be.branch.edition.wordCount | number }}</div></div>
-              <div class="form-group"><span class="form-label">Page Count</span><div class="form-value">{{ be.branch.edition.pageCount }}</div></div>
-              <div class="form-group"><span class="form-label">Chapter Count</span><div class="form-value">{{ be.branch.edition.chapterCount }}</div></div>
+              <div class="form-group">
+                <span class="form-label">Publication Status</span>
+                @if (isCardEditing('edition')) {
+                  <select class="form-input" [ngModel]="be.branch.edition.publicationStatus" (ngModelChange)="patchEdition(be, 'publicationStatus', $event)" style="width:100%;height:38px;padding:.55rem .75rem;border:1.5px solid var(--border-color);border-radius:8px;background:var(--surface);color:var(--text-primary);font-size:.875rem;font-family:inherit;">
+                    <option value="Planned">Planned</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Proofing">Proofing</option>
+                    <option value="Ready">Ready</option>
+                    <option value="Published">Published</option>
+                    <option value="Retired">Retired</option>
+                  </select>
+                } @else {
+                  <div class="form-value">{{ be.branch.edition.publicationStatus }}</div>
+                }
+              </div>
+              <app-editable-field [readOnly]="!isCardEditing('edition')" type="date" label="Release Date" [value]="be.branch.edition.releaseDate" (valueChange)="patchEdition(be, 'releaseDate', $event)" />
+              <div class="form-group"><span class="form-label">Word Count</span>
+                @if (isCardEditing('edition')) {
+                  <input type="number" class="form-input" [ngModel]="be.branch.edition.wordCount" (ngModelChange)="patchEdition(be, 'wordCount', $event)" />
+                } @else {
+                  <div class="form-value">{{ be.branch.edition.wordCount | number }}</div>
+                }
+              </div>
+              <div class="form-group"><span class="form-label">Page Count</span>
+                @if (isCardEditing('edition')) {
+                  <input type="number" class="form-input" [ngModel]="be.branch.edition.pageCount" (ngModelChange)="patchEdition(be, 'pageCount', $event)" />
+                } @else {
+                  <div class="form-value">{{ be.branch.edition.pageCount }}</div>
+                }
+              </div>
+              <div class="form-group"><span class="form-label">Chapter Count</span>
+                @if (isCardEditing('edition')) {
+                  <input type="number" class="form-input" [ngModel]="be.branch.edition.chapterCount" (ngModelChange)="patchEdition(be, 'chapterCount', $event)" />
+                } @else {
+                  <div class="form-value">{{ be.branch.edition.chapterCount }}</div>
+                }
+              </div>
               <div class="form-group"><span class="form-label">Series</span><div class="form-value">{{ be.seriesName }}</div></div>
               <div class="form-group"><span class="form-label">Pen Name</span><div class="form-value">{{ be.penName }}</div></div>
             </div>
@@ -181,33 +230,60 @@
 
         @if (detailTab() === 'metadata') {
           <div class="card">
-            <h3 class="section-title">Localized Metadata</h3>
+            <div class="card-header-row">
+              <h3 class="section-title" style="margin:0">Localized Metadata</h3>
+              <div class="box-actions">
+                <button type="button" class="box-action-btn edit" [class.active]="isCardEditing('metadata')" (click)="toggleCardEdit('metadata')">
+                  {{ isCardEditing('metadata') ? 'Save' : 'Edit' }}
+                </button>
+                <button type="button" class="box-action-btn delete" (click)="deleteMetadataSection(be)">Delete</button>
+              </div>
+            </div>
             <div class="form-grid">
-              <div class="form-group"><span class="form-label">Localized Title</span><div class="form-value">{{ be.branch.localizedMetadata.localizedTitle || '—' }}</div></div>
-              <div class="form-group"><span class="form-label">Localized Subtitle</span><div class="form-value">{{ be.branch.localizedMetadata.localizedSubtitle || '—' }}</div></div>
-              <div class="form-group"><span class="form-label">Localized Series Name</span><div class="form-value">{{ be.branch.localizedMetadata.localizedSeriesName || '—' }}</div></div>
-              <div class="form-group full"><span class="form-label">Localized Hook</span><div class="form-value">{{ be.branch.localizedMetadata.localizedHook || '—' }}</div></div>
-              <div class="form-group full"><span class="form-label">Short Description</span><div class="form-value">{{ be.branch.localizedMetadata.localizedShortDescription || '—' }}</div></div>
-              <div class="form-group full"><span class="form-label">Long Description</span><div class="form-value">{{ be.branch.localizedMetadata.localizedLongDescription || '—' }}</div></div>
-              <div class="form-group full"><span class="form-label">Author Bio (Localized)</span><div class="form-value">{{ be.branch.localizedMetadata.localizedAuthorBio || '—' }}</div></div>
-              <div class="form-group full"><span class="form-label">Translator Credit</span><div class="form-value">{{ be.branch.localizedMetadata.translatorCreditLine || '—' }}</div></div>
-              <div class="form-group full"><span class="form-label">Content Warnings</span><div class="form-value">{{ be.branch.localizedMetadata.localizedContentWarnings || '—' }}</div></div>
+              <app-editable-field [readOnly]="!isCardEditing('metadata')" label="Localized Title" [value]="be.branch.localizedMetadata.localizedTitle || ''" (valueChange)="patchMetadata(be, 'localizedTitle', $event)" />
+              <app-editable-field [readOnly]="!isCardEditing('metadata')" label="Localized Subtitle" [value]="be.branch.localizedMetadata.localizedSubtitle || ''" (valueChange)="patchMetadata(be, 'localizedSubtitle', $event)" />
+              <app-editable-field [readOnly]="!isCardEditing('metadata')" label="Localized Series Name" [value]="be.branch.localizedMetadata.localizedSeriesName || ''" (valueChange)="patchMetadata(be, 'localizedSeriesName', $event)" />
+              <app-editable-field [readOnly]="!isCardEditing('metadata')" label="Localized Hook" [value]="be.branch.localizedMetadata.localizedHook || ''" (valueChange)="patchMetadata(be, 'localizedHook', $event)" [full]="true" />
+              <app-editable-field [readOnly]="!isCardEditing('metadata')" label="Short Description" [value]="be.branch.localizedMetadata.localizedShortDescription || ''" (valueChange)="patchMetadata(be, 'localizedShortDescription', $event)" [full]="true" />
+              <app-editable-field [readOnly]="!isCardEditing('metadata')" label="Long Description" [value]="be.branch.localizedMetadata.localizedLongDescription || ''" (valueChange)="patchMetadata(be, 'localizedLongDescription', $event)" [full]="true" />
+              <app-editable-field [readOnly]="!isCardEditing('metadata')" label="Author Bio (Localized)" [value]="be.branch.localizedMetadata.localizedAuthorBio || ''" (valueChange)="patchMetadata(be, 'localizedAuthorBio', $event)" [full]="true" />
+              <app-editable-field [readOnly]="!isCardEditing('metadata')" label="Translator Credit" [value]="be.branch.localizedMetadata.translatorCreditLine || ''" (valueChange)="patchMetadata(be, 'translatorCreditLine', $event)" [full]="true" />
+              <app-editable-field [readOnly]="!isCardEditing('metadata')" label="Content Warnings" [value]="be.branch.localizedMetadata.localizedContentWarnings || ''" (valueChange)="patchMetadata(be, 'localizedContentWarnings', $event)" [full]="true" />
             </div>
           </div>
         }
 
         @if (detailTab() === 'identifiers') {
           <div class="card">
-            <h3 class="section-title">ISBNs — {{ be.branch.edition.language }} Edition</h3>
+            <div class="card-header-row">
+              <h3 class="section-title" style="margin:0">ISBNs — {{ be.branch.edition.language }} Edition</h3>
+              <div class="box-actions">
+                <button type="button" class="box-action-btn edit" [class.active]="isCardEditing('identifiers')" (click)="toggleCardEdit('identifiers')">
+                  {{ isCardEditing('identifiers') ? 'Save' : 'Edit' }}
+                </button>
+                <button type="button" class="box-action-btn delete" (click)="deleteIdentifiersSection(be)">Delete</button>
+              </div>
+            </div>
             <p class="section-subtitle">Each format requires its own ISBN. Translations get separate ISBNs from the English edition.</p>
             <div class="form-grid">
-              <div class="form-group"><span class="form-label">Ebook ISBN</span><div class="form-value" style="font-family:monospace">{{ be.branch.identifiers.isbnEbook || '—' }}</div></div>
-              <div class="form-group"><span class="form-label">Paperback ISBN</span><div class="form-value" style="font-family:monospace">{{ be.branch.identifiers.isbnPaperback || '—' }}</div></div>
-              <div class="form-group"><span class="form-label">Hardcover ISBN</span><div class="form-value" style="font-family:monospace">{{ be.branch.identifiers.isbnHardcover || '—' }}</div></div>
-              <div class="form-group"><span class="form-label">Large Print ISBN</span><div class="form-value" style="font-family:monospace">{{ be.branch.identifiers.isbnLargePrint || '—' }}</div></div>
-              <div class="form-group"><span class="form-label">Audiobook ISBN</span><div class="form-value" style="font-family:monospace">{{ be.branch.identifiers.isbnAudiobook || '—' }}</div></div>
-              <div class="form-group"><span class="form-label">Assigned Date</span><div class="form-value">{{ be.branch.identifiers.isbnAssignedDate || '—' }}</div></div>
-              <div class="form-group"><span class="form-label">ISBN Status</span><div class="form-value">{{ be.branch.identifiers.isbnStatus }}</div></div>
+              <app-editable-field [readOnly]="!isCardEditing('identifiers')" label="Ebook ISBN" [value]="be.branch.identifiers.isbnEbook || ''" (valueChange)="patchIdentifiers(be, 'isbnEbook', $event)" />
+              <app-editable-field [readOnly]="!isCardEditing('identifiers')" label="Paperback ISBN" [value]="be.branch.identifiers.isbnPaperback || ''" (valueChange)="patchIdentifiers(be, 'isbnPaperback', $event)" />
+              <app-editable-field [readOnly]="!isCardEditing('identifiers')" label="Hardcover ISBN" [value]="be.branch.identifiers.isbnHardcover || ''" (valueChange)="patchIdentifiers(be, 'isbnHardcover', $event)" />
+              <app-editable-field [readOnly]="!isCardEditing('identifiers')" label="Large Print ISBN" [value]="be.branch.identifiers.isbnLargePrint || ''" (valueChange)="patchIdentifiers(be, 'isbnLargePrint', $event)" />
+              <app-editable-field [readOnly]="!isCardEditing('identifiers')" label="Audiobook ISBN" [value]="be.branch.identifiers.isbnAudiobook || ''" (valueChange)="patchIdentifiers(be, 'isbnAudiobook', $event)" />
+              <app-editable-field [readOnly]="!isCardEditing('identifiers')" type="date" label="Assigned Date" [value]="be.branch.identifiers.isbnAssignedDate || ''" (valueChange)="patchIdentifiers(be, 'isbnAssignedDate', $event)" />
+              <div class="form-group">
+                <span class="form-label">ISBN Status</span>
+                @if (isCardEditing('identifiers')) {
+                  <select class="form-input" [ngModel]="be.branch.identifiers.isbnStatus" (ngModelChange)="patchIdentifiers(be, 'isbnStatus', $event)" style="width:100%;height:38px;padding:.55rem .75rem;border:1.5px solid var(--border-color);border-radius:8px;background:var(--surface);color:var(--text-primary);font-size:.875rem;font-family:inherit;">
+                    <option value="Active">Active</option>
+                    <option value="Retired">Retired</option>
+                    <option value="Reserved">Reserved</option>
+                  </select>
+                } @else {
+                  <div class="form-value">{{ be.branch.identifiers.isbnStatus }}</div>
+                }
+              </div>
             </div>
           </div>
         }

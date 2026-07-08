@@ -25,6 +25,15 @@ export class FileUploadService {
     );
   }
 
+  /** Fetch a Canva share/design link (or any public image URL) and store it server-side. */
+  importFromUrl(url: string, fileName?: string, category = 'logo-canva'): Observable<UploadedFileDto> {
+    return this.http.post<UploadedFileDto>(`${environment.apiUrl}/files/import-from-url`, {
+      url,
+      fileName: fileName || null,
+      category,
+    });
+  }
+
   list(category?: string): Observable<UploadedFileDto[]> {
     const q = category ? `?category=${encodeURIComponent(category)}` : '';
     return this.http.get<UploadedFileDto[]>(`${environment.apiUrl}/files${q}`);

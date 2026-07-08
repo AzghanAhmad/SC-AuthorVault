@@ -1,4 +1,4 @@
-﻿<!-- ═══ PIN LOCK OVERLAY ═══ -->
+<!-- ═══ PIN LOCK OVERLAY ═══ -->
 @if (!unlocked) {
   <div style="position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);z-index:9999;display:flex;align-items:center;justify-content:center;">
     <div style="background:var(--surface);border:1px solid var(--border-light);border-radius:20px;padding:2.5rem 2rem;width:360px;box-shadow:var(--shadow-xl);text-align:center;position:relative;">
@@ -166,20 +166,11 @@
       <div class="vault-metric-grid">
         <div class="vault-metric-card teal">
           <div class="vault-metric-icon" aria-hidden="true">
-            <svg class="vault-metric-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            <svg class="vault-metric-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 10 6.5-10 6.5L2 8.5Z"/><path d="m2 15.5 10 6.5 10-6.5"/><path d="m2 12 10 6.5L22 12"/></svg>
           </div>
           <div class="vault-metric-body">
-            <span class="vault-metric-value">{{ company().imprints.length }}</span>
-            <span class="vault-metric-label">Imprints</span>
-          </div>
-        </div>
-        <div class="vault-metric-card purple">
-          <div class="vault-metric-icon" aria-hidden="true">
-            <svg class="vault-metric-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
-          </div>
-          <div class="vault-metric-body">
-            <span class="vault-metric-value">{{ penNameCount }}</span>
-            <span class="vault-metric-label">Pen Names</span>
+            <span class="vault-metric-value">{{ vs.totalSeries() }}</span>
+            <span class="vault-metric-label">Series</span>
           </div>
         </div>
         <div class="vault-metric-card indigo">
@@ -187,20 +178,53 @@
             <svg class="vault-metric-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
           </div>
           <div class="vault-metric-body">
-            <span class="vault-metric-value">{{ bookCount }}</span>
+            <span class="vault-metric-value">{{ vs.totalBooks() }}</span>
             <span class="vault-metric-label">Total Books</span>
           </div>
         </div>
-        <div class="vault-metric-card status-metric" [class.is-active]="company().identity.companyStatus === 'Active'">
+        <div class="vault-metric-card status-metric is-active">
           <div class="vault-metric-icon" aria-hidden="true">
-            <svg class="vault-metric-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            <svg class="vault-metric-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
           </div>
           <div class="vault-metric-body">
-            <app-status-select kind="company" [readOnly]="!editMode()" [value]="company().identity.companyStatus" (valueChange)="onCompanyStatus($event)" />
-            <span class="vault-metric-label">Company Status</span>
+            <span class="vault-metric-value">{{ vs.pipelineStats().published }}</span>
+            <span class="vault-metric-label">Published</span>
+          </div>
+        </div>
+        <div class="vault-metric-card purple">
+          <div class="vault-metric-icon" aria-hidden="true">
+            <svg class="vault-metric-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+          </div>
+          <div class="vault-metric-body">
+            <span class="vault-metric-value">{{ vs.pipelineStats().draft }}</span>
+            <span class="vault-metric-label">In Draft</span>
+          </div>
+        </div>
+        <div class="vault-metric-card purple">
+          <div class="vault-metric-icon" aria-hidden="true">
+            <svg class="vault-metric-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+          </div>
+          <div class="vault-metric-body">
+            <span class="vault-metric-value">{{ vs.totalPenNames() }}</span>
+            <span class="vault-metric-label">Pen Names</span>
+          </div>
+        </div>
+        <div class="vault-metric-card teal">
+          <div class="vault-metric-icon" aria-hidden="true">
+            <svg class="vault-metric-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          </div>
+          <div class="vault-metric-body">
+            <span class="vault-metric-value">{{ vs.totalImprints() }}</span>
+            <span class="vault-metric-label">Imprints</span>
           </div>
         </div>
       </div>
+      <p class="section-hint" style="margin-top:.85rem">
+        Imprints &amp; pen names come from the vault tree.
+        <a routerLink="/vault/imprints" style="color:var(--accent-blue)">Add an imprint</a>
+        · Books &amp; published/draft counts sync from your
+        <a routerLink="/books" style="color:var(--accent-blue)">Books</a> library.
+      </p>
     </div>
     <div class="vault-hero-chart card">
       <h3 class="vault-chart-title">Catalog composition</h3>
@@ -209,38 +233,38 @@
           <circle cx="60" cy="60" r="46" fill="none" stroke="var(--border-light)" stroke-width="14" />
           @if (catalogChartTotal > 0) {
             <circle cx="60" cy="60" r="46" fill="none" stroke="#14b8a6" stroke-width="14"
-              [attr.stroke-dasharray]="catalogSegment(company().imprints.length)"
+              [attr.stroke-dasharray]="catalogSegment(vs.totalImprints())"
               stroke-dashoffset="0" transform="rotate(-90 60 60)" />
             <circle cx="60" cy="60" r="46" fill="none" stroke="#8b5cf6" stroke-width="14"
-              [attr.stroke-dasharray]="catalogSegment(penNameCount)"
-              [attr.stroke-dashoffset]="-catalogOffset(company().imprints.length)"
+              [attr.stroke-dasharray]="catalogSegment(vs.totalPenNames())"
+              [attr.stroke-dashoffset]="-catalogOffset(vs.totalImprints())"
               transform="rotate(-90 60 60)" />
             <circle cx="60" cy="60" r="46" fill="none" stroke="#6366f1" stroke-width="14"
-              [attr.stroke-dasharray]="catalogSegment(bookCount)"
-              [attr.stroke-dashoffset]="-catalogOffset(company().imprints.length + penNameCount)"
+              [attr.stroke-dasharray]="catalogSegment(vs.totalBooks())"
+              [attr.stroke-dashoffset]="-catalogOffset(vs.totalImprints() + vs.totalPenNames())"
               transform="rotate(-90 60 60)" />
           }
           <text x="60" y="56" text-anchor="middle" class="vault-donut-total">{{ catalogChartTotal }}</text>
           <text x="60" y="72" text-anchor="middle" class="vault-donut-sub">items</text>
         </svg>
         <div class="vault-chart-legend">
-          <div class="vault-legend-row"><span class="vault-legend-dot teal"></span> Imprints <strong>{{ company().imprints.length }}</strong></div>
-          <div class="vault-legend-row"><span class="vault-legend-dot purple"></span> Pen Names <strong>{{ penNameCount }}</strong></div>
-          <div class="vault-legend-row"><span class="vault-legend-dot indigo"></span> Books <strong>{{ bookCount }}</strong></div>
+          <div class="vault-legend-row"><span class="vault-legend-dot teal"></span> Imprints <strong>{{ vs.totalImprints() }}</strong></div>
+          <div class="vault-legend-row"><span class="vault-legend-dot purple"></span> Pen Names <strong>{{ vs.totalPenNames() }}</strong></div>
+          <div class="vault-legend-row"><span class="vault-legend-dot indigo"></span> Books <strong>{{ vs.totalBooks() }}</strong></div>
         </div>
       </div>
       <div class="vault-bar-chart">
         <div class="vault-bar-row">
           <span class="vault-bar-label">Imprints</span>
-          <div class="vault-bar-track"><div class="vault-bar-fill teal" [style.width.%]="catalogBarPct(company().imprints.length)"></div></div>
+          <div class="vault-bar-track"><div class="vault-bar-fill teal" [style.width.%]="catalogBarPct(vs.totalImprints())"></div></div>
         </div>
         <div class="vault-bar-row">
           <span class="vault-bar-label">Pen Names</span>
-          <div class="vault-bar-track"><div class="vault-bar-fill purple" [style.width.%]="catalogBarPct(penNameCount)"></div></div>
+          <div class="vault-bar-track"><div class="vault-bar-fill purple" [style.width.%]="catalogBarPct(vs.totalPenNames())"></div></div>
         </div>
         <div class="vault-bar-row">
           <span class="vault-bar-label">Books</span>
-          <div class="vault-bar-track"><div class="vault-bar-fill indigo" [style.width.%]="catalogBarPct(bookCount)"></div></div>
+          <div class="vault-bar-track"><div class="vault-bar-fill indigo" [style.width.%]="catalogBarPct(vs.totalBooks())"></div></div>
         </div>
       </div>
     </div>
@@ -351,15 +375,15 @@
           <h3 class="section-title">Publishing footprint</h3>
           <div class="vault-overview-grid">
             <div class="vault-overview-stat">
-              <span class="vault-overview-num">{{ company().imprints.length }}</span>
+              <span class="vault-overview-num">{{ vs.totalImprints() }}</span>
               <span class="vault-overview-lbl">Imprints</span>
             </div>
             <div class="vault-overview-stat">
-              <span class="vault-overview-num">{{ penNameCount }}</span>
+              <span class="vault-overview-num">{{ vs.totalPenNames() }}</span>
               <span class="vault-overview-lbl">Pen Names</span>
             </div>
             <div class="vault-overview-stat">
-              <span class="vault-overview-num">{{ bookCount }}</span>
+              <span class="vault-overview-num">{{ vs.totalBooks() }}</span>
               <span class="vault-overview-lbl">Books in catalog</span>
             </div>
             <div class="vault-overview-stat">
@@ -461,12 +485,12 @@
             <tbody>
               @for(row of pageSliceIndexed('owners', ownerProfiles); track row.index) {
                 <tr>
-                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('owners')" [title]="cellTitle(row.item.name)" [ngModel]="row.item.name" (ngModelChange)="patchOwner(row.index, 'name', $event)" /></td>
-                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('owners')" [title]="cellTitle(row.item.role)" [ngModel]="row.item.role" (ngModelChange)="patchOwner(row.index, 'role', $event)" /></td>
-                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('owners')" [title]="cellTitle(row.item.ownershipPct)" [ngModel]="row.item.ownershipPct" (ngModelChange)="patchOwner(row.index, 'ownershipPct', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('owners')" [title]="cellTitle(row.item.name)" [ngModel]="row.item.name" (ngModelChange)="patchOwner(row.index, 'name', $event)" placeholder="e.g. Jane Doe" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('owners')" [title]="cellTitle(row.item.role)" [ngModel]="row.item.role" (ngModelChange)="patchOwner(row.index, 'role', $event)" placeholder="e.g. Managing Member" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('owners')" [title]="cellTitle(row.item.ownershipPct)" [ngModel]="row.item.ownershipPct" (ngModelChange)="patchOwner(row.index, 'ownershipPct', $event)" placeholder="e.g. 50%" /></td>
                   <td>
                     <div style="display:flex;align-items:center;gap:.35rem">
-                      <input class="form-input table-cell-field" style="flex:1" [disabled]="!isCardEditing('owners')" [title]="cellTitle(row.item.email)" [ngModel]="row.item.email" (ngModelChange)="patchOwner(row.index, 'email', $event)" />
+                      <input class="form-input table-cell-field" style="flex:1" [disabled]="!isCardEditing('owners')" [title]="cellTitle(row.item.email)" [ngModel]="row.item.email" (ngModelChange)="patchOwner(row.index, 'email', $event)" placeholder="e.g. jane@example.com" />
                       @if (row.item.email) {
                         <a [href]="scEmailHref(row.item.email)" target="_blank" rel="noopener noreferrer" title="Open in SC Email" style="color:var(--accent-blue);flex-shrink:0">
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
@@ -474,7 +498,7 @@
                       }
                     </div>
                   </td>
-                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('owners')" [title]="cellTitle(row.item.phone)" [ngModel]="row.item.phone" (ngModelChange)="patchOwner(row.index, 'phone', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('owners')" [title]="cellTitle(row.item.phone)" [ngModel]="row.item.phone" (ngModelChange)="patchOwner(row.index, 'phone', $event)" placeholder="e.g. +1 555 123 4567" /></td>
                   <td>
                     <select class="form-input table-cell-field" [disabled]="!isCardEditing('owners')" [ngModel]="row.item.canSign" (ngModelChange)="patchOwner(row.index, 'canSign', $event)">
                       <option [ngValue]="true">Yes</option><option [ngValue]="false">No</option>
@@ -498,15 +522,41 @@
             (addRow)="addOwnerRow()" />
         </div>
         <div class="card">
-          <h3 class="section-title">Documents per Person</h3>
-          <p class="section-subtitle">Upload CVs, letterhead, business cards, avatar photos, bios, electronic signatures, job descriptions, and signed NDAs for each person</p>
+          <div class="card-header-row">
+            <div>
+              <h3 class="section-title" style="margin:0">Documents per Person</h3>
+              <p class="section-subtitle" style="margin:.35rem 0 0">Upload CVs, letterhead, business cards, avatar photos, bios, electronic signatures, job descriptions, and signed NDAs for each person</p>
+            </div>
+            <div class="box-actions">
+              <button type="button" class="box-action-btn edit" [class.active]="isCardEditing('owner_docs')" (click)="toggleCardEdit('owner_docs')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                  @if (isCardEditing('owner_docs')) { <polyline points="20 6 9 17 4 12"/> }
+                  @else { <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/> }
+                </svg>
+                {{ isCardEditing('owner_docs') ? 'Save' : 'Edit' }}
+              </button>
+              <button type="button" class="box-action-btn load" (click)="triggerCSVImport('owner_docs')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                Load
+              </button>
+              <button type="button" class="box-action-btn delete" (click)="deleteBoxDetails('owner_docs')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                Delete
+              </button>
+            </div>
+          </div>
+          @if (ownerProfiles.length === 0) {
+            <div class="empty-state" style="padding:1.5rem 1rem;">
+              <p>Add owners above first, then attach their documents here.</p>
+            </div>
+          }
           @for(o of ownerProfiles; track o.name; let oi = $index) {
             <div class="record-card" style="margin-bottom:1rem">
               <div class="record-header"><h4 class="record-title">{{ o.name }} — {{ o.role }}</h4></div>
               <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:.625rem;margin-top:.75rem">
                 @for(slot of ownerDocSlots; track slot.key) {
                   <div class="doc-upload-slot" [class.has-file]="hasOwnerDoc(o, slot.key)" [class.is-uploading]="uploadingOwnerDoc() === oi + ':' + slot.key"
-                    [title]="hasOwnerDoc(o, slot.key) ? 'Click to view ' + slot.label : 'Upload ' + slot.label">
+                    [title]="hasOwnerDoc(o, slot.key) ? 'Click to view ' + slot.label : (isCardEditing('owner_docs') ? 'Upload ' + slot.label : slot.label)">
                     <span class="doc-slot-icon">
                       @switch (slot.key) {
                         @case ('cv') {
@@ -543,10 +593,17 @@
                       <span class="doc-slot-hint">{{ getOwnerDocHint(o, slot.key, slot.hint) }}</span>
                     </div>
                     @if (hasOwnerDoc(o, slot.key)) {
-                      <span class="doc-slot-btn-delete" title="Delete document" (click)="$event.stopPropagation(); removeOwnerDoc(oi, slot.key)">✕</span>
-                    } @else if (uploadingOwnerDoc() === oi + ':' + slot.key) {
+                      <button type="button" class="file-download-btn" title="Open file" (click)="$event.stopPropagation(); downloadOwnerDoc(o, slot.key)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                      </button>
+                      @if (isCardEditing('owner_docs')) {
+                        <span class="doc-slot-btn-delete" title="Delete document" (click)="$event.stopPropagation(); removeOwnerDoc(oi, slot.key)">✕</span>
+                      }
+                    } @else if (isCardEditing('owner_docs') && uploadingOwnerDoc() === oi + ':' + slot.key) {
                       <span class="doc-slot-btn" style="opacity:.6;cursor:wait;">Uploading…</span>
-                    } @else {
+                    } @else if (isCardEditing('owner_docs')) {
                       <label style="margin:0;cursor:pointer;" class="doc-slot-btn">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                         Attach
@@ -560,7 +617,26 @@
           }
         </div>
         <div class="card">
-          <h3 class="section-title">Operating Agreement</h3>
+          <div class="card-header-row">
+            <h3 class="section-title" style="margin:0">Operating Agreement</h3>
+            <div class="box-actions">
+              <button type="button" class="box-action-btn edit" [class.active]="isCardEditing('operating_agreement')" (click)="toggleCardEdit('operating_agreement')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                  @if (isCardEditing('operating_agreement')) { <polyline points="20 6 9 17 4 12"/> }
+                  @else { <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/> }
+                </svg>
+                {{ isCardEditing('operating_agreement') ? 'Save' : 'Edit' }}
+              </button>
+              <button type="button" class="box-action-btn load" (click)="triggerCSVImport('operating_agreement')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                Load
+              </button>
+              <button type="button" class="box-action-btn delete" (click)="deleteBoxDetails('operating_agreement')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                Delete
+              </button>
+            </div>
+          </div>
           <div class="form-grid">
             <div class="ownership-file-slot">
               <span class="ownership-file-label">Operating Agreement File</span>
@@ -570,11 +646,16 @@
                     <span class="doc-slot-name">{{ company().ownership.operatingAgreementFile }}</span>
                     <span class="doc-slot-hint">Click to view</span>
                   </span>
-                  @if (editMode()) {
+                  <button type="button" class="file-download-btn" title="Open file" (click)="openOwnershipFile('operating')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                  </button>
+                  @if (isCardEditing('operating_agreement')) {
                     <button type="button" class="doc-slot-btn-delete" (click)="removeOwnershipFile('operating')">✕</button>
                   }
                 </div>
-              } @else if (editMode()) {
+              } @else if (isCardEditing('operating_agreement')) {
                 <label class="doc-upload-slot" [class.is-uploading]="uploadingOwnershipFile() === 'operating'">
                   <span class="doc-slot-body">
                     <span class="doc-slot-name">Upload operating agreement</span>
@@ -595,11 +676,16 @@
                     <span class="doc-slot-name">{{ company().ownership.sCorpElectionFile }}</span>
                     <span class="doc-slot-hint">Click to view</span>
                   </span>
-                  @if (editMode()) {
+                  <button type="button" class="file-download-btn" title="Open file" (click)="openOwnershipFile('scorp')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                  </button>
+                  @if (isCardEditing('operating_agreement')) {
                     <button type="button" class="doc-slot-btn-delete" (click)="removeOwnershipFile('scorp')">✕</button>
                   }
                 </div>
-              } @else if (editMode()) {
+              } @else if (isCardEditing('operating_agreement')) {
                 <label class="doc-upload-slot" [class.is-uploading]="uploadingOwnershipFile() === 'scorp'">
                   <span class="doc-slot-body">
                     <span class="doc-slot-name">Upload S-Corp election</span>
@@ -681,11 +767,16 @@
             <tbody>
               @for(row of pageSliceIndexed('corporateDocs', corporateDocs); track row.index) {
                 <tr>
-                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('corporate_docs')" [title]="cellTitle(row.item.document)" [ngModel]="row.item.document" (ngModelChange)="patchCorpDoc(row.index, 'document', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('corporate_docs')" [title]="cellTitle(row.item.document)" [ngModel]="row.item.document" (ngModelChange)="patchCorpDoc(row.index, 'document', $event)" placeholder="e.g. Operating Agreement" /></td>
                   <td>
                     @if (row.item.fileRef) {
-                      <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
+                      <div class="file-attach-row">
                         <span class="file-link" (click)="openCorpDocFile(row.index)" [title]="row.item.fileRef">{{ row.item.fileRef }}</span>
+                        <button type="button" class="file-download-btn" title="Open file" (click)="openCorpDocFile(row.index)">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                          </svg>
+                        </button>
                         @if (isCardEditing('corporate_docs')) {
                           <button type="button" class="row-upload-btn" style="padding:.2rem .4rem" (click)="removeCorpDocFile(row.index)">✕</button>
                         }
@@ -806,8 +897,8 @@
             <tbody>
               @for(row of pageSliceIndexed('banks', bankAccounts); track row.index) {
                 <tr>
-                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('banks')" [title]="cellTitle(row.item.bank)" [ngModel]="row.item.bank" (ngModelChange)="patchBank(row.index, 'bank', $event)" /></td>
-                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('banks')" [title]="cellTitle(row.item.nickname)" [ngModel]="row.item.nickname" (ngModelChange)="patchBank(row.index, 'nickname', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('banks')" [title]="cellTitle(row.item.bank)" [ngModel]="row.item.bank" (ngModelChange)="patchBank(row.index, 'bank', $event)" placeholder="e.g. Chase Bank" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('banks')" [title]="cellTitle(row.item.nickname)" [ngModel]="row.item.nickname" (ngModelChange)="patchBank(row.index, 'nickname', $event)" placeholder="e.g. Operating Account" /></td>
                   <td>
                     @if (isCardEditing('banks')) {
                       <input class="form-input table-cell-field" style="font-family:monospace" [title]="cellTitle(row.item.account)" [ngModel]="row.item.account" (ngModelChange)="patchBank(row.index, 'account', $event)" placeholder="Account #" />
@@ -824,8 +915,8 @@
                       <app-reveal-toggle [revealed]="isRevealed('bank-routing-' + row.index)" [timer]="getTimerValue('bank-routing-' + row.index)" (toggle)="toggleReveal('bank-routing-' + row.index)" />
                     }
                   </td>
-                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('banks')" [title]="cellTitle(row.item.wire)" [ngModel]="row.item.wire" (ngModelChange)="patchBank(row.index, 'wire', $event)" /></td>
-                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('banks')" [title]="cellTitle(row.item.swift)" [ngModel]="row.item.swift" (ngModelChange)="patchBank(row.index, 'swift', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('banks')" [title]="cellTitle(row.item.wire)" [ngModel]="row.item.wire" (ngModelChange)="patchBank(row.index, 'wire', $event)" placeholder="Wire instructions" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('banks')" [title]="cellTitle(row.item.swift)" [ngModel]="row.item.swift" (ngModelChange)="patchBank(row.index, 'swift', $event)" placeholder="SWIFT / BIC" /></td>
                 </tr>
               }
             </tbody>
@@ -889,23 +980,61 @@
               </button>
             </div>
           </div>
-          <p class="section-subtitle">Stripe, PayPal, Wise — usernames and passwords are masked by default (60s timer)</p>
+          <p class="section-subtitle">Stripe, PayPal, Wise — passwords stay masked. Click the eye icon to reveal for 60 seconds.</p>
           <div class="table-scroll-wrap"><table class="data-table">
-            <thead><tr><th>Platform</th><th>Username / Email</th><th>Password</th><th>Recovery</th><th>Notes</th></tr></thead>
+            <thead><tr><th>Platform</th><th>Username / Email</th><th>Password</th><th>Recovery</th><th>Notes</th>@if (isCardEditing('payments')) { <th></th> }</tr></thead>
             <tbody>
               @for(row of pageSliceIndexed('paymentPlatforms', paymentPlatforms); track row.index) {
                 <tr>
-                  <td class="td-primary" [title]="cellTitle(row.item.name)">{{ row.item.name }}</td>
-                  <td>
-                    <span [title]="cellTitle(row.item.username)">{{ isRevealed('payment-user-' + row.item.name) ? row.item.username : maskValue(row.item.username) }}</span>
-                    <app-reveal-toggle [revealed]="isRevealed('payment-user-' + row.item.name)" [timer]="getTimerValue('payment-user-' + row.item.name)" (toggle)="toggleReveal('payment-user-' + row.item.name)" />
-                  </td>
-                  <td>
-                    <span style="font-family:monospace" [title]="cellTitle(row.item.password)">{{ isRevealed('payment-pass-' + row.item.name) ? row.item.password : '••••••••' }}</span>
-                    <app-reveal-toggle [revealed]="isRevealed('payment-pass-' + row.item.name)" [timer]="getTimerValue('payment-pass-' + row.item.name)" (toggle)="toggleReveal('payment-pass-' + row.item.name)" />
-                  </td>
-                  <td><span class="table-cell-text" [title]="cellTitle(row.item.phone)">{{ row.item.phone || '—' }}</span></td>
-                  <td><span class="table-cell-text" [title]="cellTitle(row.item.notes)">{{ row.item.notes || '—' }}</span></td>
+                  @if (isCardEditing('payments')) {
+                    <td><input class="form-input table-cell-field" [title]="cellTitle(row.item.name)" [ngModel]="row.item.name" (ngModelChange)="patchPlatform('payment', row.index, 'name', $event)" placeholder="e.g. Stripe" /></td>
+                    <td><input class="form-input table-cell-field" [title]="cellTitle(row.item.username)" [ngModel]="row.item.username" (ngModelChange)="patchPlatform('payment', row.index, 'username', $event)" placeholder="email / username" /></td>
+                    <td>
+                      <div class="credential-reveal-cell">
+                        <input
+                          class="form-input table-cell-field"
+                          style="font-family:monospace"
+                          [type]="isRevealed('payment-pass-' + row.index) ? 'text' : 'password'"
+                          [title]="cellTitle(row.item.password)"
+                          [ngModel]="row.item.password"
+                          (ngModelChange)="patchPlatform('payment', row.index, 'password', $event)"
+                          placeholder="password"
+                        />
+                        <app-reveal-toggle
+                          [revealed]="isRevealed('payment-pass-' + row.index)"
+                          [timer]="getTimerValue('payment-pass-' + row.index)"
+                          (toggle)="toggleReveal('payment-pass-' + row.index)"
+                        />
+                      </div>
+                    </td>
+                    <td><input class="form-input table-cell-field" [title]="cellTitle(row.item.phone)" [ngModel]="row.item.phone" (ngModelChange)="patchPlatform('payment', row.index, 'phone', $event)" placeholder="recovery phone / email" /></td>
+                    <td><input class="form-input table-cell-field" [title]="cellTitle(row.item.notes)" [ngModel]="row.item.notes" (ngModelChange)="patchPlatform('payment', row.index, 'notes', $event)" placeholder="notes" /></td>
+                    <td><button type="button" class="row-upload-btn" (click)="removePaymentPlatform(row.index)">Delete</button></td>
+                  } @else {
+                    <td class="td-primary" [title]="cellTitle(row.item.name)">{{ row.item.name || '—' }}</td>
+                    <td>
+                      <div class="credential-reveal-cell">
+                        <span [title]="cellTitle(row.item.username)">{{ isRevealed('payment-user-' + row.index) ? (row.item.username || '—') : maskValue(row.item.username) }}</span>
+                        <app-reveal-toggle
+                          [revealed]="isRevealed('payment-user-' + row.index)"
+                          [timer]="getTimerValue('payment-user-' + row.index)"
+                          (toggle)="toggleReveal('payment-user-' + row.index)"
+                        />
+                      </div>
+                    </td>
+                    <td>
+                      <div class="credential-reveal-cell">
+                        <span style="font-family:monospace" [title]="cellTitle(row.item.password)">{{ isRevealed('payment-pass-' + row.index) ? (row.item.password || '—') : '••••••••' }}</span>
+                        <app-reveal-toggle
+                          [revealed]="isRevealed('payment-pass-' + row.index)"
+                          [timer]="getTimerValue('payment-pass-' + row.index)"
+                          (toggle)="toggleReveal('payment-pass-' + row.index)"
+                        />
+                      </div>
+                    </td>
+                    <td><span class="table-cell-text" [title]="cellTitle(row.item.phone)">{{ row.item.phone || '—' }}</span></td>
+                    <td><span class="table-cell-text" [title]="cellTitle(row.item.notes)">{{ row.item.notes || '—' }}</span></td>
+                  }
                 </tr>
               }
             </tbody>
@@ -915,8 +1044,9 @@
             [page]="tablePage('paymentPlatforms')"
             [pageSize]="TABLE_PAGE_SIZE"
             [editMode]="isCardEditing('payments')"
-            [allowAdd]="false"
-            (pageChange)="setTablePage('paymentPlatforms', $event)" />
+            [allowAdd]="true"
+            (pageChange)="setTablePage('paymentPlatforms', $event)"
+            (addRow)="addPaymentPlatform()" />
         </div>
       }
 
@@ -960,14 +1090,19 @@
             <tbody>
               @for(row of pageSliceIndexed('taxDocs', taxDocs); track row.index) {
                 <tr>
-                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('tax_docs')" [title]="cellTitle(row.item.name)" [ngModel]="row.item.name" (ngModelChange)="patchTaxDoc(row.index, 'name', $event)" /></td>
-                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('tax_docs')" [title]="cellTitle(row.item.type)" [ngModel]="row.item.type" (ngModelChange)="patchTaxDoc(row.index, 'type', $event)" /></td>
-                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('tax_docs')" [title]="cellTitle(row.item.year)" [ngModel]="row.item.year" (ngModelChange)="patchTaxDoc(row.index, 'year', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('tax_docs')" [title]="cellTitle(row.item.name)" [ngModel]="row.item.name" (ngModelChange)="patchTaxDoc(row.index, 'name', $event)" placeholder="Enter name" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('tax_docs')" [title]="cellTitle(row.item.type)" [ngModel]="row.item.type" (ngModelChange)="patchTaxDoc(row.index, 'type', $event)" placeholder="Enter type" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('tax_docs')" [title]="cellTitle(row.item.year)" [ngModel]="row.item.year" (ngModelChange)="patchTaxDoc(row.index, 'year', $event)" placeholder="e.g. 2026" /></td>
                   <td><app-status-select kind="taxDoc" [readOnly]="!isCardEditing('tax_docs')" [value]="row.item.status" (valueChange)="patchTaxDoc(row.index, 'status', $event)" /></td>
                   <td>
                     @if (row.item.fileName) {
-                      <div style="display:flex;align-items:center;gap:.5rem">
-                        <span style="color:var(--success);cursor:pointer;font-weight:600;text-decoration:underline" [title]="row.item.fileName" (click)="downloadFile(row.item.fileName)">📄 {{ row.item.fileName }}</span>
+                      <div class="file-attach-row">
+                        <span class="file-link" [title]="row.item.fileName" (click)="openAttachedFile(row.item.fileUrl, row.item.fileName)">{{ row.item.fileName }}</span>
+                        <button type="button" class="file-download-btn" title="Open file" (click)="openAttachedFile(row.item.fileUrl, row.item.fileName)">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                          </svg>
+                        </button>
                         @if (isCardEditing('tax_docs')) {
                           <button class="row-upload-btn" style="padding:.2rem .4rem;border-color:var(--text-muted);color:var(--text-secondary)" (click)="removeTaxDocFile(row.index)" title="Remove file">✕</button>
                         }
@@ -1018,16 +1153,27 @@
           <div class="form-grid">
             <div class="form-group">
               <span class="form-label">EIN Confirmation</span>
-              <div style="display:flex;align-items:center;gap:.5rem">
-                <div class="form-value" style="flex:1; cursor:pointer; text-decoration:underline; color:var(--accent-blue)" (click)="openTaxRegFile('einConfirmation')">
-                  {{ taxRegistrations.einConfirmation || 'ein-confirmation-cp575.pdf' }}
-                </div>
-                @if (isCardEditing('tax_registrations')) {
+              <div class="tax-reg-file-row">
+                @if (taxRegistrations.einConfirmation) {
+                  <span class="file-link" (click)="openTaxRegFile('einConfirmation')" [title]="taxRegistrations.einConfirmation">{{ taxRegistrations.einConfirmation }}</span>
+                  <button type="button" class="file-download-btn" title="Open file" (click)="downloadTaxRegFile('einConfirmation')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                  </button>
+                  @if (isCardEditing('tax_registrations')) {
+                    <label class="row-upload-btn">
+                      Replace
+                      <input type="file" hidden accept=".pdf,.png,.jpg,.jpeg" (change)="onTaxRegFileUpload($event, 'einConfirmation')" />
+                    </label>
+                  }
+                } @else if (isCardEditing('tax_registrations')) {
                   <label class="row-upload-btn">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M21.44 11.05 12.25 20.24a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-                    Replace
-                    <input type="file" hidden accept=".pdf" (change)="onTaxRegFileUpload($event, 'einConfirmation')" />
+                    Add PDF or file
+                    <input type="file" hidden accept=".pdf,.png,.jpg,.jpeg" (change)="onTaxRegFileUpload($event, 'einConfirmation')" />
                   </label>
+                } @else {
+                  <span class="table-cell-text td-muted">No file — click Edit to add a PDF or file</span>
                 }
               </div>
             </div>
@@ -1035,16 +1181,27 @@
             <app-editable-field [readOnly]="!isCardEditing('tax_registrations')" label="VAT / GST" [value]="taxRegistrations.vatGst || 'N/A — US only'" (valueChange)="patchTaxReg('vatGst', $event)" />
             <div class="form-group">
               <span class="form-label">Resale Certificates</span>
-              <div style="display:flex;align-items:center;gap:.5rem">
-                <div class="form-value" style="flex:1; cursor:pointer; text-decoration:underline; color:var(--accent-blue)" (click)="openTaxRegFile('resaleCertificates')">
-                  {{ taxRegistrations.resaleCertificates || 'resale-cert-ny.pdf' }}
-                </div>
-                @if (isCardEditing('tax_registrations')) {
+              <div class="tax-reg-file-row">
+                @if (taxRegistrations.resaleCertificates) {
+                  <span class="file-link" (click)="openTaxRegFile('resaleCertificates')" [title]="taxRegistrations.resaleCertificates">{{ taxRegistrations.resaleCertificates }}</span>
+                  <button type="button" class="file-download-btn" title="Open file" (click)="downloadTaxRegFile('resaleCertificates')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                  </button>
+                  @if (isCardEditing('tax_registrations')) {
+                    <label class="row-upload-btn">
+                      Replace
+                      <input type="file" hidden accept=".pdf,.png,.jpg,.jpeg" (change)="onTaxRegFileUpload($event, 'resaleCertificates')" />
+                    </label>
+                  }
+                } @else if (isCardEditing('tax_registrations')) {
                   <label class="row-upload-btn">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M21.44 11.05 12.25 20.24a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-                    Replace
-                    <input type="file" hidden accept=".pdf" (change)="onTaxRegFileUpload($event, 'resaleCertificates')" />
+                    Add PDF or file
+                    <input type="file" hidden accept=".pdf,.png,.jpg,.jpeg" (change)="onTaxRegFileUpload($event, 'resaleCertificates')" />
                   </label>
+                } @else {
+                  <span class="table-cell-text td-muted">No file — click Edit to add a PDF or file</span>
                 }
               </div>
             </div>
@@ -1080,43 +1237,72 @@
               </button>
             </div>
           </div>
-          <p class="section-subtitle">All platform credentials — usernames and passwords are masked by default (60s timer)</p>
+          <p class="section-subtitle">All platform credentials — usernames and passwords are masked by default (60s timer). Click Edit to add or change accounts.</p>
+          @if (publishingPlatforms.length === 0) {
+            <div class="empty-state" style="padding:2rem 1rem;">
+              <p>No publishing platforms yet.</p>
+              @if (isCardEditing('platforms')) {
+                <button type="button" class="btn-primary" style="margin-top:.75rem;" (click)="addPublishingPlatform()">+ Add Platform</button>
+              }
+            </div>
+          }
           @for(p of publishingPlatforms; track $index; let i = $index) {
             <div class="record-card" style="margin-bottom:.75rem;">
               <div class="record-header">
-                <h4 class="record-title">{{ p.name }}</h4>
-                <app-status-select kind="platform" [readOnly]="!isCardEditing('platforms')" [value]="platformStatus(p)" (valueChange)="patchPlatform('publishing', i, 'status', $event)" />
+                @if (isCardEditing('platforms')) {
+                  <input class="form-input" style="max-width:280px;font-weight:600;" [ngModel]="p.name" (ngModelChange)="patchPlatform('publishing', i, 'name', $event)" placeholder="e.g. Amazon KDP, IngramSpark" />
+                } @else {
+                  <h4 class="record-title">{{ p.name || 'Untitled Platform' }}</h4>
+                }
+                <div style="display:flex;align-items:center;gap:.5rem;">
+                  <app-status-select kind="platform" [readOnly]="!isCardEditing('platforms')" [value]="platformStatus(p)" (valueChange)="patchPlatform('publishing', i, 'status', $event)" />
+                  @if (isCardEditing('platforms')) {
+                    <button type="button" class="row-remove-btn" (click)="removePublishingPlatform(i)">Remove</button>
+                  }
+                </div>
               </div>
               <div class="record-grid" style="grid-template-columns:1fr 1fr 1fr;gap:.5rem .85rem;">
-                <app-editable-field [readOnly]="!isCardEditing('platforms')" label="Account Owner" [value]="p.owner" (valueChange)="patchPlatform('publishing', i, 'owner', $event)" />
-                <app-editable-field [readOnly]="!isCardEditing('platforms')" label="Account Email" type="email" [value]="p.email" (valueChange)="patchPlatform('publishing', i, 'email', $event)" />
-                <app-editable-field [readOnly]="!isCardEditing('platforms')" label="Recovery Phone" type="tel" [value]="p.phone" (valueChange)="patchPlatform('publishing', i, 'phone', $event)" />
-                <app-editable-field [readOnly]="!isCardEditing('platforms')" label="Payout Method" [value]="p.payout" (valueChange)="patchPlatform('publishing', i, 'payout', $event)" />
-                <app-editable-field [readOnly]="!isCardEditing('platforms')" label="Tax Profile Name" [value]="p.taxProfile" (valueChange)="patchPlatform('publishing', i, 'taxProfile', $event)" />
-                <app-editable-field [readOnly]="!isCardEditing('platforms')" label="Account ID" [value]="p.accountId" (valueChange)="patchPlatform('publishing', i, 'accountId', $event)" />
-                <div class="record-field">
-                  <span class="label">Username</span>
-                  <span class="value" style="display:flex;align-items:center;gap:.35rem;">
-                    {{ isRevealed('platform-user-' + p.name) ? p.username : maskValue(p.username) }}
-                    <app-reveal-toggle [revealed]="isRevealed('platform-user-' + p.name)" [timer]="getTimerValue('platform-user-' + p.name)" (toggle)="toggleReveal('platform-user-' + p.name)" />
-                  </span>
-                </div>
-                <div class="record-field">
-                  <span class="label">Password</span>
-                  <span class="value" style="display:flex;align-items:center;gap:.35rem;font-family:monospace;">
-                    {{ isRevealed('platform-pass-' + p.name) ? p.password : '••••••••' }}
-                    <app-reveal-toggle [revealed]="isRevealed('platform-pass-' + p.name)" [timer]="getTimerValue('platform-pass-' + p.name)" (toggle)="toggleReveal('platform-pass-' + p.name)" />
-                  </span>
-                </div>
+                <app-editable-field [readOnly]="!isCardEditing('platforms')" label="Account Owner" [value]="p.owner" placeholder="e.g. Jane Doe" (valueChange)="patchPlatform('publishing', i, 'owner', $event)" />
+                <app-editable-field [readOnly]="!isCardEditing('platforms')" label="Account Email" type="email" [value]="p.email" placeholder="e.g. accounts@example.com" (valueChange)="patchPlatform('publishing', i, 'email', $event)" />
+                <app-editable-field [readOnly]="!isCardEditing('platforms')" label="Recovery Phone" type="tel" [value]="p.phone" placeholder="e.g. +1 555 123 4567" (valueChange)="patchPlatform('publishing', i, 'phone', $event)" />
+                <app-editable-field [readOnly]="!isCardEditing('platforms')" label="Payout Method" [value]="p.payout" placeholder="e.g. Direct deposit / PayPal" (valueChange)="patchPlatform('publishing', i, 'payout', $event)" />
+                <app-editable-field [readOnly]="!isCardEditing('platforms')" label="Tax Profile Name" [value]="p.taxProfile" placeholder="e.g. Company W-9 profile" (valueChange)="patchPlatform('publishing', i, 'taxProfile', $event)" />
+                <app-editable-field [readOnly]="!isCardEditing('platforms')" label="Account ID" [value]="p.accountId" placeholder="e.g. A1B2C3D4" (valueChange)="patchPlatform('publishing', i, 'accountId', $event)" />
+                @if (isCardEditing('platforms')) {
+                  <app-editable-field [readOnly]="false" label="Username" [value]="p.username" placeholder="Login username / email" (valueChange)="patchPlatform('publishing', i, 'username', $event)" />
+                  <app-editable-field [readOnly]="false" label="Password" type="password" [value]="p.password" placeholder="Account password" (valueChange)="patchPlatform('publishing', i, 'password', $event)" />
+                  <app-editable-field [readOnly]="false" label="Account Rep" [value]="p.accountRep" placeholder="e.g. Customer Service" (valueChange)="patchPlatform('publishing', i, 'accountRep', $event)" />
+                  <app-editable-field [readOnly]="false" label="Rep Email" type="email" [value]="p.repEmail" placeholder="e.g. support@platform.com" (valueChange)="patchPlatform('publishing', i, 'repEmail', $event)" />
+                } @else {
+                  <div class="record-field">
+                    <span class="label">Username</span>
+                    <span class="value" style="display:flex;align-items:center;gap:.35rem;">
+                      {{ isRevealed('platform-user-' + i) ? (p.username || '—') : maskValue(p.username) }}
+                      <app-reveal-toggle [revealed]="isRevealed('platform-user-' + i)" [timer]="getTimerValue('platform-user-' + i)" (toggle)="toggleReveal('platform-user-' + i)" />
+                    </span>
+                  </div>
+                  <div class="record-field">
+                    <span class="label">Password</span>
+                    <span class="value" style="display:flex;align-items:center;gap:.35rem;font-family:monospace;">
+                      {{ isRevealed('platform-pass-' + i) ? (p.password || '—') : '••••••••' }}
+                      <app-reveal-toggle [revealed]="isRevealed('platform-pass-' + i)" [timer]="getTimerValue('platform-pass-' + i)" (toggle)="toggleReveal('platform-pass-' + i)" />
+                    </span>
+                  </div>
+                }
               </div>
-              <div style="margin-top:.5rem;padding:.5rem .75rem;background:var(--primary-light);border-radius:6px;">
-                <div style="display:flex;gap:1.5rem;flex-wrap:wrap;font-size:.8125rem;">
-                  <div><span style="color:var(--text-muted);">Account Rep:</span> <strong style="color:var(--text-primary);">{{ p.accountRep || 'Customer Service' }}</strong></div>
-                  <div><span style="color:var(--text-muted);">Rep Email:</span> @if(p.repEmail) { <a [href]="'mailto:'+p.repEmail" style="color:var(--accent-blue);">{{ p.repEmail }}</a> } @else { <span style="color:var(--text-secondary)">—</span> }</div>
+              @if (!isCardEditing('platforms')) {
+                <div style="margin-top:.5rem;padding:.5rem .75rem;background:var(--primary-light);border-radius:6px;">
+                  <div style="display:flex;gap:1.5rem;flex-wrap:wrap;font-size:.8125rem;">
+                    <div><span style="color:var(--text-muted);">Account Rep:</span> <strong style="color:var(--text-primary);">{{ p.accountRep || 'Customer Service' }}</strong></div>
+                    <div><span style="color:var(--text-muted);">Rep Email:</span> @if(p.repEmail) { <a [href]="'mailto:'+p.repEmail" style="color:var(--accent-blue);">{{ p.repEmail }}</a> } @else { <span style="color:var(--text-secondary)">—</span> }</div>
+                  </div>
                 </div>
-              </div>
-              <app-editable-field [readOnly]="!isCardEditing('platforms')" label="Notes" [value]="p.notes" (valueChange)="patchPlatform('publishing', i, 'notes', $event)" [full]="true" />
+              }
+              <app-editable-field [readOnly]="!isCardEditing('platforms')" label="Notes" [value]="p.notes" placeholder="Login notes, 2FA device, recovery tips…" (valueChange)="patchPlatform('publishing', i, 'notes', $event)" [full]="true" />
             </div>
+          }
+          @if (isCardEditing('platforms') && publishingPlatforms.length > 0) {
+            <button type="button" class="btn-secondary" style="margin-top:.5rem;" (click)="addPublishingPlatform()">+ Add Platform</button>
           }
         </div>
       }
@@ -1174,12 +1360,12 @@
             <tbody>
               @for(row of pageSliceFilteredIndexed('isbns', filteredIsbns, isbnRecords); track row.index) {
                 <tr>
-                  <td><input class="form-input table-cell-field" style="font-family:monospace" [disabled]="!isCardEditing('isbns')" [title]="cellTitle(row.item.isbn)" [ngModel]="row.item.isbn" (ngModelChange)="patchIsbn(row.index, 'isbn', $event)" /></td>
-                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('isbns')" [title]="cellTitle(row.item.format)" [ngModel]="row.item.format" (ngModelChange)="patchIsbn(row.index, 'format', $event)" /></td>
-                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('isbns')" [title]="cellTitle(row.item.title)" [ngModel]="row.item.title" (ngModelChange)="patchIsbn(row.index, 'title', $event)" /></td>
-                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('isbns')" [title]="cellTitle(row.item.imprint)" [ngModel]="row.item.imprint" (ngModelChange)="patchIsbn(row.index, 'imprint', $event)" /></td>
-                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('isbns')" [title]="cellTitle(row.item.series)" [ngModel]="row.item.series" (ngModelChange)="patchIsbn(row.index, 'series', $event)" /></td>
-                  <td><input type="date" class="form-input table-cell-field" [disabled]="!isCardEditing('isbns')" [ngModel]="formatDateInput(row.item.pubDate)" (ngModelChange)="patchIsbn(row.index, 'pubDate', $event)" /></td>
+                  <td><input class="form-input table-cell-field" style="font-family:monospace" [disabled]="!isCardEditing('isbns')" [title]="cellTitle(row.item.isbn)" [ngModel]="row.item.isbn" (ngModelChange)="patchIsbn(row.index, 'isbn', $event)" placeholder="e.g. 978-1-234567-89-0" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('isbns')" [title]="cellTitle(row.item.format)" [ngModel]="row.item.format" (ngModelChange)="patchIsbn(row.index, 'format', $event)" placeholder="e.g. Paperback" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('isbns')" [title]="cellTitle(row.item.title)" [ngModel]="row.item.title" (ngModelChange)="patchIsbn(row.index, 'title', $event)" placeholder="Enter title" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('isbns')" [title]="cellTitle(row.item.imprint)" [ngModel]="row.item.imprint" (ngModelChange)="patchIsbn(row.index, 'imprint', $event)" placeholder="e.g. Imprint name" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('isbns')" [title]="cellTitle(row.item.series)" [ngModel]="row.item.series" (ngModelChange)="patchIsbn(row.index, 'series', $event)" placeholder="Enter series" /></td>
+                  <td><input type="date" class="form-input table-cell-field" [disabled]="!isCardEditing('isbns')" [ngModel]="formatDateInput(row.item.pubDate)" (ngModelChange)="patchIsbn(row.index, 'pubDate', $event)" placeholder="YYYY-MM-DD" /></td>
                   <td>
                     <app-status-select kind="isbn" [readOnly]="!isCardEditing('isbns')" [value]="row.item.status" (valueChange)="onIsbnStatusChange(row.item, $event)" />
                   </td>
@@ -1196,19 +1382,52 @@
             (addRow)="addIsbnRow()" />
         </div>
         <div class="card">
-          <h3 class="section-title">ISBN Block Details</h3>
-          @for(imp of company().imprints; track imp.id) {
-            <div class="record-card">
-              <div class="record-header"><h4 class="record-title">{{ imp.identity.name }}</h4></div>
-              <div class="record-grid">
-                <div class="record-field"><span class="label">ISBN Prefix</span><span class="value">{{ imp.legalIsbn.isbnPrefix }}</span></div>
-                <div class="record-field"><span class="label">Block Purchased</span><span class="value">{{ imp.legalIsbn.isbnBlockPurchased }}</span></div>
-                <div class="record-field"><span class="label">Block Count</span><span class="value">{{ imp.legalIsbn.isbnBlockCount }}</span></div>
-                <div class="record-field"><span class="label">Assigned</span><span class="value">{{ imp.legalIsbn.isbnsAssigned }}</span></div>
-                <div class="record-field"><span class="label">Remaining</span><span class="value">{{ imp.legalIsbn.isbnsRemaining }}</span></div>
-              </div>
+          <div class="card-header-row">
+            <h3 class="section-title" style="margin:0">ISBN Block Details</h3>
+            <div class="box-actions">
+              <button type="button" class="box-action-btn edit" [class.active]="isCardEditing('isbn_blocks')" (click)="toggleCardEdit('isbn_blocks')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                  @if (isCardEditing('isbn_blocks')) { <polyline points="20 6 9 17 4 12"/> }
+                  @else { <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/> }
+                </svg>
+                {{ isCardEditing('isbn_blocks') ? 'Save' : 'Edit' }}
+              </button>
             </div>
-          }
+          </div>
+          <p class="section-subtitle">Track ISBN blocks purchased for each imprint. Click Edit, then Add Row to enter prefix, block range, and counts.</p>
+          <div class="table-scroll-wrap"><table class="data-table">
+            <thead><tr><th>Imprint</th><th>ISBN Prefix</th><th>Block Purchased</th><th>Block Count</th><th>Assigned</th><th>Remaining</th>@if (isCardEditing('isbn_blocks')) { <th></th> }</tr></thead>
+            <tbody>
+              @for(row of pageSliceIndexed('isbnBlocks', isbnBlocks); track row.index) {
+                <tr>
+                  @if (isCardEditing('isbn_blocks')) {
+                    <td><input class="form-input table-cell-field" [title]="cellTitle(row.item.imprintName)" [ngModel]="row.item.imprintName" (ngModelChange)="patchIsbnBlock(row.index, 'imprintName', $event)" placeholder="e.g. Imprint name" /></td>
+                    <td><input class="form-input table-cell-field" style="font-family:monospace" [title]="cellTitle(row.item.isbnPrefix)" [ngModel]="row.item.isbnPrefix" (ngModelChange)="patchIsbnBlock(row.index, 'isbnPrefix', $event)" placeholder="e.g. 979-8" /></td>
+                    <td><input class="form-input table-cell-field" style="font-family:monospace" [title]="cellTitle(row.item.isbnBlockPurchased)" [ngModel]="row.item.isbnBlockPurchased" (ngModelChange)="patchIsbnBlock(row.index, 'isbnBlockPurchased', $event)" placeholder="e.g. 979-8-XXX-XXXXX" /></td>
+                    <td><input class="form-input table-cell-field" [title]="cellTitle(row.item.isbnBlockCount)" [ngModel]="row.item.isbnBlockCount" (ngModelChange)="patchIsbnBlock(row.index, 'isbnBlockCount', $event)" placeholder="e.g. 100" /></td>
+                    <td><input class="form-input table-cell-field" [title]="cellTitle(row.item.isbnsAssigned)" [ngModel]="row.item.isbnsAssigned" (ngModelChange)="patchIsbnBlock(row.index, 'isbnsAssigned', $event)" placeholder="e.g. 12" /></td>
+                    <td><input class="form-input table-cell-field" [title]="cellTitle(row.item.isbnsRemaining)" [ngModel]="row.item.isbnsRemaining" (ngModelChange)="patchIsbnBlock(row.index, 'isbnsRemaining', $event)" placeholder="e.g. 88" /></td>
+                    <td><button type="button" class="row-upload-btn" (click)="removeIsbnBlock(row.index)">Delete</button></td>
+                  } @else {
+                    <td class="td-primary" [title]="cellTitle(row.item.imprintName)">{{ row.item.imprintName || '—' }}</td>
+                    <td style="font-family:monospace" [title]="cellTitle(row.item.isbnPrefix)">{{ row.item.isbnPrefix || '—' }}</td>
+                    <td style="font-family:monospace" [title]="cellTitle(row.item.isbnBlockPurchased)">{{ row.item.isbnBlockPurchased || '—' }}</td>
+                    <td [title]="cellTitle(row.item.isbnBlockCount)">{{ row.item.isbnBlockCount || '—' }}</td>
+                    <td [title]="cellTitle(row.item.isbnsAssigned)">{{ row.item.isbnsAssigned || '—' }}</td>
+                    <td [title]="cellTitle(row.item.isbnsRemaining)">{{ row.item.isbnsRemaining || '—' }}</td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table></div>
+          <app-vault-table-footer
+            [totalItems]="isbnBlocks.length"
+            [page]="tablePage('isbnBlocks')"
+            [pageSize]="TABLE_PAGE_SIZE"
+            [editMode]="isCardEditing('isbn_blocks')"
+            [allowAdd]="true"
+            (pageChange)="setTablePage('isbnBlocks', $event)"
+            (addRow)="addIsbnBlock()" />
         </div>
       }
 
@@ -1249,18 +1468,20 @@
             <tbody>
               @for(row of pageSliceIndexed('contracts', contractRecords); track row.index) {
                 <tr>
-                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('contracts')" [title]="cellTitle(row.item.name)" [ngModel]="row.item.name" (ngModelChange)="patchContract(row.index, 'name', $event)" /></td>
-                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('contracts')" [title]="cellTitle(row.item.counterparty)" [ngModel]="row.item.counterparty" (ngModelChange)="patchContract(row.index, 'counterparty', $event)" /></td>
-                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('contracts')" [title]="cellTitle(row.item.type)" [ngModel]="row.item.type" (ngModelChange)="patchContract(row.index, 'type', $event)" /></td>
-                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('contracts')" [title]="cellTitle(row.item.date)" [ngModel]="row.item.date" (ngModelChange)="patchContract(row.index, 'date', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('contracts')" [title]="cellTitle(row.item.name)" [ngModel]="row.item.name" (ngModelChange)="patchContract(row.index, 'name', $event)" placeholder="Enter name" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('contracts')" [title]="cellTitle(row.item.counterparty)" [ngModel]="row.item.counterparty" (ngModelChange)="patchContract(row.index, 'counterparty', $event)" placeholder="e.g. Contractor name" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('contracts')" [title]="cellTitle(row.item.type)" [ngModel]="row.item.type" (ngModelChange)="patchContract(row.index, 'type', $event)" placeholder="Enter type" /></td>
+                  <td><input type="date" class="form-input table-cell-field" [disabled]="!isCardEditing('contracts')" [title]="cellTitle(row.item.date)" [ngModel]="formatDateInput(row.item.date)" (ngModelChange)="patchContract(row.index, 'date', $event)" /></td>
                   <td><app-status-select kind="contract" [readOnly]="!isCardEditing('contracts')" [value]="row.item.status" (valueChange)="onContractStatusChange(row.index, $event)" /></td>
                   <td>
                     @if (row.item.file) {
-                      <div style="display:flex;align-items:center;gap:.5rem">
-                        <span class="file-link" (click)="downloadFile(row.item.file)" [title]="row.item.file">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                          {{ row.item.file }}
-                        </span>
+                      <div class="file-attach-row">
+                        <span class="file-link" (click)="openAttachedFile(row.item.fileUrl, row.item.file)" [title]="row.item.file">{{ row.item.file }}</span>
+                        <button type="button" class="file-download-btn" title="Open file" (click)="openAttachedFile(row.item.fileUrl, row.item.file)">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                          </svg>
+                        </button>
                         @if (isCardEditing('contracts')) {
                           <button class="row-upload-btn" style="padding:.2rem .4rem;border-color:var(--text-muted);color:var(--text-secondary)" (click)="removeContractFile(row.index)" title="Remove file">✕</button>
                         }
@@ -1288,29 +1509,37 @@
             (addRow)="addContractRow()" />
         </div>
         <div class="card">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+          <div class="card-header-row" style="flex-wrap:wrap;gap:.75rem">
             <h3 class="section-title" style="margin:0">Contract Templates</h3>
-            <select [(ngModel)]="contractCategoryFilter" style="padding:.35rem .6rem;border:1px solid var(--border-color);border-radius:6px;background:var(--background);color:var(--text-secondary);font-size:.8125rem;font-family:inherit">
-              <option value="">All Categories</option>
-              <option value="Author">Author Contracts</option>
-              <option value="Ghostwriter">Ghostwriter Agreements</option>
-              <option value="Editor">Editor Agreements</option>
-              <option value="Cover Designer">Cover Designer Agreements</option>
-              <option value="Narrator">Narrator Contracts</option>
-              <option value="Formatting">Formatting Agreements</option>
-              <option value="Translation">Translation Agreements</option>
-              <option value="Affiliate">Affiliate Agreements</option>
-              <option value="Advertising">Advertising Agreements</option>
-              <option value="Co-Author">Co-Author Agreements</option>
-              <option value="Royalty">Royalty Split Agreements</option>
-              <option value="NDA">NDAs</option>
-              <option value="DMCA">DMCA Takedown Templates</option>
-            </select>
+            <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-left:auto">
+              <select [(ngModel)]="contractCategoryFilter" style="padding:.35rem .6rem;border:1px solid var(--border-color);border-radius:6px;background:var(--background);color:var(--text-secondary);font-size:.8125rem;font-family:inherit">
+                <option value="">All Categories</option>
+                <option value="Author">Author Contracts</option>
+                <option value="Ghostwriter">Ghostwriter Agreements</option>
+                <option value="Editor">Editor Agreements</option>
+                <option value="Cover Designer">Cover Designer Agreements</option>
+                <option value="Narrator">Narrator Contracts</option>
+                <option value="Formatting">Formatting Agreements</option>
+                <option value="Translation">Translation Agreements</option>
+                <option value="Affiliate">Affiliate Agreements</option>
+                <option value="Advertising">Advertising Agreements</option>
+                <option value="Co-Author">Co-Author Agreements</option>
+                <option value="Royalty">Royalty Split Agreements</option>
+                <option value="NDA">NDAs</option>
+                <option value="DMCA">DMCA Takedown Templates</option>
+              </select>
+            </div>
           </div>
           <p style="font-size:.8125rem;color:var(--text-muted);margin-bottom:.75rem">
-            Sample templates you can open, edit, and send directly from AuthorVAULT. Click <strong>View</strong> to open the template editor.
+            Sample templates you can open, edit, and send directly from AuthorVAULT. Use View &amp; Edit or Quick Use in the Actions column.
           </p>
-          <div class="table-scroll-wrap"><table class="data-table">
+          <div class="table-scroll-wrap"><table class="data-table contract-templates-table">
+            <colgroup>
+              <col class="col-template-name" />
+              <col class="col-template-category" />
+              <col class="col-template-updated" />
+              <col class="col-template-actions" />
+            </colgroup>
             <thead><tr><th>Template Name</th><th>Category</th><th>Last Updated</th><th>Actions</th></tr></thead>
             <tbody>
               @for(t of pageSlice('contractTemplates', filteredContractTemplates); track t.name) {
@@ -1318,9 +1547,11 @@
                   <td class="td-primary" [title]="cellTitle(t.name)">{{ t.name }}</td>
                   <td><span class="tag" [title]="cellTitle(t.category)">{{ t.category }}</span></td>
                   <td class="td-muted table-cell-text" [title]="cellTitle(t.updated)">{{ t.updated }}</td>
-                  <td style="display:flex;gap:.5rem;align-items:center">
-                    <button style="background:none;border:none;color:var(--accent-blue);cursor:pointer;font-size:.8125rem;font-family:inherit" (click)="viewContractTemplate(t)">View & Edit</button>
-                    <button style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:.8125rem;font-family:inherit" (click)="useContractTemplate(t)">Quick Use</button>
+                  <td class="actions-cell">
+                    <div class="row-actions">
+                      <button type="button" class="link-action" (click)="viewContractTemplate(t)">View &amp; Edit</button>
+                      <button type="button" class="link-action muted" (click)="useContractTemplate(t)">Quick Use</button>
+                    </div>
                   </td>
                 </tr>
               }
@@ -1364,10 +1595,10 @@
             <tbody>
               @for(row of pageSliceIndexed('financial', financialRecords); track row.index) {
                 <tr>
-                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('financial')" [title]="cellTitle(row.item.month)" [ngModel]="row.item.month" (ngModelChange)="patchFinancial(row.index, 'month', $event)" /></td>
-                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('financial')" [title]="cellTitle(row.item.revenue)" [ngModel]="row.item.revenue" (ngModelChange)="patchFinancial(row.index, 'revenue', $event)" /></td>
-                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('financial')" [title]="cellTitle(row.item.expenses)" [ngModel]="row.item.expenses" (ngModelChange)="patchFinancial(row.index, 'expenses', $event)" /></td>
-                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('financial')" [title]="cellTitle(row.item.net)" [ngModel]="row.item.net" (ngModelChange)="patchFinancial(row.index, 'net', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('financial')" [title]="cellTitle(row.item.month)" [ngModel]="row.item.month" (ngModelChange)="patchFinancial(row.index, 'month', $event)" placeholder="e.g. Jan 2026" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('financial')" [title]="cellTitle(row.item.revenue)" [ngModel]="row.item.revenue" (ngModelChange)="patchFinancial(row.index, 'revenue', $event)" placeholder="e.g. 12500" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('financial')" [title]="cellTitle(row.item.expenses)" [ngModel]="row.item.expenses" (ngModelChange)="patchFinancial(row.index, 'expenses', $event)" placeholder="e.g. 4200" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('financial')" [title]="cellTitle(row.item.net)" [ngModel]="row.item.net" (ngModelChange)="patchFinancial(row.index, 'net', $event)" placeholder="e.g. 8300" /></td>
                 </tr>
               }
             </tbody>
@@ -1422,41 +1653,69 @@
             <tbody>
               @for(row of pageSliceFilteredIndexed('financialDocs', filteredFinancialDocs, financialDocs); track row.index) {
                 <tr>
-                  <td class="td-primary file-name-cell" [class.clickable]="isCardEditing('financial')" [title]="cellTitle(row.item.fileName)" (click)="isCardEditing('financial') && downloadFile(row.item.fileName)">
-                    <svg class="inline-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
-                    </svg>
-                    {{ row.item.fileName }}
+                  <td class="td-primary" [title]="cellTitle(row.item.fileName)">
+                    @if (isCardEditing('financial')) {
+                      <input class="form-input table-cell-field" [ngModel]="row.item.fileName" (ngModelChange)="patchFinancialDoc(row.index, 'fileName', $event)" placeholder="e.g. Q1-PnL.pdf" />
+                    } @else if (row.item.fileName) {
+                      <span class="file-link" (click)="openAttachedFile(row.item.fileUrl, row.item.fileName)">{{ row.item.fileName }}</span>
+                    } @else {
+                      <span class="td-muted">—</span>
+                    }
                   </td>
-                  <td>
-                    <span class="tag financial-cat-tag" [title]="cellTitle(row.item.category)">
-                      @switch (normalizeFinancialCategory(row.item.category)) {
-                        @case ('P&L Reports') {
-                          <svg class="inline-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-                        }
-                        @case ('Receipts') {
-                          <svg class="inline-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                        }
-                        @case ('Invoices') {
-                          <svg class="inline-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
-                        }
-                        @default {
-                          <svg class="inline-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
-                        }
-                      }
-                      {{ normalizeFinancialCategory(row.item.category) }}
-                    </span>
-                  </td>
-                  <td [title]="cellTitle(row.item.month + ' ' + row.item.year)">{{ row.item.month }} {{ row.item.year }}</td>
-                  <td style="color:var(--text-muted)" [title]="cellTitle(row.item.fileSize)">{{ row.item.fileSize || 'N/A' }}</td>
-                  <td style="color:var(--text-muted)" [title]="cellTitle(row.item.uploadedDate)">{{ row.item.uploadedDate || 'N/A' }}</td>
-                  <td><app-status-select kind="financialDoc" [readOnly]="!isCardEditing('financial')" [value]="row.item.status" (valueChange)="patchFinancialDocStatus(row.item.fileName, $event)" /></td>
                   <td>
                     @if (isCardEditing('financial')) {
-                      <button style="background:none;border:none;color:var(--error);cursor:pointer;font-size:.8125rem" (click)="deleteFinancialDoc(row.item)">Delete</button>
+                      <select class="form-input table-cell-field" [ngModel]="normalizeFinancialCategory(row.item.category)" (ngModelChange)="patchFinancialDoc(row.index, 'category', $event)">
+                        <option value="">Select category…</option>
+                        @for (cat of financialCategories; track cat.id) {
+                          <option [value]="cat.id">{{ cat.label }}</option>
+                        }
+                      </select>
                     } @else {
-                      <span style="color:var(--text-muted);font-size:.75rem">—</span>
+                      <span class="tag financial-cat-tag" [title]="cellTitle(row.item.category)">{{ normalizeFinancialCategory(row.item.category) }}</span>
                     }
+                  </td>
+                  <td>
+                    @if (isCardEditing('financial')) {
+                      <div style="display:flex;gap:.35rem;min-width:140px">
+                        <input class="form-input table-cell-field" style="width:4.5rem" [ngModel]="row.item.month" (ngModelChange)="patchFinancialDoc(row.index, 'month', $event)" placeholder="Jan" />
+                        <input class="form-input table-cell-field" style="width:4.5rem" [ngModel]="row.item.year" (ngModelChange)="patchFinancialDoc(row.index, 'year', $event)" placeholder="2026" />
+                      </div>
+                    } @else {
+                      <span [title]="cellTitle(row.item.month + ' ' + row.item.year)">{{ row.item.month }} {{ row.item.year }}</span>
+                    }
+                  </td>
+                  <td>
+                    @if (isCardEditing('financial')) {
+                      <input class="form-input table-cell-field" [ngModel]="row.item.fileSize || ''" (ngModelChange)="patchFinancialDoc(row.index, 'fileSize', $event)" placeholder="e.g. 240 KB" />
+                    } @else {
+                      <span style="color:var(--text-muted)" [title]="cellTitle(row.item.fileSize)">{{ row.item.fileSize || 'N/A' }}</span>
+                    }
+                  </td>
+                  <td>
+                    @if (isCardEditing('financial')) {
+                      <input type="date" class="form-input table-cell-field" [ngModel]="row.item.uploadedDate || ''" (ngModelChange)="patchFinancialDoc(row.index, 'uploadedDate', $event)" />
+                    } @else {
+                      <span style="color:var(--text-muted)" [title]="cellTitle(row.item.uploadedDate)">{{ row.item.uploadedDate || 'N/A' }}</span>
+                    }
+                  </td>
+                  <td><app-status-select kind="financialDoc" [readOnly]="!isCardEditing('financial')" [value]="row.item.status" (valueChange)="patchFinancialDoc(row.index, 'status', $event)" /></td>
+                  <td>
+                    <div class="file-attach-row">
+                      @if (row.item.fileUrl || row.item.fileName) {
+                        <button type="button" class="file-download-btn" title="Open / download" (click)="openAttachedFile(row.item.fileUrl, row.item.fileName)">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                          </svg>
+                        </button>
+                      }
+                      @if (isCardEditing('financial')) {
+                        <label class="row-upload-btn" title="Replace file">
+                          {{ row.item.fileName ? 'Replace' : 'Attach' }}
+                          <input type="file" hidden accept=".pdf,.xlsx,.csv,.png,.jpg,.jpeg" (change)="onFinancialRowUpload($event, row.index)" />
+                        </label>
+                        <button type="button" style="background:none;border:none;color:var(--error);cursor:pointer;font-size:.8125rem" (click)="deleteFinancialDoc(row.item)">Delete</button>
+                      }
+                    </div>
                   </td>
                 </tr>
               }
@@ -1500,12 +1759,12 @@
             <tbody>
               @for(row of pageSliceFilteredIndexed('team', filteredTeamMembers, teamMembers); track row.index) {
                 <tr>
-                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('team')" [title]="cellTitle(row.item.name)" [ngModel]="row.item.name" (ngModelChange)="patchTeam(row.index, 'name', $event)" /></td>
-                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('team')" [title]="cellTitle(row.item.role)" [ngModel]="row.item.role" (ngModelChange)="patchTeam(row.index, 'role', $event)" /></td>
-                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('team')" [title]="cellTitle(row.item.company)" [ngModel]="row.item.company" (ngModelChange)="patchTeam(row.index, 'company', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('team')" [title]="cellTitle(row.item.name)" [ngModel]="row.item.name" (ngModelChange)="patchTeam(row.index, 'name', $event)" placeholder="Enter name" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('team')" [title]="cellTitle(row.item.role)" [ngModel]="row.item.role" (ngModelChange)="patchTeam(row.index, 'role', $event)" placeholder="Enter role" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('team')" [title]="cellTitle(row.item.company)" [ngModel]="row.item.company" (ngModelChange)="patchTeam(row.index, 'company', $event)" placeholder="e.g. Freelancer / Agency" /></td>
                   <td>
                     <div style="display:flex;align-items:center;gap:.35rem">
-                      <input class="form-input table-cell-field" style="flex:1" [disabled]="!isCardEditing('team')" [title]="cellTitle(row.item.email)" [ngModel]="row.item.email" (ngModelChange)="patchTeam(row.index, 'email', $event)" />
+                      <input class="form-input table-cell-field" style="flex:1" [disabled]="!isCardEditing('team')" [title]="cellTitle(row.item.email)" [ngModel]="row.item.email" (ngModelChange)="patchTeam(row.index, 'email', $event)" placeholder="e.g. name@example.com" />
                       @if (row.item.email) {
                         <a [href]="scEmailHref(row.item.email)" target="_blank" rel="noopener noreferrer" title="Open in SC Email" style="color:var(--accent-blue);flex-shrink:0">
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
@@ -1513,9 +1772,9 @@
                       }
                     </div>
                   </td>
-                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('team')" [title]="cellTitle(row.item.phone)" [ngModel]="row.item.phone" (ngModelChange)="patchTeam(row.index, 'phone', $event)" /></td>
-                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('team')" [title]="cellTitle(row.item.contractDate)" [ngModel]="row.item.contractDate" (ngModelChange)="patchTeam(row.index, 'contractDate', $event)" /></td>
-                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('team')" [title]="cellTitle(row.item.rate)" [ngModel]="row.item.rate" (ngModelChange)="patchTeam(row.index, 'rate', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('team')" [title]="cellTitle(row.item.phone)" [ngModel]="row.item.phone" (ngModelChange)="patchTeam(row.index, 'phone', $event)" placeholder="e.g. +1 555 123 4567" /></td>
+                  <td><input type="date" class="form-input table-cell-field" [disabled]="!isCardEditing('team')" [title]="cellTitle(row.item.contractDate)" [ngModel]="formatDateInput(row.item.contractDate)" (ngModelChange)="patchTeam(row.index, 'contractDate', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('team')" [title]="cellTitle(row.item.rate)" [ngModel]="row.item.rate" (ngModelChange)="patchTeam(row.index, 'rate', $event)" placeholder="e.g. Rate / fee" /></td>
                 </tr>
               }
             </tbody>
@@ -1558,13 +1817,13 @@
             <tbody>
               @for(row of pageSliceIndexed('domains', domainRecords); track row.index) {
                 <tr>
-                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('domains')" [title]="cellTitle(row.item.domain)" [ngModel]="row.item.domain" (ngModelChange)="patchDomain(row.index, 'domain', $event)" /></td>
-                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('domains')" [title]="cellTitle(row.item.registrar)" [ngModel]="row.item.registrar" (ngModelChange)="patchDomain(row.index, 'registrar', $event)" /></td>
-                  <td><input class="form-input table-cell-field" type="date" [disabled]="!isCardEditing('domains')" [title]="cellTitle(row.item.renewal)" [ngModel]="row.item.renewal" (ngModelChange)="patchDomain(row.index, 'renewal', $event)" /></td>
-                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('domains')" [title]="cellTitle(row.item.host)" [ngModel]="row.item.host" (ngModelChange)="patchDomain(row.index, 'host', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('domains')" [title]="cellTitle(row.item.domain)" [ngModel]="row.item.domain" (ngModelChange)="patchDomain(row.index, 'domain', $event)" placeholder="e.g. example.com" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('domains')" [title]="cellTitle(row.item.registrar)" [ngModel]="row.item.registrar" (ngModelChange)="patchDomain(row.index, 'registrar', $event)" placeholder="e.g. GoDaddy" /></td>
+                  <td><input class="form-input table-cell-field" type="date" [disabled]="!isCardEditing('domains')" [title]="cellTitle(row.item.renewal)" [ngModel]="row.item.renewal" (ngModelChange)="patchDomain(row.index, 'renewal', $event)" placeholder="YYYY-MM-DD" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('domains')" [title]="cellTitle(row.item.host)" [ngModel]="row.item.host" (ngModelChange)="patchDomain(row.index, 'host', $event)" placeholder="e.g. Cloudflare / AWS" /></td>
                   <td><app-status-select kind="ssl" [readOnly]="!isCardEditing('domains')" [value]="row.item.ssl || 'not configured'" (valueChange)="patchDomain(row.index, 'ssl', $event)" /></td>
-                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('domains')" [title]="cellTitle(row.item.cms)" [ngModel]="row.item.cms" (ngModelChange)="patchDomain(row.index, 'cms', $event)" /></td>
-                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('domains')" [title]="cellTitle(row.item.contact)" [ngModel]="row.item.contact" (ngModelChange)="patchDomain(row.index, 'contact', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('domains')" [title]="cellTitle(row.item.cms)" [ngModel]="row.item.cms" (ngModelChange)="patchDomain(row.index, 'cms', $event)" placeholder="e.g. WordPress" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('domains')" [title]="cellTitle(row.item.contact)" [ngModel]="row.item.contact" (ngModelChange)="patchDomain(row.index, 'contact', $event)" placeholder="Admin contact" /></td>
                 </tr>
               }
             </tbody>
@@ -1578,12 +1837,24 @@
             (addRow)="addDomainRow()" />
         </div>
         <div class="card">
-          <h3 class="section-title">DNS & Technical Notes</h3>
+          <div class="card-header-row">
+            <h3 class="section-title" style="margin:0">DNS & Technical Notes</h3>
+            <div class="box-actions">
+              <button type="button" class="box-action-btn edit" [class.active]="isCardEditing('domains')" (click)="toggleCardEdit('domains')">
+                {{ isCardEditing('domains') ? 'Save' : 'Edit' }}
+              </button>
+            </div>
+          </div>
           @for(d of domainRecords; track $index; let i = $index) {
             <div class="record-card">
-              <div class="record-header"><h4 class="record-title">{{ d.domain }}</h4></div>
-              <app-editable-field [readOnly]="!isCardEditing('domains')" label="DNS Notes" [value]="d.dns" (valueChange)="patchDomain(i, 'dns', $event)" [full]="true" />
+              <div class="record-header"><h4 class="record-title">{{ d.domain || 'Untitled domain' }}</h4></div>
+              <div class="form-grid">
+                <app-editable-field [readOnly]="!isCardEditing('domains')" label="DNS Notes" [value]="d.dns" (valueChange)="patchDomain(i, 'dns', $event)" [full]="true" />
+                <app-editable-field [readOnly]="!isCardEditing('domains')" label="Technical Notes" [value]="d.technicalNotes || ''" (valueChange)="patchDomain(i, 'technicalNotes', $event)" [full]="true" placeholder="Hosting setup, CDN, redirects, SSL quirks, etc." />
+              </div>
             </div>
+          } @empty {
+            <p class="empty-table-hint" style="padding:1rem;color:var(--text-muted)">Add a domain above to record DNS and technical notes.</p>
           }
         </div>
       }
@@ -1695,8 +1966,27 @@
           </div>
         </div>
         <div class="card">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+          <div class="card-header-row">
             <h3 class="section-title" style="margin:0">Automations & Opt-in Sources</h3>
+            <div class="box-actions">
+              <button type="button" class="box-action-btn edit" [class.active]="isCardEditing('automations')" (click)="toggleCardEdit('automations')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                  @if (isCardEditing('automations')) { <polyline points="20 6 9 17 4 12"/> }
+                  @else { <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/> }
+                </svg>
+                {{ isCardEditing('automations') ? 'Save' : 'Edit' }}
+              </button>
+              <button type="button" class="box-action-btn load" (click)="triggerCSVImport('automations')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                Load
+              </button>
+              <button type="button" class="box-action-btn delete" (click)="deleteBoxDetails('automations')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                Delete
+              </button>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:flex-end;margin-bottom:.75rem">
             <select [(ngModel)]="commsAutomationFilter" style="padding:.35rem .6rem;border:1px solid var(--border-color);border-radius:6px;background:var(--background);color:var(--text-secondary);font-size:.8125rem;font-family:inherit">
               <option value="">All Types</option>
               <option value="Welcome">Welcome Sequences</option>
@@ -1708,36 +1998,50 @@
               <option value="Ads">Ad Opt-ins</option>
             </select>
           </div>
-          <div class="tag-row">
-            <span class="tag tag-with-icon" [hidden]="commsAutomationFilter && commsAutomationFilter !== 'Welcome'">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-              Welcome Sequence
-            </span>
-            <span class="tag tag-with-icon" [hidden]="commsAutomationFilter && commsAutomationFilter !== 'Funnel'">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-              Reader Magnet Funnel
-            </span>
-            <span class="tag tag-with-icon" [hidden]="commsAutomationFilter && commsAutomationFilter !== 'Launch'">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>
-              Launch Sequence
-            </span>
-            <span class="tag tag-with-icon" [hidden]="commsAutomationFilter && commsAutomationFilter !== 'Re-engagement'">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-              Re-engagement Series
-            </span>
-            <span class="tag tag-with-icon" [hidden]="commsAutomationFilter && commsAutomationFilter !== 'Opt-in'">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-              Website Opt-in Form
-            </span>
-            <span class="tag tag-with-icon" [hidden]="commsAutomationFilter && commsAutomationFilter !== 'Delivery'">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
-              BookFunnel Delivery
-            </span>
-            <span class="tag tag-with-icon" [hidden]="commsAutomationFilter && commsAutomationFilter !== 'Ads'">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-              Facebook Lead Ads
-            </span>
-          </div>
+          <p class="section-subtitle">Track email sequences, opt-in forms, and delivery automations. Click Edit, then Add Row.</p>
+          <div class="table-scroll-wrap"><table class="data-table">
+            <thead><tr><th>Name</th><th>Type</th><th>Platform</th><th>Status</th><th>Notes</th>@if (isCardEditing('automations')) { <th></th> }</tr></thead>
+            <tbody>
+              @for (row of pageSliceFilteredIndexed('automations', filteredAutomations, automations); track row.index) {
+                <tr>
+                  @if (isCardEditing('automations')) {
+                    <td><input class="form-input table-cell-field" [ngModel]="row.item.name" (ngModelChange)="patchAutomation(row.index, 'name', $event)" placeholder="e.g. Welcome Sequence" /></td>
+                    <td>
+                      <select class="form-input table-cell-field" [ngModel]="row.item.type" (ngModelChange)="patchAutomation(row.index, 'type', $event)">
+                        <option value="Welcome">Welcome</option>
+                        <option value="Funnel">Funnel</option>
+                        <option value="Launch">Launch</option>
+                        <option value="Re-engagement">Re-engagement</option>
+                        <option value="Opt-in">Opt-in</option>
+                        <option value="Delivery">Delivery</option>
+                        <option value="Ads">Ads</option>
+                      </select>
+                    </td>
+                    <td><input class="form-input table-cell-field" [ngModel]="row.item.platform" (ngModelChange)="patchAutomation(row.index, 'platform', $event)" placeholder="e.g. MailerLite" /></td>
+                    <td><input class="form-input table-cell-field" [ngModel]="row.item.status" (ngModelChange)="patchAutomation(row.index, 'status', $event)" placeholder="e.g. Active" /></td>
+                    <td><input class="form-input table-cell-field" [ngModel]="row.item.notes" (ngModelChange)="patchAutomation(row.index, 'notes', $event)" placeholder="notes" /></td>
+                    <td><button type="button" class="row-upload-btn" (click)="removeAutomation(row.index)">Delete</button></td>
+                  } @else {
+                    <td class="td-primary" [title]="cellTitle(row.item.name)">{{ row.item.name || '—' }}</td>
+                    <td><span class="tag">{{ row.item.type || '—' }}</span></td>
+                    <td [title]="cellTitle(row.item.platform)">{{ row.item.platform || '—' }}</td>
+                    <td [title]="cellTitle(row.item.status)">{{ row.item.status || '—' }}</td>
+                    <td class="table-cell-text" [title]="cellTitle(row.item.notes)">{{ row.item.notes || '—' }}</td>
+                  }
+                </tr>
+              } @empty {
+                <tr><td [attr.colspan]="isCardEditing('automations') ? 6 : 5" class="empty-table-hint">No automations yet. Click <strong>Edit</strong>, then <strong>+ Add Row</strong>.</td></tr>
+              }
+            </tbody>
+          </table></div>
+          <app-vault-table-footer
+            [totalItems]="filteredAutomations.length"
+            [page]="tablePage('automations')"
+            [pageSize]="TABLE_PAGE_SIZE"
+            [editMode]="isCardEditing('automations')"
+            [allowAdd]="true"
+            (pageChange)="setTablePage('automations', $event)"
+            (addRow)="addAutomation()" />
         </div>
       }
 
@@ -1769,12 +2073,12 @@
             <tbody>
               @for(row of pageSliceIndexed('inventory', inventoryItems); track row.index) {
                 <tr>
-                  <td><input class="form-input table-cell-field" style="font-family:monospace" [disabled]="!isCardEditing('inventory')" [title]="cellTitle(row.item.sku)" [ngModel]="row.item.sku" (ngModelChange)="patchInventory(row.index, 'sku', $event)" /></td>
-                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('inventory')" [title]="cellTitle(row.item.title)" [ngModel]="row.item.title" (ngModelChange)="patchInventory(row.index, 'title', $event)" /></td>
-                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('inventory')" [title]="cellTitle(row.item.format)" [ngModel]="row.item.format" (ngModelChange)="patchInventory(row.index, 'format', $event)" /></td>
-                  <td><input class="form-input table-cell-field" type="number" [disabled]="!isCardEditing('inventory')" [title]="cellTitle(row.item.stock)" [ngModel]="row.item.stock" (ngModelChange)="patchInventory(row.index, 'stock', +$event)" /></td>
-                  <td><input class="form-input table-cell-field" type="number" [disabled]="!isCardEditing('inventory')" [title]="cellTitle(row.item.reorderPoint)" [ngModel]="row.item.reorderPoint" (ngModelChange)="patchInventory(row.index, 'reorderPoint', +$event)" /></td>
-                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('inventory')" [title]="cellTitle(row.item.printer)" [ngModel]="row.item.printer" (ngModelChange)="patchInventory(row.index, 'printer', $event)" /></td>
+                  <td><input class="form-input table-cell-field" style="font-family:monospace" [disabled]="!isCardEditing('inventory')" [title]="cellTitle(row.item.sku)" [ngModel]="row.item.sku" (ngModelChange)="patchInventory(row.index, 'sku', $event)" placeholder="e.g. SKU-001" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('inventory')" [title]="cellTitle(row.item.title)" [ngModel]="row.item.title" (ngModelChange)="patchInventory(row.index, 'title', $event)" placeholder="Enter title" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('inventory')" [title]="cellTitle(row.item.format)" [ngModel]="row.item.format" (ngModelChange)="patchInventory(row.index, 'format', $event)" placeholder="e.g. Paperback" /></td>
+                  <td><input class="form-input table-cell-field" type="number" [disabled]="!isCardEditing('inventory')" [title]="cellTitle(row.item.stock)" [ngModel]="row.item.stock" (ngModelChange)="patchInventory(row.index, 'stock', +$event)" placeholder="e.g. 100" /></td>
+                  <td><input class="form-input table-cell-field" type="number" [disabled]="!isCardEditing('inventory')" [title]="cellTitle(row.item.reorderPoint)" [ngModel]="row.item.reorderPoint" (ngModelChange)="patchInventory(row.index, 'reorderPoint', +$event)" placeholder="e.g. 25" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('inventory')" [title]="cellTitle(row.item.printer)" [ngModel]="row.item.printer" (ngModelChange)="patchInventory(row.index, 'printer', $event)" placeholder="e.g. IngramSpark" /></td>
                 </tr>
               }
             </tbody>
@@ -1828,11 +2132,11 @@
             <tbody>
               @for(row of pageSliceIndexed('security', securityEntries); track row.index) {
                 <tr>
-                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('security')" [title]="cellTitle(row.item.resource)" [ngModel]="row.item.resource" (ngModelChange)="patchSecurity(row.index, 'resource', $event)" /></td>
-                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('security')" [title]="cellTitle(row.item.owner)" [ngModel]="row.item.owner" (ngModelChange)="patchSecurity(row.index, 'owner', $event)" /></td>
-                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('security')" [title]="cellTitle(row.item.accessLevel)" [ngModel]="row.item.accessLevel" (ngModelChange)="patchSecurity(row.index, 'accessLevel', $event)" /></td>
-                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('security')" [title]="cellTitle(row.item.twoFa)" [ngModel]="row.item.twoFa" (ngModelChange)="patchSecurity(row.index, 'twoFa', $event)" /></td>
-                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('security')" [title]="cellTitle(row.item.recoveryEmail)" [ngModel]="row.item.recoveryEmail" (ngModelChange)="patchSecurity(row.index, 'recoveryEmail', $event)" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('security')" [title]="cellTitle(row.item.resource)" [ngModel]="row.item.resource" (ngModelChange)="patchSecurity(row.index, 'resource', $event)" placeholder="e.g. Amazon KDP login" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('security')" [title]="cellTitle(row.item.owner)" [ngModel]="row.item.owner" (ngModelChange)="patchSecurity(row.index, 'owner', $event)" placeholder="e.g. Jane Doe" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('security')" [title]="cellTitle(row.item.accessLevel)" [ngModel]="row.item.accessLevel" (ngModelChange)="patchSecurity(row.index, 'accessLevel', $event)" placeholder="e.g. Admin / Read-only" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('security')" [title]="cellTitle(row.item.twoFa)" [ngModel]="row.item.twoFa" (ngModelChange)="patchSecurity(row.index, 'twoFa', $event)" placeholder="e.g. Authy on iPhone" /></td>
+                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('security')" [title]="cellTitle(row.item.recoveryEmail)" [ngModel]="row.item.recoveryEmail" (ngModelChange)="patchSecurity(row.index, 'recoveryEmail', $event)" placeholder="e.g. recovery@example.com" /></td>
                   <td>
                     @if (isCardEditing('security')) {
                       <textarea class="form-input security-notes-input table-cell-field" rows="4" [title]="cellTitle(row.item.notes)" [ngModel]="row.item.notes" (ngModelChange)="patchSecurity(row.index, 'notes', $event)" placeholder="Login details, backup codes, access notes…"></textarea>
@@ -1858,10 +2162,29 @@
             (addRow)="addSecurityEntry()" />
         </div>
         <div class="card">
-          <h3 class="section-title">Emergency Access & Offboarding</h3>
+          <div class="card-header-row">
+            <h3 class="section-title" style="margin:0">Emergency Access & Offboarding</h3>
+            <div class="box-actions">
+              <button type="button" class="box-action-btn edit" [class.active]="isCardEditing('security_notes')" (click)="toggleCardEdit('security_notes')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                  @if (isCardEditing('security_notes')) { <polyline points="20 6 9 17 4 12"/> }
+                  @else { <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/> }
+                </svg>
+                {{ isCardEditing('security_notes') ? 'Save' : 'Edit' }}
+              </button>
+              <button type="button" class="box-action-btn load" (click)="triggerCSVImport('security_notes')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                Load
+              </button>
+              <button type="button" class="box-action-btn delete" (click)="deleteBoxDetails('security_notes')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                Delete
+              </button>
+            </div>
+          </div>
           <div class="form-grid">
-            <app-editable-field [readOnly]="!isCardEditing('security')" label="Emergency Access Instructions" type="textarea" [rows]="8" [value]="securityNotes.emergencyAccess" (valueChange)="patchSecurityNotes('emergencyAccess', $event)" [full]="true" />
-            <app-editable-field [readOnly]="!isCardEditing('security')" label="Contractor Offboarding Steps" type="textarea" [rows]="8" [value]="securityNotes.offboardingSteps" (valueChange)="patchSecurityNotes('offboardingSteps', $event)" [full]="true" />
+            <app-editable-field [readOnly]="!isCardEditing('security') && !isCardEditing('security_notes')" label="Emergency Access Instructions" type="textarea" [rows]="8" [value]="securityNotes.emergencyAccess" (valueChange)="patchSecurityNotes('emergencyAccess', $event)" [full]="true" />
+            <app-editable-field [readOnly]="!isCardEditing('security') && !isCardEditing('security_notes')" label="Contractor Offboarding Steps" type="textarea" [rows]="8" [value]="securityNotes.offboardingSteps" (valueChange)="patchSecurityNotes('offboardingSteps', $event)" [full]="true" />
           </div>
         </div>
       }
@@ -1871,11 +2194,17 @@
         <div class="card">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
             <h3 class="section-title" style="margin:0">Company Logos</h3>
-            <label class="btn-primary btn-sm" style="cursor:pointer">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-              Upload Logo
-              <input type="file" hidden accept=".png,.svg,.pdf,.eps,.ai,.jpg" (change)="onLogoUpload($event)" />
-            </label>
+            <div style="display:flex;gap:.5rem;align-items:center">
+              <button class="btn-primary btn-sm" (click)="openCanvaImportModal()" style="cursor:pointer;background:linear-gradient(135deg,#7d2ae8 0%,#00c4cc 100%) !important;border:none;box-shadow:0 2px 4px rgba(125,42,232,0.2);display:inline-flex;align-items:center;gap:.35rem">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                Import from Canva
+              </button>
+              <label class="btn-primary btn-sm" style="cursor:pointer">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                Upload Logo
+                <input type="file" hidden accept=".png,.svg,.pdf,.eps,.ai,.jpg" (change)="onLogoUpload($event)" />
+              </label>
+            </div>
           </div>
           <p style="font-size:.8125rem;color:var(--text-muted);margin-bottom:.875rem">Upload your logo in every format — PNG, SVG, EPS, PDF. Click a logo card to replace its file.</p>
 
@@ -1900,10 +2229,9 @@
             @for(logo of filteredLogos; track $index; let i = $index) {
               <div class="entity-card" style="position:relative">
                 <label style="cursor:pointer;display:block" title="Click to replace this logo file">
-                  <div style="width:100%;height:80px;background:{{ logo.bg }};border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:.75rem;position:relative;overflow:hidden">
-                    @if (logo.dataUrl) {
-                      <div [innerHTML]="logo.dataUrl.startsWith('data:image/svg+xml') ? decodeSvg(logo.dataUrl) : ''" *ngIf="logo.dataUrl.startsWith('data:image/svg+xml')" style="width:100%;height:100%"></div>
-                      <img [src]="logo.dataUrl" *ngIf="!logo.dataUrl.startsWith('data:image/svg+xml')" style="max-width:100%;max-height:100%;object-fit:contain" alt="{{ logo.name }}" />
+                  <div style="width:100%;height:120px;background:{{ logo.bg }};border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:.75rem;position:relative;overflow:hidden">
+                    @if (logoDisplayUrl(logo)) {
+                      <img [src]="logoDisplayUrl(logo)" style="max-width:100%;max-height:100%;object-fit:contain" [alt]="logo.name" />
                     } @else {
                       <span style="font-size:2rem">🏢</span>
                     }
@@ -1911,18 +2239,22 @@
                       <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" width="24" height="24" style="opacity:0;transition:opacity .2s"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                     </div>
                   </div>
-                  <input type="file" hidden accept=".png,.svg,.pdf,.eps,.ai,.jpg" (change)="onLogoFileReplace($event, i)" />
+                  <input type="file" hidden accept=".png,.svg,.pdf,.eps,.ai,.jpg" (change)="onLogoFileReplace($event, logoIndex(logo))" />
                 </label>
-                <input class="form-input" style="margin-bottom:.35rem;font-weight:600" [ngModel]="logo.name" (ngModelChange)="patchLogo(i, 'name', $event)" placeholder="Logo name" />
-                <input class="form-input" style="margin-bottom:.25rem;font-size:.75rem" [ngModel]="logo.format" (ngModelChange)="patchLogo(i, 'format', $event)" placeholder="Format (e.g. Horizontal)" />
-                <input class="form-input" style="margin-bottom:.25rem;font-size:.75rem" [ngModel]="logo.dimensions" (ngModelChange)="patchLogo(i, 'dimensions', $event)" placeholder="Dimensions" />
+                <input class="form-input" style="margin-bottom:.35rem;font-weight:600" [ngModel]="logo.name" (ngModelChange)="patchLogo(logoIndex(logo), 'name', $event)" placeholder="Logo name" />
+                <input class="form-input" style="margin-bottom:.25rem;font-size:.75rem" [ngModel]="logo.format" (ngModelChange)="patchLogo(logoIndex(logo), 'format', $event)" placeholder="Format (e.g. Horizontal)" />
+                <input class="form-input" style="margin-bottom:.25rem;font-size:.75rem" [ngModel]="logo.dimensions" (ngModelChange)="patchLogo(logoIndex(logo), 'dimensions', $event)" placeholder="Dimensions" />
                 <div class="tag-row" style="margin-top:.5rem">
                   <span class="tag">{{ logo.format }}</span>
                   <span class="tag">{{ logo.fileType }}</span>
                 </div>
                 <div style="display:flex;justify-content:space-between;margin-top:.75rem;align-items:center">
-                  <button class="row-upload-btn" (click)="downloadLogo(logo)" style="color:var(--accent-blue)">⬇ Download</button>
-                  <button style="background:none;border:none;color:var(--error);font-size:.75rem;cursor:pointer" (click)="deleteLogo(i)">Delete</button>
+                  <button type="button" class="file-download-btn" title="Download logo" (click)="downloadLogo(logo)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                  </button>
+                  <button style="background:none;border:none;color:var(--error);font-size:.75rem;cursor:pointer" (click)="deleteLogo(logoIndex(logo))">Delete</button>
                 </div>
               </div>
             }
@@ -1937,6 +2269,74 @@
             </label>
           </div>
         </div>
+
+        <!-- ═══ CANVA LINK IMPORTER MODAL ═══ -->
+        @if (canvaImportModalOpen()) {
+          <div style="position:fixed;inset:0;background:rgba(15,23,42,0.75);backdrop-filter:blur(8px);z-index:99999;display:flex;align-items:center;justify-content:center;padding:1.5rem">
+            <div style="background:var(--surface);border:1px solid rgba(255,255,255,0.08);border-radius:20px;width:550px;max-width:100%;box-shadow:var(--shadow-2xl);display:flex;flex-direction:column;overflow:hidden;animation:fadeInModal 0.25s ease-out">
+              
+              <!-- Header -->
+              <div style="padding:1.25rem 1.5rem;border-bottom:1px solid var(--border-light);display:flex;justify-content:space-between;align-items:center;background:linear-gradient(90deg, rgba(125,42,232,0.08) 0%, rgba(0,196,204,0.08) 100%)">
+                <div style="display:flex;align-items:center;gap:.75rem">
+                  <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#7d2ae8 0%,#00c4cc 100%);display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;font-size:1.1rem">C</div>
+                  <div>
+                    <h2 style="font-size:1.1rem;font-weight:700;margin:0;color:var(--text-primary)">Import from Canva</h2>
+                    <p style="font-size:.75rem;color:var(--text-muted);margin:0">Import your design straight from Canva.com</p>
+                  </div>
+                </div>
+                <button (click)="closeCanvaImportModal()" style="background:none;border:none;color:var(--text-muted);font-size:1.25rem;cursor:pointer;padding:.25rem">✕</button>
+              </div>
+
+              <!-- Body -->
+              <div style="padding:1.75rem 1.5rem;display:flex;flex-direction:column;gap:1.25rem">
+                @if (!isImporting()) {
+                  <div>
+                    <label style="font-size:.8125rem;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:.5rem">Canva Design Share Link or Direct Image URL</label>
+                    <input type="text" [(ngModel)]="canvaLinkInput" style="width:100%;padding:.65rem .85rem;border:1.5px solid var(--border-color);border-radius:10px;background:var(--background);color:var(--text-primary);font-size:.875rem;font-family:inherit;box-sizing:border-box" placeholder="https://www.canva.com/design/DA.../view">
+                  </div>
+
+                  <div style="background:var(--background);border:1px solid var(--border-light);border-radius:12px;padding:1rem;font-size:.8125rem;color:var(--text-secondary)">
+                    <div style="font-weight:600;color:var(--text-primary);margin-bottom:.5rem;display:flex;align-items:center;gap:.35rem">
+                      <span>💡</span> How to get your link from Canva:
+                    </div>
+                    <ol style="margin:0;padding-left:1.25rem;line-height:1.6;color:var(--text-muted)">
+                      <li>Open your design on <a href="https://canva.com" target="_blank" style="color:var(--accent-blue);text-decoration:underline">Canva.com</a></li>
+                      <li>Click <strong>Share</strong> → turn on <strong>Anyone with the link</strong></li>
+                      <li>Copy the share / view link (…/design/…/view) and paste it here</li>
+                      <li>If import fails, use <strong>Download</strong> in Canva → PNG/JPG, then paste that file’s image URL or upload the file</li>
+                    </ol>
+                  </div>
+                } @else {
+                  <!-- Loading/Importing Animation State -->
+                  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1.5rem 0;text-align:center">
+                    <div style="position:relative;width:80px;height:80px;margin-bottom:1.25rem;display:flex;align-items:center;justify-content:center">
+                      <!-- Pulsing gradient ring -->
+                      <div style="position:absolute;inset:0;border-radius:50%;border:4px solid transparent;border-top-color:#7d2ae8;border-bottom-color:#00c4cc;animation:spin 1s linear infinite"></div>
+                      <span style="font-size:2rem">📥</span>
+                    </div>
+
+                    <h3 style="font-size:1rem;font-weight:700;color:var(--text-primary);margin:0 0 .5rem">{{ importStatus() }}</h3>
+                    
+                    <!-- Progress Bar -->
+                    <div style="width:100%;max-width:320px;height:6px;background:var(--border-light);border-radius:4px;overflow:hidden;margin-bottom:.5rem">
+                      <div [style.width.%]="importProgress()" style="height:100%;background:linear-gradient(90deg,#7d2ae8 0%,#00c4cc 100%);border-radius:4px;transition:width 0.3s ease-out"></div>
+                    </div>
+                    <span style="font-size:.75rem;color:var(--text-muted)">{{ importProgress() }}% Complete</span>
+                  </div>
+                }
+              </div>
+
+              <!-- Footer -->
+              @if (!isImporting()) {
+                <div style="padding:1.25rem 1.5rem;border-top:1px solid var(--border-light);background:var(--background);display:flex;justify-content:flex-end;gap:.75rem">
+                  <button (click)="closeCanvaImportModal()" style="padding:.6rem 1.2rem;background:var(--surface);border:1.5px solid var(--border-color);border-radius:10px;font-size:.875rem;font-weight:600;cursor:pointer;color:var(--text-secondary);font-family:inherit">Cancel</button>
+                  <button (click)="startCanvaImport()" style="padding:.6rem 1.4rem;background:linear-gradient(135deg,#7d2ae8 0%,#00c4cc 100%);color:white;border:none;border-radius:10px;font-size:.875rem;font-weight:700;cursor:pointer;box-shadow:0 3px 6px rgba(125,42,232,0.2);font-family:inherit">Import Logo</button>
+                </div>
+              }
+
+            </div>
+          </div>
+        }
       }
 
       <!-- ── SOPs ── -->
@@ -2055,7 +2455,7 @@
         <button class="btn-secondary btn-sm" (click)="closeContractModal()">Cancel</button>
         <button class="btn-primary btn-sm" (click)="saveEditedContract()">Save to Contracts</button>
         <a [href]="scEmailHrefWithPrefill(contractEmailTo, contractEmailSubject, contractEditText)" target="_blank" rel="noopener noreferrer" class="btn-primary btn-sm" style="text-decoration:none">
-          📧 Send via SC Email
+          Send via SC Email
         </a>
       </div>
     </div>

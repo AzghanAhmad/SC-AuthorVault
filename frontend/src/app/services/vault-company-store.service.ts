@@ -67,6 +67,8 @@ export interface VaultTaxDoc {
   year: string;
   status: string;
   fileName?: string;
+  fileUrl?: string;
+  fileId?: number;
 }
 
 export interface VaultIsbnRecord {
@@ -82,6 +84,15 @@ export interface VaultIsbnRecord {
   status: 'used' | 'unused' | 'reserved';
 }
 
+export interface VaultIsbnBlock {
+  imprintName: string;
+  isbnPrefix: string;
+  isbnBlockPurchased: string;
+  isbnBlockCount: string;
+  isbnsAssigned: string;
+  isbnsRemaining: string;
+}
+
 export interface VaultContractRecord {
   name: string;
   counterparty: string;
@@ -89,6 +100,8 @@ export interface VaultContractRecord {
   type: string;
   status: string;
   file: string;
+  fileUrl?: string;
+  fileId?: number;
 }
 
 export interface VaultFinancialRecord {
@@ -104,6 +117,7 @@ export interface VaultDomainRecord {
   renewal: string;
   host: string;
   dns: string;
+  technicalNotes?: string;
   ssl: string;
   cms: string;
   contact: string;
@@ -135,6 +149,9 @@ export interface VaultLogo {
   uploaded: string;
   bg: string;
   dataUrl?: string;
+  /** Server-stored or remote URL used for display/download when not a data URL. */
+  sourceUrl?: string;
+  fileId?: number;
 }
 
 export interface VaultSopTemplate {
@@ -166,6 +183,14 @@ export interface VaultCommunications {
   smtpPassword: string;
 }
 
+export interface VaultAutomation {
+  name: string;
+  type: string;
+  platform: string;
+  status: string;
+  notes: string;
+}
+
 export interface VaultInventoryFulfillment {
   fulfillmentPartner: string;
   shippingAccount: string;
@@ -180,9 +205,13 @@ export interface VaultSecurityNotes {
 
 export interface VaultTaxRegistrations {
   einConfirmation: string;
+  einConfirmationUrl?: string;
+  einConfirmationFileId?: number;
   salesTaxRegistrations: string;
   vatGst: string;
   resaleCertificates: string;
+  resaleCertificatesUrl?: string;
+  resaleCertificatesFileId?: number;
 }
 
 export interface VaultFinancialDoc {
@@ -193,6 +222,8 @@ export interface VaultFinancialDoc {
   status: string;
   fileSize?: string;
   uploadedDate?: string;
+  fileUrl?: string;
+  fileId?: number;
 }
 
 export interface VaultCopyrightOffice {
@@ -227,6 +258,7 @@ export class VaultCompanyStoreService {
   readonly paymentPlatforms = signal<VaultPlatform[]>([]);
   readonly taxDocs = signal<VaultTaxDoc[]>([]);
   readonly isbnRecords = signal<VaultIsbnRecord[]>([]);
+  readonly isbnBlocks = signal<VaultIsbnBlock[]>([]);
   readonly contractRecords = signal<VaultContractRecord[]>([]);
   readonly financialRecords = signal<VaultFinancialRecord[]>([]);
   readonly domainRecords = signal<VaultDomainRecord[]>([]);
@@ -236,6 +268,7 @@ export class VaultCompanyStoreService {
   readonly sopTemplates = signal<VaultSopTemplate[]>([]);
   readonly corporateDocs = signal<VaultCorporateDoc[]>([]);
   readonly communications = signal<VaultCommunications>({ ...EMPTY_COMMUNICATIONS });
+  readonly automations = signal<VaultAutomation[]>([]);
   readonly inventoryFulfillment = signal<VaultInventoryFulfillment>({ ...EMPTY_INVENTORY_FULFILLMENT });
   readonly securityNotes = signal<VaultSecurityNotes>({ ...EMPTY_SECURITY_NOTES });
   readonly taxRegistrations = signal<VaultTaxRegistrations>({ ...EMPTY_TAX_REGISTRATIONS });
@@ -267,6 +300,7 @@ export class VaultCompanyStoreService {
     this.paymentPlatforms.set([]);
     this.taxDocs.set([]);
     this.isbnRecords.set([]);
+    this.isbnBlocks.set([]);
     this.contractRecords.set([]);
     this.financialRecords.set([]);
     this.domainRecords.set([]);
@@ -276,6 +310,7 @@ export class VaultCompanyStoreService {
     this.sopTemplates.set([]);
     this.corporateDocs.set([]);
     this.communications.set({ ...EMPTY_COMMUNICATIONS });
+    this.automations.set([]);
     this.inventoryFulfillment.set({ ...EMPTY_INVENTORY_FULFILLMENT });
     this.securityNotes.set({ ...EMPTY_SECURITY_NOTES });
     this.taxRegistrations.set({ ...EMPTY_TAX_REGISTRATIONS });
@@ -297,6 +332,7 @@ export class VaultCompanyStoreService {
     if (data.paymentPlatforms) this.paymentPlatforms.set(data.paymentPlatforms);
     if (data.taxDocs) this.taxDocs.set(data.taxDocs);
     if (data.isbnRecords) this.isbnRecords.set(data.isbnRecords);
+    if (data.isbnBlocks) this.isbnBlocks.set(data.isbnBlocks);
     if (data.contractRecords) this.contractRecords.set(data.contractRecords);
     if (data.financialRecords) this.financialRecords.set(data.financialRecords);
     if (data.domainRecords) this.domainRecords.set(data.domainRecords);
@@ -306,6 +342,7 @@ export class VaultCompanyStoreService {
     if (data.sopTemplates) this.sopTemplates.set(data.sopTemplates);
     if (data.corporateDocs) this.corporateDocs.set(data.corporateDocs);
     if (data.communications) this.communications.set(data.communications);
+    if (data.automations) this.automations.set(data.automations);
     if (data.inventoryFulfillment) this.inventoryFulfillment.set(data.inventoryFulfillment);
     if (data.securityNotes) this.securityNotes.set(data.securityNotes);
     if (data.taxRegistrations) this.taxRegistrations.set(data.taxRegistrations);
@@ -337,6 +374,7 @@ export class VaultCompanyStoreService {
       paymentPlatforms: this.paymentPlatforms(),
       taxDocs: this.taxDocs(),
       isbnRecords: this.isbnRecords(),
+      isbnBlocks: this.isbnBlocks(),
       contractRecords: this.contractRecords(),
       financialRecords: this.financialRecords(),
       domainRecords: this.domainRecords(),
@@ -346,6 +384,7 @@ export class VaultCompanyStoreService {
       sopTemplates: this.sopTemplates(),
       corporateDocs: this.corporateDocs(),
       communications: this.communications(),
+      automations: this.automations(),
       inventoryFulfillment: this.inventoryFulfillment(),
       securityNotes: this.securityNotes(),
       taxRegistrations: this.taxRegistrations(),
@@ -364,6 +403,7 @@ export class VaultCompanyStoreService {
   updatePaymentPlatforms(v: VaultPlatform[]): void { this.paymentPlatforms.set(v); this.persist(); }
   updateTaxDocs(v: VaultTaxDoc[]): void { this.taxDocs.set(v); this.persist(); }
   updateIsbnRecords(v: VaultIsbnRecord[]): void { this.isbnRecords.set(v); this.persist(); }
+  updateIsbnBlocks(v: VaultIsbnBlock[]): void { this.isbnBlocks.set(v); this.persist(); }
   updateContracts(v: VaultContractRecord[]): void { this.contractRecords.set(v); this.persist(); }
   updateFinancialRecords(v: VaultFinancialRecord[]): void { this.financialRecords.set(v); this.persist(); }
   updateDomains(v: VaultDomainRecord[]): void { this.domainRecords.set(v); this.persist(); }
@@ -373,6 +413,7 @@ export class VaultCompanyStoreService {
   updateSops(v: VaultSopTemplate[]): void { this.sopTemplates.set(v); this.persist(); }
   updateCorporateDocs(v: VaultCorporateDoc[]): void { this.corporateDocs.set(v); this.persist(); }
   updateCommunications(v: VaultCommunications): void { this.communications.set(v); this.persist(); }
+  updateAutomations(v: VaultAutomation[]): void { this.automations.set(v); this.persist(); }
   updateInventoryFulfillment(v: VaultInventoryFulfillment): void { this.inventoryFulfillment.set(v); this.persist(); }
   updateSecurityNotes(v: VaultSecurityNotes): void { this.securityNotes.set(v); this.persist(); }
   updateTaxRegistrations(v: VaultTaxRegistrations): void { this.taxRegistrations.set(v); this.persist(); }
@@ -388,6 +429,7 @@ interface VaultExtrasPayload {
   paymentPlatforms?: VaultPlatform[];
   taxDocs?: VaultTaxDoc[];
   isbnRecords?: VaultIsbnRecord[];
+  isbnBlocks?: VaultIsbnBlock[];
   contractRecords?: VaultContractRecord[];
   financialRecords?: VaultFinancialRecord[];
   domainRecords?: VaultDomainRecord[];
@@ -397,6 +439,7 @@ interface VaultExtrasPayload {
   sopTemplates?: VaultSopTemplate[];
   corporateDocs?: VaultCorporateDoc[];
   communications?: VaultCommunications;
+  automations?: VaultAutomation[];
   inventoryFulfillment?: VaultInventoryFulfillment;
   securityNotes?: VaultSecurityNotes;
   taxRegistrations?: VaultTaxRegistrations;

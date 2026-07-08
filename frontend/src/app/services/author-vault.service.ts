@@ -1,8 +1,35 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
-import { PublishingCompany, Imprint, PenName, Series, Book, LanguageBranch, BookFormat, BreadcrumbItem, VaultLevel, CompanyIdentity, FinancialTaxRecords, CompanyContractsLegal, CompanyOwnership, BoxSetRecord } from '../models/author-vault.model';
+import { PublishingCompany, Imprint, PenName, Series, Book, LanguageBranch, BookFormat, BreadcrumbItem, VaultLevel, CompanyIdentity, FinancialTaxRecords, CompanyContractsLegal, CompanyOwnership, BoxSetRecord, EditionIdentity, LocalizedMetadata, LanguageIdentifiers, FormatSpecs, KDPSelectEnrollment, PricingHistoryEntry, PlatformVariant, UploadLog } from '../models/author-vault.model';
 import { COMPANY_FIELD_MAP } from './excel-import.service';
 import { ApiService } from './api.service';
 import { Observable, tap, catchError, of } from 'rxjs';
+
+/** Minimal catalog book shape from the Books module (avoids circular import with book.service). */
+export interface CatalogBookInput {
+  id: string;
+  title?: string;
+  author?: string;
+  coverUrl?: string;
+  status?: string;
+  formats?: string[];
+  platforms?: { platform: string }[];
+  metadata?: {
+    seriesName?: string;
+    seriesNumber?: number | null;
+    language?: string;
+    pageCount?: number | null;
+    publishDate?: string;
+    isbn?: string;
+    copyright?: string;
+    oneLineHook?: string;
+    shortBlurb?: string;
+    longBlurb?: string;
+    authorBio?: string;
+    keywords?: string[];
+    bisacCategories?: string[];
+  };
+  updatedAt?: string;
+}
 
 @Injectable({ providedIn: 'root' })
 export class AuthorVaultService {
@@ -40,22 +67,469 @@ export class AuthorVaultService {
   getFormat(id: string): BookFormat | undefined { for (const imp of this._company().imprints) for (const pn of imp.penNames) for (const sr of pn.series) for (const bk of sr.books) for (const lb of bk.languageBranches) { const f = lb.formats.find(fm => fm.id === id); if (f) return f; } return undefined; }
 
   // Stats
-  totalBooks = computed(() => { let c = 0; for (const i of this._company().imprints) for (const p of i.penNames) for (const s of p.series) c += s.books.length; return c; });
   totalImprints = computed(() => this._company().imprints.length);
   totalPenNames = computed(() => { let c = 0; for (const i of this._company().imprints) c += i.penNames.length; return c; });
-  totalSeries = computed(() => { let c = 0; for (const i of this._company().imprints) for (const p of i.penNames) c += p.series.length; return c; });
+
+  /** Catalog books from /api/books (Books module) — merged into public totals + vault tree for Languages/Formats. */
+  private readonly catalogBooks = signal<CatalogBookInput[]>([]);
+
+  setCatalogBooks(books: CatalogBookInput[]): void {
+    const list = Array.isArray(books) ? books : [];
+    this.catalogBooks.set(list);
+    this.mirrorCatalogIntoVaultTree(list);
+  }
+
+  /**
+   * Mirror Books-module titles into Company → Imprint → Pen Name → Series → Book
+   * so Languages / Formats pages (which read the vault tree) show real catalog data.
+   */
+  private mirrorCatalogIntoVaultTree(catalog: CatalogBookInput[]): void {
+    if (!this.isLoaded()) return;
+
+    const company = this._company();
+    let imprints = company.imprints.map(imp => ({
+      ...imp,
+      penNames: imp.penNames.map(pn => ({
+        ...pn,
+        series: pn.series.map(sr => ({
+          ...sr,
+          books: sr.books.filter(bk => !String(bk.id).startsWith('cat-')),
+        })),
+      })),
+    }));
+
+    if (!catalog.length) {
+      this._company.set({ ...company, imprints });
+      this.persist();
+      return;
+    }
+
+    // Ensure there is at least one imprint + pen name to attach catalog books under.
+    if (!imprints.length) {
+      const impId = 'imp-catalog';
+      imprints = [{
+        id: impId,
+        identity: {
+          name: company.identity.legalName || 'Main Imprint',
+          parentCompanyId: company.id || '',
+          purposeGenreFocus: '',
+          status: 'Active',
+          dateEstablished: new Date().toISOString().split('T')[0],
+          logo: '',
+          website: '',
+          email: '',
+        },
+        legalIsbn: {
+          isbnPrefix: '', isbnBlockPurchased: '', isbnBlockCount: 0,
+          isbnsAssigned: 0, isbnsRemaining: 0, copyrightPageTemplate: '',
+          dbaRegistration: '', trademark: '',
+        },
+        penNames: [],
+      }];
+    }
+
+    for (const cat of catalog) {
+      const author = (cat.author || 'Unknown Author').trim() || 'Unknown Author';
+      const seriesName = (cat.metadata?.seriesName || '').trim() || 'Standalone Titles';
+      const title = (cat.title || 'Untitled Book').trim() || 'Untitled Book';
+      const vaultBookId = `cat-${cat.id}`;
+
+      // Find or create pen name by author display name (prefer existing).
+      let imprintIdx = imprints.findIndex(imp =>
+        imp.penNames.some(pn => pn.identity.displayName.toLowerCase() === author.toLowerCase())
+      );
+      if (imprintIdx < 0) imprintIdx = 0;
+
+      let pnIdx = imprints[imprintIdx].penNames.findIndex(
+        pn => pn.identity.displayName.toLowerCase() === author.toLowerCase()
+      );
+      if (pnIdx < 0) {
+        const created = this.buildEmptyPenName(imprints[imprintIdx].id, author);
+        imprints[imprintIdx] = {
+          ...imprints[imprintIdx],
+          penNames: [...imprints[imprintIdx].penNames, created],
+        };
+        pnIdx = imprints[imprintIdx].penNames.length - 1;
+      }
+
+      let srIdx = imprints[imprintIdx].penNames[pnIdx].series.findIndex(
+        sr => sr.identity.name.toLowerCase() === seriesName.toLowerCase()
+      );
+      if (srIdx < 0) {
+        const series = this.buildEmptySeries(
+          imprints[imprintIdx].penNames[pnIdx].id,
+          seriesName
+        );
+        const pn = imprints[imprintIdx].penNames[pnIdx];
+        imprints[imprintIdx].penNames[pnIdx] = {
+          ...pn,
+          series: [...pn.series, series],
+        };
+        srIdx = imprints[imprintIdx].penNames[pnIdx].series.length - 1;
+      }
+
+      const vaultBook = this.catalogBookToVaultBook(cat, vaultBookId, {
+        penName: author,
+        seriesId: imprints[imprintIdx].penNames[pnIdx].series[srIdx].id,
+        companyName: company.identity.legalName || '',
+        imprintName: imprints[imprintIdx].identity.name || '',
+      });
+
+      const series = imprints[imprintIdx].penNames[pnIdx].series[srIdx];
+      const existingIdx = series.books.findIndex(b => b.id === vaultBookId || b.coreWork.masterTitle === title);
+      const nextBooks = [...series.books];
+      if (existingIdx >= 0) nextBooks[existingIdx] = vaultBook;
+      else nextBooks.push(vaultBook);
+
+      imprints[imprintIdx].penNames[pnIdx].series[srIdx] = {
+        ...series,
+        books: nextBooks,
+        identity: {
+          ...series.identity,
+          currentTotalBooks: nextBooks.length,
+        },
+      };
+    }
+
+    this._company.set({ ...company, imprints });
+    this.persist();
+  }
+
+  private buildEmptyPenName(imprintId: string, displayName: string): PenName {
+    const id = 'pn-' + Math.random().toString(36).slice(2, 10);
+    return {
+      id,
+      identity: {
+        displayName,
+        legalNameLinked: '',
+        parentImprintId: imprintId,
+        genre: '',
+        subgenre: '',
+        status: 'Active',
+        dateCreated: new Date().toISOString().split('T')[0],
+        dateRetired: '',
+        reason: 'Synced from Books catalog',
+        publiclyDisclosed: true,
+        penNameType: 'Sole author',
+        privacyLevel: 'Fully public',
+      },
+      coAuthors: [],
+      branding: {
+        authorPhoto: '', bioShort: '', bioMedium: '', bioLong: '', bioFirstPerson: '', bioThirdPerson: '',
+        tagline: '', brandColors: '', brandFonts: '', coverStyleNotes: '', logo: '',
+      },
+      platformAccounts: [],
+      onlinePresence: {
+        authorWebsite: '', newsletterPlatform: '', newsletterName: '', subscriberCount: 0, socialAccounts: [],
+      },
+      readerCommunity: {
+        primaryDemographic: '', readerPersona: '', arcTeam: '', betaReaderPool: '', readerFacebookGroup: '', engagementNotes: '',
+      },
+      series: [],
+    };
+  }
+
+  private buildEmptySeries(penNameId: string, name: string): Series {
+    const id = 'sr-' + Math.random().toString(36).slice(2, 10);
+    return {
+      id,
+      identity: {
+        name,
+        internalId: id,
+        parentPenNameId: penNameId,
+        seriesType: name === 'Standalone Titles' ? 'Standalone' : 'Main series',
+        universeName: '',
+        genre: '',
+        subgenre: '',
+        targetAudience: 'Adult',
+        status: 'Active',
+        startDate: new Date().toISOString().split('T')[0],
+        endDate: '',
+        plannedTotalBooks: 1,
+        currentTotalBooks: 0,
+        readingOrderNotes: '',
+        interconnectedSeries: '',
+      },
+      world: {
+        settingOverview: '', timeline: '', characterBibleFile: '', glossary: '',
+        mapsFiles: '', continuityNotes: '', spoilerSummary: '',
+      },
+      branding: {
+        logo: '', brandColors: '', tagline: '', oneLineHook: '', websitePage: '',
+        readerMagnet: '', readThroughAssets: '', salesPage: '', compTitles: '', compAuthors: '',
+      },
+      boxSets: [],
+      books: [],
+    };
+  }
+
+  private catalogBookToVaultBook(
+    cat: CatalogBookInput,
+    vaultBookId: string,
+    ctx: { penName: string; seriesId: string; companyName: string; imprintName: string }
+  ): Book {
+    const langCode = (cat.metadata?.language || 'en').toLowerCase();
+    const languageName = this.languageNameFromCode(langCode);
+    const isPublished = (cat.status || '').toLowerCase() === 'published';
+    const bookStatus = isPublished ? 'Published' : (cat.status || '').toLowerCase() === 'pending' || (cat.status || '').toLowerCase() === 'approved' ? 'Editing' : 'Draft';
+    const branchId = `${vaultBookId}-${langCode}`;
+    const title = cat.title || 'Untitled Book';
+    const pageCount = cat.metadata?.pageCount || 0;
+    const publishDate = cat.metadata?.publishDate || '';
+    const formats = this.catalogFormatsToVault(cat, branchId, isPublished);
+
+    return {
+      id: vaultBookId,
+      coreWork: {
+        internalId: vaultBookId,
+        masterTitle: title,
+        masterSubtitle: '',
+        parentSeriesId: ctx.seriesId,
+        seriesNumber: String(cat.metadata?.seriesNumber ?? ''),
+        penName: ctx.penName,
+        legalAuthorName: ctx.penName,
+        companyName: ctx.companyName,
+        imprintName: ctx.imprintName,
+        copyrightHolder: ctx.companyName || ctx.penName,
+        originalLanguage: languageName,
+        genre: '',
+        subgenre: '',
+        targetAudience: 'Adult',
+        bookStatus: bookStatus as Book['coreWork']['bookStatus'],
+        firstPublicationDate: publishDate,
+        originalReleaseDate: publishDate,
+        internalNotes: 'Synced from Books catalog',
+      },
+      storySummary: {
+        oneLineHook: cat.metadata?.oneLineHook || '',
+        elevatorPitch: '',
+        shortSynopsis: cat.metadata?.shortBlurb || '',
+        longSynopsis: cat.metadata?.longBlurb || '',
+        backCoverDescription: '',
+        salesDescription: cat.metadata?.shortBlurb || '',
+        spoilerSummary: '',
+        tropes: [],
+        themes: [],
+        triggerWarnings: '',
+        compTitles: '',
+        compAuthors: '',
+        readerPromise: '',
+        heatLevel: '',
+        violenceLevel: '',
+        contentIntensity: '',
+        endingType: '',
+      },
+      rights: {
+        ebookRights: 'Held', printRights: 'Held', audioRights: 'Held', largePrintRights: 'Held',
+        translationRights: 'Held', territorialRights: 'Worldwide', merchandisingRights: 'Held',
+        filmTvRights: 'Held', bundleRights: 'Held', subscriptionRights: 'Held', serialRights: 'Held',
+        directSalesRights: 'Held', rightsNotes: '', rightsExpirationDates: '', coAuthorSplit: '', ghostwriterTerms: '',
+      },
+      contributors: [],
+      identifiers: {
+        internalBookId: vaultBookId, asin: '', appleBooksId: '', koboId: '', googlePlayId: '',
+        barnesNobleId: '', ingramId: '', d2dId: '', smashwordsId: '', bookFunnelId: '',
+        shopifyProductId: '', wooCommerceId: '',
+      },
+      coverAssets: {
+        masterConcept: '', coverDesigner: '', approvalDate: '', licenseTerms: '', stockImageLicenses: '',
+        fontLicenses: '', ebookCover: cat.coverUrl || '', paperbackWrap: '', hardcoverWrap: '',
+        largePrintCover: '', audiobookCover: '', mockup3d: '', adCreatives: '', socialGraphics: '', bannerGraphics: '',
+      },
+      marketingCopy: {
+        oneLineHook: cat.metadata?.oneLineHook || '', adCopyShort: '', adCopyMedium: '', adCopyLong: '',
+        newsletterAnnouncement: '', preOrderEmail: '', releaseEmail: '', salePromoCopy: '',
+        retailerDescription: cat.metadata?.shortBlurb || '', directStoreDescription: '', socialCaptions: '',
+        quoteGraphicsText: '', pressReleaseCopy: '', mediaKitCopy: '', podcastPitchCopy: '',
+      },
+      arcDistribution: {
+        fileVersion: '', fileType: '', distributionMethod: '', platformAccount: '', platformCost: '',
+        openDate: '', closeDate: '', totalSent: 0, streetTeamRecipients: 0, newReaderRecipients: 0,
+        namedContacts: '', reviewRequestLanguage: '', embargoDate: '', reviewDeadline: '',
+      },
+      arcReviews: [],
+      launchPlan: {
+        launchType: '', targetReleaseDate: publishDate, preOrderStartDate: '', preOrderDuration: '',
+        launchTeamLead: '', launchBudget: '', budgetBreakdown: '', timeline: [], checklist: [], launchNotes: '',
+      },
+      promotionalCampaigns: [],
+      newsletterSwaps: [],
+      awards: [],
+      serialPlatforms: [],
+      directSales: {
+        sku: '', productTitle: title, productDescription: '', storePlatform: '', deliveryFile: '',
+        bookFunnelLink: '', taxCategory: '', bundleInclusion: '', upsellMapping: '', couponEligibility: '', refundTerms: '',
+      },
+      complianceLegal: {
+        copyrightRegistration: cat.metadata?.copyright || '', trademarkNotes: '', quotedMaterialPermissions: '',
+        stockImageLicenses: '', fontLicenses: '', coAuthorAgreement: '', ghostwriterContract: '', translationContract: '',
+        narratorContract: '', aiContentDisclosure: '', contentWarningNotes: '', blockedTerritories: '',
+      },
+      analyticsMapping: {
+        platformMapping: '', adCampaignIds: '', landingPageIds: '', emailCampaignTags: '',
+        utmStructures: '', promoSiteRuns: '', metadataTestPeriods: '', platformUpdateDates: '', awardsImpactPeriods: '',
+      },
+      revisionHistory: [],
+      languageBranches: [{
+        id: branchId,
+        edition: {
+          editionId: branchId,
+          editionName: `${languageName} Edition`,
+          editionType: 'First',
+          language: languageName,
+          languageCode: langCode,
+          isPrimaryLanguage: true,
+          localeVariant: langCode,
+          publicationStatus: isPublished ? 'Published' : 'In Progress',
+          releaseDate: publishDate,
+          wordCount: 0,
+          pageCount,
+          chapterCount: 0,
+        },
+        localizedMetadata: {
+          localizedTitle: title,
+          localizedSubtitle: '',
+          localizedSeriesName: cat.metadata?.seriesName || '',
+          localizedHook: cat.metadata?.oneLineHook || '',
+          localizedShortDescription: cat.metadata?.shortBlurb || '',
+          localizedLongDescription: cat.metadata?.longBlurb || '',
+          localizedAuthorBio: cat.metadata?.authorBio || '',
+          localizedContentWarnings: '',
+          translatorCreditLine: '',
+        },
+        identifiers: {
+          isbnEbook: cat.metadata?.isbn || '',
+          isbnPaperback: '',
+          isbnHardcover: '',
+          isbnLargePrint: '',
+          isbnAudiobook: '',
+          isbnAssignedDate: '',
+          isbnStatus: cat.metadata?.isbn ? 'Active' : 'Reserved',
+        },
+        formats,
+      }],
+    };
+  }
+
+  private catalogFormatsToVault(cat: CatalogBookInput, branchId: string, isPublished: boolean): BookFormat[] {
+    const formatTypes = (cat.formats?.length ? cat.formats : ['epub']) as string[];
+    const mapType = (f: string): BookFormat['specs']['formatType'] => {
+      const x = f.toLowerCase();
+      if (x === 'pdf' || x.includes('paper')) return 'Paperback';
+      if (x.includes('audio')) return 'Audiobook';
+      if (x.includes('hard')) return 'Hardcover';
+      return 'Ebook';
+    };
+    const status = isPublished ? 'Live' : 'Draft';
+    return formatTypes.map((f, idx) => {
+      const formatType = mapType(f);
+      const formatId = `${branchId}-f${idx}`;
+      return {
+        id: formatId,
+        specs: {
+          formatId,
+          formatType,
+          parentLanguageBranchId: branchId,
+          status: status as BookFormat['specs']['status'],
+          releaseDate: cat.metadata?.publishDate || '',
+          versionNumber: '1.0',
+          wordCount: 0,
+          pageCount: cat.metadata?.pageCount || 0,
+          audioRuntime: '',
+          trimSize: formatType === 'Paperback' ? '5.5 x 8.5' : '',
+          paperType: '',
+          bindingType: '',
+          printFinish: '',
+          interiorType: '',
+          fileSize: '',
+          drmPreference: formatType === 'Ebook' ? 'Off' : 'N/A',
+          deliveryMethod: '',
+        },
+        pricingHistory: [],
+        platformVariants: (cat.platforms || []).map((p, pi) => ({
+          id: `${formatId}-p${pi}`,
+          platformName: this.platformLabel(p.platform),
+          storeRegion: 'US',
+          uploadStatus: status as any,
+          publicationDate: cat.metadata?.publishDate || '',
+          lastUpdated: cat.updatedAt || '',
+          platformTitle: cat.title || '',
+          platformDescription: '',
+          keywords: (cat.metadata?.keywords || []).join(', '),
+          categories: (cat.metadata?.bisacCategories || []).join(', '),
+          bisacCodes: '',
+          platformPrice: '',
+          platformSalePrice: '',
+          isbn: cat.metadata?.isbn || '',
+          asinOrPlatformId: '',
+        })),
+        uploadLogs: [],
+        kdpSelect: undefined,
+      } as BookFormat;
+    });
+  }
+
+  private platformLabel(platform: string): string {
+    const map: Record<string, string> = {
+      amazon: 'Amazon KDP', kobo: 'Kobo', apple: 'Apple Books', 'barnes-noble': 'Barnes & Noble',
+    };
+    return map[platform] || platform;
+  }
+
+  private languageNameFromCode(code: string): string {
+    const map: Record<string, string> = {
+      en: 'English', es: 'Spanish', fr: 'French', de: 'German', it: 'Italian',
+      pt: 'Portuguese (Brazil)', nl: 'Dutch', ja: 'Japanese', zh: 'Chinese (Simplified)',
+      ko: 'Korean', ru: 'Russian', ar: 'Arabic', hi: 'Hindi',
+    };
+    const short = code.split('-')[0].toLowerCase();
+    return map[short] || (code.length > 2 ? code : 'English');
+  }
+
+  /** Prefer catalog module books when present; otherwise fall back to imprint-tree books. */
+  totalBooks = computed(() => {
+    const catalog = this.catalogBooks().length;
+    if (catalog > 0) return catalog;
+    let c = 0;
+    for (const i of this._company().imprints)
+      for (const p of i.penNames)
+        for (const s of p.series) c += s.books.length;
+    return c;
+  });
+
+  totalSeries = computed(() => {
+    const fromCatalog = new Set(
+      this.catalogBooks()
+        .map(b => (b.metadata?.seriesName || '').trim())
+        .filter(Boolean)
+    );
+    let tree = 0;
+    for (const i of this._company().imprints)
+      for (const p of i.penNames) tree += p.series.length;
+    return Math.max(fromCatalog.size, tree);
+  });
 
   pipelineStats = computed(() => {
     let draft = 0, editing = 0, preorder = 0, published = 0;
-    for (const imp of this._company().imprints) {
-      for (const pn of imp.penNames) {
-        for (const s of pn.series) {
-          for (const b of s.books) {
-            switch (b.coreWork.bookStatus) {
-              case 'Draft': draft++; break;
-              case 'Editing': editing++; break;
-              case 'Pre-order': preorder++; break;
-              case 'Published': published++; break;
+    const catalog = this.catalogBooks();
+    if (catalog.length > 0) {
+      for (const b of catalog) {
+        const s = (b.status || '').toLowerCase();
+        if (s === 'published') published++;
+        else if (s === 'pending' || s === 'approved') editing++;
+        else draft++;
+      }
+    } else {
+      for (const imp of this._company().imprints) {
+        for (const pn of imp.penNames) {
+          for (const s of pn.series) {
+            for (const b of s.books) {
+              switch (b.coreWork.bookStatus) {
+                case 'Draft': draft++; break;
+                case 'Editing': editing++; break;
+                case 'Pre-order': preorder++; break;
+                case 'Published': published++; break;
+              }
             }
           }
         }
@@ -70,6 +544,37 @@ export class AuthorVaultService {
       publishedPct: (published / total) * 100,
     };
   });
+
+  addImprint(name = 'New Imprint', focus = ''): Imprint {
+    const id = 'imp-' + Math.random().toString(36).slice(2, 10);
+    const imprint: Imprint = {
+      id,
+      identity: {
+        name: name.trim() || 'New Imprint',
+        parentCompanyId: this._company().id || '',
+        purposeGenreFocus: focus,
+        status: 'Active',
+        dateEstablished: new Date().toISOString().split('T')[0],
+        logo: '',
+        website: '',
+        email: '',
+      },
+      legalIsbn: {
+        isbnPrefix: '',
+        isbnBlockPurchased: '',
+        isbnBlockCount: 0,
+        isbnsAssigned: 0,
+        isbnsRemaining: 0,
+        copyrightPageTemplate: '',
+        dbaRegistration: '',
+        trademark: '',
+      },
+      penNames: [],
+    };
+    this._company.update(c => ({ ...c, imprints: [...c.imprints, imprint] }));
+    this.persist();
+    return imprint;
+  }
 
   private createEmptyCompany(): PublishingCompany {
     return {
@@ -229,6 +734,10 @@ export class AuthorVaultService {
         this._company.set(data);
         this.syncBreadcrumb(data);
         this.isLoaded.set(true);
+        // Re-apply catalog mirror now that the company tree is ready.
+        if (this.catalogBooks().length) {
+          this.mirrorCatalogIntoVaultTree(this.catalogBooks());
+        }
       }),
       catchError(err => {
         console.error('Failed to load company', err);
@@ -236,6 +745,9 @@ export class AuthorVaultService {
         this._company.set(empty);
         this.syncBreadcrumb(empty);
         this.isLoaded.set(true);
+        if (this.catalogBooks().length) {
+          this.mirrorCatalogIntoVaultTree(this.catalogBooks());
+        }
         return of(empty);
       })
     );
@@ -350,6 +862,125 @@ export class AuthorVaultService {
     return { applied, skipped };
   }
 
+  addPenName(imprintId: string, displayName = 'New Pen Name'): PenName | undefined {
+    const imprint = this.getImprint(imprintId);
+    if (!imprint) return undefined;
+    const id = 'pn-' + Math.random().toString(36).slice(2, 10);
+    const penName: PenName = {
+      id,
+      identity: {
+        displayName: displayName.trim() || 'New Pen Name',
+        legalNameLinked: '',
+        parentImprintId: imprintId,
+        genre: '',
+        subgenre: '',
+        status: 'Active',
+        dateCreated: new Date().toISOString().split('T')[0],
+        dateRetired: '',
+        reason: '',
+        publiclyDisclosed: true,
+        penNameType: 'Sole author',
+        privacyLevel: 'Fully public',
+      },
+      coAuthors: [],
+      branding: {
+        authorPhoto: '', bioShort: '', bioMedium: '', bioLong: '', bioFirstPerson: '', bioThirdPerson: '',
+        tagline: '', brandColors: '', brandFonts: '', coverStyleNotes: '', logo: '',
+      },
+      platformAccounts: [],
+      onlinePresence: {
+        authorWebsite: '', newsletterPlatform: '', newsletterName: '', subscriberCount: 0, socialAccounts: [],
+      },
+      readerCommunity: {
+        primaryDemographic: '', readerPersona: '', arcTeam: '', betaReaderPool: '', readerFacebookGroup: '', engagementNotes: '',
+      },
+      series: [],
+    };
+    this._company.update(c => ({
+      ...c,
+      imprints: c.imprints.map(imp =>
+        imp.id === imprintId ? { ...imp, penNames: [...imp.penNames, penName] } : imp
+      ),
+    }));
+    this.persist();
+    return penName;
+  }
+
+  removePenName(imprintId: string, penNameId: string): void {
+    this._company.update(c => ({
+      ...c,
+      imprints: c.imprints.map(imp =>
+        imp.id === imprintId
+          ? { ...imp, penNames: imp.penNames.filter(pn => pn.id !== penNameId) }
+          : imp
+      ),
+    }));
+    this.persist();
+  }
+
+  addSeries(penNameId: string, name = 'New Series'): Series | undefined {
+    let created: Series | undefined;
+    this._company.update(c => ({
+      ...c,
+      imprints: c.imprints.map(imp => ({
+        ...imp,
+        penNames: imp.penNames.map(pn => {
+          if (pn.id !== penNameId) return pn;
+          const id = 'sr-' + Math.random().toString(36).slice(2, 10);
+          const series: Series = {
+            id,
+            identity: {
+              name: name.trim() || 'New Series',
+              internalId: id,
+              parentPenNameId: penNameId,
+              seriesType: 'Main series' as any,
+              universeName: '',
+              genre: pn.identity.genre || '',
+              subgenre: '',
+              targetAudience: 'Adult',
+              status: 'Active',
+              startDate: new Date().toISOString().split('T')[0],
+              endDate: '',
+              plannedTotalBooks: 1,
+              currentTotalBooks: 0,
+              readingOrderNotes: '',
+              interconnectedSeries: '',
+            },
+            world: {
+              settingOverview: '', timeline: '', characterBibleFile: '', glossary: '',
+              mapsFiles: '', continuityNotes: '', spoilerSummary: '',
+            },
+            branding: {
+              logo: '', brandColors: '', tagline: '', oneLineHook: '', websitePage: '',
+              readerMagnet: '', readThroughAssets: '', salesPage: '', compTitles: '', compAuthors: '',
+            },
+            boxSets: [],
+            books: [],
+          };
+          created = series;
+          return { ...pn, series: [...pn.series, series] };
+        }),
+      })),
+    }));
+    if (created) this.persist();
+    return created;
+  }
+
+  removeSeries(penNameId: string, seriesId: string): void {
+    this._company.update(c => ({
+      ...c,
+      imprints: c.imprints.map(imp => ({
+        ...imp,
+        penNames: imp.penNames.map(pn =>
+          pn.id === penNameId
+            ? { ...pn, series: pn.series.filter(s => s.id !== seriesId) }
+            : pn
+        ),
+      })),
+    }));
+    this.persist();
+  }
+
   updatePenName(penNameId: string, partial: Partial<PenName['identity']>): void {
     this._company.update(c => ({
       ...c,
@@ -414,6 +1045,70 @@ export class AuthorVaultService {
     this.persist();
   }
 
+  updateSeriesWorld(penNameId: string, seriesId: string, partial: Partial<Series['world']>): void {
+    this._company.update(c => ({
+      ...c,
+      imprints: c.imprints.map(imp => ({
+        ...imp,
+        penNames: imp.penNames.map(pn =>
+          pn.id !== penNameId ? pn : {
+            ...pn,
+            series: pn.series.map(sr =>
+              sr.id === seriesId ? { ...sr, world: { ...sr.world, ...partial } } : sr
+            )
+          }
+        )
+      }))
+    }));
+    this.persist();
+  }
+
+  updateSeriesBranding(penNameId: string, seriesId: string, partial: Partial<Series['branding']>): void {
+    this._company.update(c => ({
+      ...c,
+      imprints: c.imprints.map(imp => ({
+        ...imp,
+        penNames: imp.penNames.map(pn =>
+          pn.id !== penNameId ? pn : {
+            ...pn,
+            series: pn.series.map(sr =>
+              sr.id === seriesId ? { ...sr, branding: { ...sr.branding, ...partial } } : sr
+            )
+          }
+        )
+      }))
+    }));
+    this.persist();
+  }
+
+  clearSeriesBooks(penNameId: string, seriesId: string): void {
+    this._company.update(c => ({
+      ...c,
+      imprints: c.imprints.map(imp => ({
+        ...imp,
+        penNames: imp.penNames.map(pn =>
+          pn.id !== penNameId ? pn : {
+            ...pn,
+            series: pn.series.map(sr =>
+              sr.id === seriesId ? { ...sr, books: [] } : sr
+            )
+          }
+        )
+      }))
+    }));
+    this.persist();
+  }
+
+  /** Find the pen name that owns a given series id (needed since Series doesn't carry its parent id at the top level). */
+  findPenNameIdForSeries(seriesId: string): string | undefined {
+    for (const imp of this._company().imprints) {
+      for (const pn of imp.penNames) {
+        if (pn.series.some(s => s.id === seriesId)) return pn.id;
+      }
+    }
+    return undefined;
+  }
+
   updateBoxSets(penNameId: string, seriesId: string, boxSets: BoxSetRecord[]): void {
     this._company.update(c => ({
       ...c,
@@ -430,6 +1125,107 @@ export class AuthorVaultService {
       }))
     }));
     this.persist();
+  }
+
+  private mapLanguageBranch(branchId: string, fn: (lb: LanguageBranch) => LanguageBranch): void {
+    this._company.update(c => ({
+      ...c,
+      imprints: c.imprints.map(imp => ({
+        ...imp,
+        penNames: imp.penNames.map(pn => ({
+          ...pn,
+          series: pn.series.map(sr => ({
+            ...sr,
+            books: sr.books.map(bk => ({
+              ...bk,
+              languageBranches: bk.languageBranches.map(lb => lb.id === branchId ? fn(lb) : lb),
+            })),
+          })),
+        })),
+      })),
+    }));
+    this.persist();
+  }
+
+  private mapFormat(formatId: string, fn: (f: BookFormat) => BookFormat): void {
+    this._company.update(c => ({
+      ...c,
+      imprints: c.imprints.map(imp => ({
+        ...imp,
+        penNames: imp.penNames.map(pn => ({
+          ...pn,
+          series: pn.series.map(sr => ({
+            ...sr,
+            books: sr.books.map(bk => ({
+              ...bk,
+              languageBranches: bk.languageBranches.map(lb => ({
+                ...lb,
+                formats: lb.formats.map(f => f.id === formatId ? fn(f) : f),
+              })),
+            })),
+          })),
+        })),
+      })),
+    }));
+    this.persist();
+  }
+
+  updateLanguageBranchEdition(branchId: string, partial: Partial<EditionIdentity>): void {
+    this.mapLanguageBranch(branchId, lb => ({ ...lb, edition: { ...lb.edition, ...partial } }));
+  }
+
+  updateLanguageBranchMetadata(branchId: string, partial: Partial<LocalizedMetadata>): void {
+    this.mapLanguageBranch(branchId, lb => ({ ...lb, localizedMetadata: { ...lb.localizedMetadata, ...partial } }));
+  }
+
+  updateLanguageBranchIdentifiers(branchId: string, partial: Partial<LanguageIdentifiers>): void {
+    this.mapLanguageBranch(branchId, lb => ({ ...lb, identifiers: { ...lb.identifiers, ...partial } }));
+  }
+
+  updateFormatSpecs(formatId: string, partial: Partial<FormatSpecs>): void {
+    this.mapFormat(formatId, f => ({ ...f, specs: { ...f.specs, ...partial } }));
+  }
+
+  updateFormatKdpSelect(formatId: string, partial: Partial<KDPSelectEnrollment> | null): void {
+    this.mapFormat(formatId, f => ({
+      ...f,
+      kdpSelect: partial === null
+        ? undefined
+        : {
+            enrollmentStatus: 'Not enrolled',
+            periodStart: '',
+            periodEnd: '',
+            autoRenew: false,
+            autoRenewDeadline: '',
+            enrollmentPeriodNumber: 0,
+            wideStrategyFlag: '',
+            reasonForEnrollment: '',
+            exitPlanDate: '',
+            kenpPages: 0,
+            kenpRate: '',
+            kenpReads: 0,
+            kenpRevenue: '',
+            countdownDealUsed: false,
+            countdownDealDates: '',
+            freeDaysUsed: false,
+            freeDaysDates: '',
+            freeDayDownloads: 0,
+            ...f.kdpSelect,
+            ...partial,
+          },
+    }));
+  }
+
+  updateFormatPricing(formatId: string, pricingHistory: PricingHistoryEntry[]): void {
+    this.mapFormat(formatId, f => ({ ...f, pricingHistory: [...pricingHistory] }));
+  }
+
+  updateFormatPlatformVariants(formatId: string, platformVariants: PlatformVariant[]): void {
+    this.mapFormat(formatId, f => ({ ...f, platformVariants: [...platformVariants] }));
+  }
+
+  updateFormatUploadLogs(formatId: string, uploadLogs: UploadLog[]): void {
+    this.mapFormat(formatId, f => ({ ...f, uploadLogs: [...uploadLogs] }));
   }
 
   setCompanyAvatar(dataUrl: string): void {

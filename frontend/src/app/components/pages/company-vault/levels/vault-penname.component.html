@@ -40,9 +40,11 @@
     }
     @if(activeTab==='platforms') {
       <div class="card"><h2 class="section-title">Platform Accounts</h2>
+        <div class="table-scroll-wrap">
         <table class="data-table"><thead><tr><th>Platform</th><th>Account</th><th>URL</th></tr></thead>
           <tbody>@for(pa of penName.platformAccounts; track pa.platform) { <tr><td class="td-primary">{{pa.platform}}</td><td>{{pa.accountInfo}}</td><td>{{pa.url || '—'}}</td></tr> }</tbody>
         </table>
+        </div>
       </div>
     }
     @if(activeTab==='presence') {
@@ -54,9 +56,11 @@
           <div class="form-group"><span class="form-label">Subscribers</span><div class="form-value">{{penName.onlinePresence.subscriberCount | number}}</div></div>
         </div>
         <h3 class="section-title" style="margin-top:1rem">Social Accounts</h3>
+        <div class="table-scroll-wrap">
         <table class="data-table"><thead><tr><th>Platform</th><th>Handle</th></tr></thead>
           <tbody>@for(s of penName.onlinePresence.socialAccounts; track s.platform) { <tr><td class="td-primary">{{s.platform}}</td><td>{{s.handle}}</td></tr> }</tbody>
         </table>
+        </div>
       </div>
     }
     @if(activeTab==='community') {

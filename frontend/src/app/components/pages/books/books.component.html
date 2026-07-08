@@ -1,4 +1,10 @@
 <div class="page">
+  <app-page-action-bar
+    [editing]="editMode()"
+    deleteLabel="Delete all books"
+    (editToggle)="editMode.update(v => !v)"
+    (deleteAll)="deleteAllBooks()" />
+
   <div class="page-header">
     <div>
       <h1 class="page-title">Books</h1>
@@ -70,6 +76,22 @@
 
   <ng-container *ngIf="!loading()">
 
+    <div class="card" style="margin-bottom:1rem;">
+      <div class="card-header-row" style="margin-bottom:0;">
+        <h3 class="section-title" style="margin:0">Catalog</h3>
+        <div class="box-actions">
+          <button type="button" class="box-action-btn edit" [class.active]="isCardEditing('catalog')" (click)="toggleCardEdit('catalog')">
+            {{ isCardEditing('catalog') ? 'Save' : 'Edit' }}
+          </button>
+          <button type="button" class="box-action-btn delete" (click)="deleteCatalogSection()">Delete</button>
+          <a routerLink="/books/new" class="box-action-btn load" style="text-decoration:none;">+ Add Book</a>
+        </div>
+      </div>
+      @if (isCardEditing('catalog')) {
+        <p class="section-subtitle" style="margin:.5rem 0 0">Edit mode on — use Delete on a book card / row to remove it, or Delete above to clear the catalog.</p>
+      }
+    </div>
+
     @if (filteredBooks().length === 0) {
       <div class="empty-state" style="text-align:center;padding:4rem 2rem;background:var(--surface);border:1px solid var(--border-light);border-radius:16px;box-shadow:var(--shadow-sm);margin-top:1rem;width:100%;box-sizing:border-box;">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="48" height="48" style="margin:0 auto 1.25rem;color:var(--text-muted);">
@@ -114,6 +136,7 @@
         </div>
         <div class="card-action">
           <a [routerLink]="['/books', book.id]" class="view-details-btn">View Details</a>
+          <button *ngIf="isCardEditing('catalog')" type="button" class="box-action-btn delete" style="margin-top:.5rem" (click)="deleteBookRow(book.id)">Delete</button>
         </div>
       </div>
     </ng-container>
@@ -187,7 +210,10 @@
                 <span class="platform-tag" *ngFor="let p of book.platforms">{{ getPlatformLabel(p.platform) }}</span>
               </div>
             </td>
-            <td><a [routerLink]="['/books', book.id]" class="view-details-btn">View Details</a></td>
+            <td>
+              <a [routerLink]="['/books', book.id]" class="view-details-btn">View Details</a>
+              <button *ngIf="isCardEditing('catalog')" type="button" class="box-action-btn delete" style="margin-left:.5rem" (click)="deleteBookRow(book.id)">Delete</button>
+            </td>
           </tr>
         </tbody>
       </table>

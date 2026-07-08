@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit, OnDestroy, HostListener } from '@angular/core';
+import { Component, inject, signal, OnInit, OnDestroy, HostListener, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, ActivatedRoute } from '@angular/router';
@@ -29,6 +29,7 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
   private pinService = inject(CompanyPinService);
   private fileUpload = inject(FileUploadService);
   private route = inject(ActivatedRoute);
+  private cdr = inject(ChangeDetectorRef);
   readonly company = this.vs.company;
   readonly uploadingOwnerDoc = signal<string | null>(null);
   readonly uploadingOwnershipFile = signal<string | null>(null);
@@ -193,6 +194,12 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
       cleanObj.status = findValue(['status']) ?? 'Active';
       cleanObj.lastReviewed = findValue(['last reviewed', 'date']) ?? '';
       cleanObj.fileRef = findValue(['file ref', 'file']) ?? '';
+    } else if (boxId === 'automations') {
+      cleanObj.name = findValue(['name', 'automation', 'title']) ?? '';
+      cleanObj.type = findValue(['type', 'category']) ?? 'Welcome';
+      cleanObj.platform = findValue(['platform', 'tool']) ?? '';
+      cleanObj.status = findValue(['status']) ?? 'Active';
+      cleanObj.notes = findValue(['notes', 'comment']) ?? '';
     }
     
     return cleanObj;
@@ -224,6 +231,8 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
       this.companyStore.updateDomains([...this.domainRecords, ...mapped]);
     } else if (boxId === 'sops') {
       this.companyStore.updateSops([...this.sopTemplates, ...mapped]);
+    } else if (boxId === 'automations') {
+      this.companyStore.updateAutomations([...this.automations, ...mapped]);
     }
   }
 
@@ -254,6 +263,8 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
       expectedHeaders = ['domain name', 'domain', 'registrar', 'expiry date', 'expiry', 'auto renew', 'autorenew', 'status', 'host name', 'host'];
     } else if (boxId === 'sops') {
       expectedHeaders = ['title', 'sop name', 'name', 'department', 'dept', 'status', 'last reviewed', 'date', 'file ref', 'file'];
+    } else if (boxId === 'automations') {
+      expectedHeaders = ['name', 'automation', 'title', 'type', 'category', 'platform', 'tool', 'status', 'notes', 'comment'];
     } else {
       return true;
     }
@@ -273,7 +284,7 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
     if (!file || !this.activeImportBoxId) return;
 
     const boxId = this.activeImportBoxId;
-    const isList = ['owners', 'corporate_docs', 'banks', 'payments', 'tax_docs', 'platforms', 'isbns', 'contracts', 'team', 'domains', 'sops'].includes(boxId);
+    const isList = ['owners', 'corporate_docs', 'banks', 'payments', 'tax_docs', 'platforms', 'isbns', 'contracts', 'team', 'domains', 'sops', 'automations'].includes(boxId);
 
     if (isList) {
       this.excelImport.parseFileList(file).then(list => {
@@ -335,6 +346,18 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
     if (!confirm('Are you sure you want to delete this section\'s details?')) return;
     
     if (boxId === 'owners') this.companyStore.updateOwners([]);
+    else if (boxId === 'owner_docs') {
+      const list = this.ownerProfiles.map(o => {
+        const fileIds = Object.values(o.docs || {})
+          .map(d => (typeof d === 'string' ? null : d?.fileId))
+          .filter((id): id is number => !!id && id > 0);
+        for (const id of fileIds) {
+          this.fileUpload.delete(id).subscribe({ error: () => undefined });
+        }
+        return { ...o, docs: {} };
+      });
+      this.companyStore.updateOwners(list);
+    }
     else if (boxId === 'corporate_docs') this.companyStore.updateCorporateDocs([]);
     else if (boxId === 'banks') this.companyStore.updateBankAccounts([]);
     else if (boxId === 'payments') this.companyStore.updatePaymentPlatforms([]);
@@ -359,13 +382,24 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
       this.vs.patchContractsLegal({ trademarkRegistrations: '', copyrightAssignments: '', insurancePolicies: '', attorneyName: '', attorneyContact: '' });
       this.companyStore.updateCopyrightOffice({ country: 'US', customUrl: '' });
     } else if (boxId === 'tax_registrations') {
-      this.companyStore.updateTaxRegistrations({ einConfirmation: '', salesTaxRegistrations: '', vatGst: '', resaleCertificates: '' });
+      this.companyStore.updateTaxRegistrations({
+        einConfirmation: '',
+        einConfirmationUrl: undefined,
+        einConfirmationFileId: undefined,
+        salesTaxRegistrations: '',
+        vatGst: '',
+        resaleCertificates: '',
+        resaleCertificatesUrl: undefined,
+        resaleCertificatesFileId: undefined,
+      });
       this.vs.patchFinancial({ cpaName: '', cpaContact: '' });
     } else if (boxId === 'communications') {
       this.companyStore.updateCommunications({
         senderDomain: '', emailPlatform: '', spfRecord: '', dkimStatus: '', dmarcStatus: '',
         newsletterListSize: '', supportInbox: '', poBox: '', apiKey: '', smtpPassword: ''
       });
+    } else if (boxId === 'automations') {
+      this.companyStore.updateAutomations([]);
     } else if (boxId === 'fulfillment') {
       this.companyStore.updateInventoryFulfillment({ fulfillmentPartner: '', shippingAccount: '', packagingVendor: '', deliveryPolicy: '' });
     } else if (boxId === 'security_notes') {
@@ -391,6 +425,7 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
   get paymentPlatforms() { return this.companyStore.paymentPlatforms(); }
   get taxDocs() { return this.companyStore.taxDocs(); }
   get isbnRecords() { return this.companyStore.isbnRecords(); }
+  get isbnBlocks() { return this.companyStore.isbnBlocks(); }
   get contractRecords() { return this.companyStore.contractRecords(); }
   get financialRecords() { return this.companyStore.financialRecords(); }
   get domainRecords() { return this.companyStore.domainRecords(); }
@@ -400,6 +435,11 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
   get sopTemplates() { return this.companyStore.sopTemplates(); }
   get corporateDocs() { return this.companyStore.corporateDocs(); }
   get communications() { return this.companyStore.communications(); }
+  get automations() { return this.companyStore.automations(); }
+  get filteredAutomations() {
+    if (!this.commsAutomationFilter) return this.automations;
+    return this.automations.filter(a => a.type === this.commsAutomationFilter);
+  }
   get inventoryFulfillment() { return this.companyStore.inventoryFulfillment(); }
   get securityNotes() { return this.companyStore.securityNotes(); }
   get taxRegistrations() { return this.companyStore.taxRegistrations(); }
@@ -450,14 +490,14 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
     this.companyStore.updateInventory(list);
   }
   patchSecurity(i: number, key: string, val: string): void {
-    if (!this.editMode() && !this.isCardEditing('security_registry')) return;
+    if (!this.editMode() && !this.isCardEditing('security')) return;
     const list = [...this.securityEntries];
     list[i] = { ...list[i], [key]: val };
     this.companyStore.updateSecurity(list);
   }
 
   addSecurityEntry(): void {
-    if (!this.editMode() && !this.isCardEditing('security_registry')) return;
+    if (!this.editMode() && !this.isCardEditing('security')) return;
     this.companyStore.updateSecurity([
       ...this.securityEntries,
       { resource: '', owner: '', accessLevel: '', twoFa: '', recoveryEmail: '', notes: '' }
@@ -465,7 +505,7 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
   }
 
   removeSecurityEntry(index: number): void {
-    if (!this.editMode() && !this.isCardEditing('security_registry')) return;
+    if (!this.editMode() && !this.isCardEditing('security')) return;
     this.companyStore.updateSecurity(this.securityEntries.filter((_, i) => i !== index));
   }
   patchLogo(i: number, key: string, val: string): void {
@@ -613,7 +653,7 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
     if (!this.editMode() && !this.isCardEditing('domains')) return;
     this.companyStore.updateDomains([
       ...this.domainRecords,
-      { domain: '', registrar: '', renewal: '', host: '', dns: '', ssl: '', cms: '', contact: '' },
+      { domain: '', registrar: '', renewal: '', host: '', dns: '', technicalNotes: '', ssl: '', cms: '', contact: '' },
     ]);
   }
 
@@ -633,8 +673,45 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
     ]);
   }
 
+  addIsbnBlock(): void {
+    if (!this.editMode() && !this.isCardEditing('isbn_blocks')) return;
+    this.companyStore.updateIsbnBlocks([
+      ...this.isbnBlocks,
+      {
+        imprintName: '',
+        isbnPrefix: '',
+        isbnBlockPurchased: '',
+        isbnBlockCount: '',
+        isbnsAssigned: '',
+        isbnsRemaining: '',
+      },
+    ]);
+  }
+
+  removeIsbnBlock(index: number): void {
+    if (!this.editMode() && !this.isCardEditing('isbn_blocks')) return;
+    this.companyStore.updateIsbnBlocks(this.isbnBlocks.filter((_, i) => i !== index));
+  }
+
+  patchIsbnBlock(index: number, key: string, val: string): void {
+    const list = [...this.isbnBlocks];
+    list[index] = { ...list[index], [key]: val };
+    this.companyStore.updateIsbnBlocks(list);
+  }
+
+  /** Open an uploaded file URL in a new tab (used by download icon buttons). */
+  openAttachedFile(url: string | undefined | null, fileName?: string): void {
+    if (url) {
+      window.open(this.fileUpload.resolveFileUrl(url), '_blank', 'noopener,noreferrer');
+      return;
+    }
+    if (fileName) {
+      alert(`File "${fileName}" has no download URL yet. Re-upload it to enable open/download.`);
+    }
+  }
+
   onOwnershipFileUpload(event: Event, kind: 'operating' | 'scorp'): void {
-    if (!this.editMode()) return;
+    if (!this.isCardEditing('operating_agreement') && !this.editMode()) return;
     const file = (event.target as HTMLInputElement).files?.[0];
     if (!file) return;
     this.uploadingOwnershipFile.set(kind);
@@ -676,7 +753,7 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
   }
 
   removeOwnershipFile(kind: 'operating' | 'scorp'): void {
-    if (!this.editMode()) return;
+    if (!this.isCardEditing('operating_agreement') && !this.editMode()) return;
     const o = this.company().ownership;
     const fileId = kind === 'operating' ? o.operatingAgreementFileId : o.sCorpElectionFileId;
     if (kind === 'operating') {
@@ -735,14 +812,95 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
     if (listKey === 'publishing') this.companyStore.updatePlatforms(list);
     else this.companyStore.updatePaymentPlatforms(list);
   }
+
+  addPublishingPlatform(): void {
+    if (!this.editMode() && !this.isCardEditing('platforms')) return;
+    this.companyStore.updatePlatforms([
+      ...this.publishingPlatforms,
+      {
+        name: '',
+        status: 'pending',
+        owner: '',
+        email: '',
+        phone: '',
+        payout: '',
+        taxProfile: '',
+        username: '',
+        password: '',
+        notes: '',
+        showUser: false,
+        showPass: false,
+        accountRep: '',
+        repEmail: '',
+        accountId: '',
+        customerServiceUrl: '',
+      },
+    ]);
+  }
+
+  removePublishingPlatform(index: number): void {
+    if (!this.editMode() && !this.isCardEditing('platforms')) return;
+    this.companyStore.updatePlatforms(this.publishingPlatforms.filter((_, i) => i !== index));
+  }
+
+  addPaymentPlatform(): void {
+    if (!this.editMode() && !this.isCardEditing('payments')) return;
+    this.companyStore.updatePaymentPlatforms([
+      ...this.paymentPlatforms,
+      {
+        name: '',
+        status: 'active',
+        owner: '',
+        email: '',
+        phone: '',
+        payout: '',
+        taxProfile: '',
+        username: '',
+        password: '',
+        notes: '',
+        showUser: false,
+        showPass: false,
+        accountRep: '',
+        repEmail: '',
+        accountId: '',
+      },
+    ]);
+  }
+
+  removePaymentPlatform(index: number): void {
+    if (!this.editMode() && !this.isCardEditing('payments')) return;
+    this.companyStore.updatePaymentPlatforms(this.paymentPlatforms.filter((_, i) => i !== index));
+  }
+
   patchComms(key: string, val: string): void {
     this.companyStore.updateCommunications({ ...this.communications, [key]: val });
   }
+
+  patchAutomation(i: number, key: string, val: string): void {
+    if (!this.editMode() && !this.isCardEditing('automations')) return;
+    const list = [...this.automations];
+    list[i] = { ...list[i], [key]: val };
+    this.companyStore.updateAutomations(list);
+  }
+
+  addAutomation(): void {
+    if (!this.editMode() && !this.isCardEditing('automations')) return;
+    this.companyStore.updateAutomations([
+      ...this.automations,
+      { name: '', type: 'Welcome', platform: '', status: 'Active', notes: '' },
+    ]);
+  }
+
+  removeAutomation(index: number): void {
+    if (!this.editMode() && !this.isCardEditing('automations')) return;
+    this.companyStore.updateAutomations(this.automations.filter((_, i) => i !== index));
+  }
+
   patchFulfillment(key: string, val: string): void {
     this.companyStore.updateInventoryFulfillment({ ...this.inventoryFulfillment, [key]: val });
   }
   patchSecurityNotes(key: string, val: string): void {
-    if (!this.editMode()) return;
+    if (!this.editMode() && !this.isCardEditing('security') && !this.isCardEditing('security_notes')) return;
     this.companyStore.updateSecurityNotes({ ...this.securityNotes, [key]: val });
   }
   patchTaxReg(key: string, val: string): void {
@@ -750,26 +908,45 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
   }
 
   onTaxRegFileUpload(event: Event, key: 'einConfirmation' | 'resaleCertificates'): void {
-    if (!this.editMode()) return;
+    if (!this.editMode() && !this.isCardEditing('tax_registrations')) return;
     const file = (event.target as HTMLInputElement).files?.[0];
     if (!file) return;
     this.fileUpload.upload(file, `tax-reg-${key}`).subscribe({
       next: uploaded => {
-        this.patchTaxReg(key, uploaded.fileName);
+        const urlKey = key === 'einConfirmation' ? 'einConfirmationUrl' : 'resaleCertificatesUrl';
+        const idKey = key === 'einConfirmation' ? 'einConfirmationFileId' : 'resaleCertificatesFileId';
+        this.companyStore.updateTaxRegistrations({
+          ...this.taxRegistrations,
+          [key]: uploaded.fileName,
+          [urlKey]: uploaded.url,
+          [idKey]: uploaded.id,
+        });
         (event.target as HTMLInputElement).value = '';
       },
-      error: () => alert('Upload failed.'),
+      error: () => alert('Upload failed. Make sure you are logged in and the API is running.'),
     });
   }
 
+  private taxRegFileUrl(key: 'einConfirmation' | 'resaleCertificates'): string {
+    const regs = this.taxRegistrations;
+    const url = key === 'einConfirmation' ? regs.einConfirmationUrl : regs.resaleCertificatesUrl;
+    return url ? this.fileUpload.resolveFileUrl(url) : '';
+  }
+
   openTaxRegFile(key: 'einConfirmation' | 'resaleCertificates'): void {
-    const val = this.taxRegistrations?.[key];
-    if (val) {
-      alert(`Opening file: ${val}`);
-    } else {
-      const defaultName = key === 'einConfirmation' ? 'ein-confirmation-cp575.pdf' : 'resale-cert-ny.pdf';
-      alert(`Opening file: ${defaultName}`);
+    const url = this.taxRegFileUrl(key);
+    if (url) {
+      window.open(url, '_blank', 'noopener,noreferrer');
+      return;
     }
+    const name = this.taxRegistrations?.[key];
+    if (name) alert(`File saved as "${name}" but no download URL is available. Re-upload the file to enable open/download.`);
+  }
+
+  downloadTaxRegFile(key: 'einConfirmation' | 'resaleCertificates'): void {
+    const url = this.taxRegFileUrl(key);
+    const name = this.taxRegistrations?.[key] || 'download.pdf';
+    this.openAttachedFile(url || undefined, name);
   }
 
   // ── Lock state ──
@@ -810,6 +987,7 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
     } else {
       this.revealTimers[key] = duration;
     }
+    this.cdr.markForCheck();
   }
 
   isRevealed(key: string): boolean {
@@ -855,6 +1033,7 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
   }
 
   onOwnerDocUpload(event: Event, ownerIndex: number, slotKey: string): void {
+    if (!this.isCardEditing('owner_docs')) return;
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     if (!file) return;
@@ -882,6 +1061,7 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
   }
 
   removeOwnerDoc(ownerIndex: number, slotKey: string): void {
+    if (!this.isCardEditing('owner_docs')) return;
     const list = [...this.ownerProfiles];
     const existing = this.getOwnerDocRef(list[ownerIndex], slotKey);
     const docs = { ...(list[ownerIndex].docs || {}) };
@@ -897,64 +1077,114 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
   downloadOwnerDoc(owner: VaultOwnerProfile, slotKey: string): void {
     const ref = this.getOwnerDocRef(owner, slotKey);
     if (!ref) return;
-    if (ref.url) {
-      window.open(this.fileUpload.resolveFileUrl(ref.url), '_blank');
-      return;
-    }
-    alert(`File: ${ref.fileName}\n(Re-upload to get a download link from the server)`);
+    this.openAttachedFile(ref.url, ref.fileName);
   }
 
-  downloadFile(fileName: string | undefined): void {
-    if (!fileName) return;
-    alert(`Opening / Downloading file: ${fileName}`);
+  downloadFile(fileName: string | undefined, fileUrl?: string): void {
+    this.openAttachedFile(fileUrl, fileName);
   }
 
   // Tax doc uploads
   onTaxDocUpload(event: Event): void {
     const file = (event.target as HTMLInputElement).files?.[0];
     if (!file) return;
-    const newDoc = { name: file.name.replace(/\.[^.]+$/, ''), type: 'Other', year: new Date().getFullYear().toString(), status: 'Pending', fileName: file.name };
-    this.companyStore.updateTaxDocs([...this.taxDocs, newDoc]);
-    (event.target as HTMLInputElement).value = '';
+    this.fileUpload.upload(file, 'tax-doc').subscribe({
+      next: uploaded => {
+        const newDoc = {
+          name: uploaded.fileName.replace(/\.[^.]+$/, ''),
+          type: 'Other',
+          year: new Date().getFullYear().toString(),
+          status: 'Pending',
+          fileName: uploaded.fileName,
+          fileUrl: uploaded.url,
+          fileId: uploaded.id,
+        };
+        this.companyStore.updateTaxDocs([...this.taxDocs, newDoc]);
+        (event.target as HTMLInputElement).value = '';
+      },
+      error: () => alert('Upload failed. Make sure you are logged in and the API is running.'),
+    });
   }
 
   onTaxDocRowUpload(event: Event, rowIndex: number): void {
     const file = (event.target as HTMLInputElement).files?.[0];
     if (!file) return;
-    const list = [...this.taxDocs];
-    list[rowIndex] = { ...list[rowIndex], fileName: file.name };
-    this.companyStore.updateTaxDocs(list);
-    (event.target as HTMLInputElement).value = '';
+    this.fileUpload.upload(file, `tax-doc/${rowIndex}`).subscribe({
+      next: uploaded => {
+        const list = [...this.taxDocs];
+        list[rowIndex] = {
+          ...list[rowIndex],
+          fileName: uploaded.fileName,
+          fileUrl: uploaded.url,
+          fileId: uploaded.id,
+        };
+        this.companyStore.updateTaxDocs(list);
+        (event.target as HTMLInputElement).value = '';
+      },
+      error: () => alert('Upload failed. Make sure you are logged in and the API is running.'),
+    });
   }
 
   removeTaxDocFile(rowIndex: number): void {
     const list = [...this.taxDocs];
-    list[rowIndex] = { ...list[rowIndex], fileName: '' };
+    const existing = list[rowIndex];
+    list[rowIndex] = { ...existing, fileName: '', fileUrl: undefined, fileId: undefined };
     this.companyStore.updateTaxDocs(list);
+    if (existing?.fileId) {
+      this.fileUpload.delete(existing.fileId).subscribe({ error: () => undefined });
+    }
   }
 
   // Contract uploads
   onContractUpload(event: Event): void {
     const file = (event.target as HTMLInputElement).files?.[0];
     if (!file) return;
-    const newContract = { name: file.name.replace(/\.[^.]+$/, ''), counterparty: 'External Party', type: 'General', date: new Date().toISOString().split('T')[0], status: 'Draft', file: file.name };
-    this.companyStore.updateContracts([...this.contractRecords, newContract]);
-    (event.target as HTMLInputElement).value = '';
+    this.fileUpload.upload(file, 'contract').subscribe({
+      next: uploaded => {
+        const newContract = {
+          name: uploaded.fileName.replace(/\.[^.]+$/, ''),
+          counterparty: 'External Party',
+          type: 'General',
+          date: new Date().toISOString().split('T')[0],
+          status: 'Draft',
+          file: uploaded.fileName,
+          fileUrl: uploaded.url,
+          fileId: uploaded.id,
+        };
+        this.companyStore.updateContracts([...this.contractRecords, newContract]);
+        (event.target as HTMLInputElement).value = '';
+      },
+      error: () => alert('Upload failed. Make sure you are logged in and the API is running.'),
+    });
   }
 
   onContractRowUpload(event: Event, rowIndex: number): void {
     const file = (event.target as HTMLInputElement).files?.[0];
     if (!file) return;
-    const list = [...this.contractRecords];
-    list[rowIndex] = { ...list[rowIndex], file: file.name };
-    this.companyStore.updateContracts(list);
-    (event.target as HTMLInputElement).value = '';
+    this.fileUpload.upload(file, `contract/${rowIndex}`).subscribe({
+      next: uploaded => {
+        const list = [...this.contractRecords];
+        list[rowIndex] = {
+          ...list[rowIndex],
+          file: uploaded.fileName,
+          fileUrl: uploaded.url,
+          fileId: uploaded.id,
+        };
+        this.companyStore.updateContracts(list);
+        (event.target as HTMLInputElement).value = '';
+      },
+      error: () => alert('Upload failed. Make sure you are logged in and the API is running.'),
+    });
   }
 
   removeContractFile(rowIndex: number): void {
     const list = [...this.contractRecords];
-    list[rowIndex] = { ...list[rowIndex], file: '' };
+    const existing = list[rowIndex];
+    list[rowIndex] = { ...existing, file: '', fileUrl: undefined, fileId: undefined };
     this.companyStore.updateContracts(list);
+    if (existing?.fileId) {
+      this.fileUpload.delete(existing.fileId).subscribe({ error: () => undefined });
+    }
   }
 
   // Logo uploads
@@ -986,7 +1216,16 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
   decodeSvg(dataUrl: string): string {
     try {
       if (dataUrl.startsWith('data:image/svg+xml;utf8,')) {
-        return dataUrl.substring('data:image/svg+xml;utf8,'.length);
+        const raw = dataUrl.substring('data:image/svg+xml;utf8,'.length);
+        try {
+          return decodeURIComponent(raw);
+        } catch {
+          return raw;
+        }
+      }
+      if (dataUrl.startsWith('data:image/svg+xml;base64,')) {
+        const base64 = dataUrl.substring('data:image/svg+xml;base64,'.length);
+        return atob(base64);
       }
       return '';
     } catch {
@@ -1008,8 +1247,37 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
     });
   }
 
+  /** Resolve index in the full logos list (safe when filters are active). */
+  logoIndex(logo: { name?: string; uploaded?: string; dataUrl?: string; sourceUrl?: string }): number {
+    return this.logos.findIndex(l => l === logo || (
+      l.name === logo.name &&
+      l.uploaded === logo.uploaded &&
+      l.dataUrl === logo.dataUrl &&
+      l.sourceUrl === logo.sourceUrl
+    ));
+  }
+
   downloadLogo(logo: any): void {
-    alert(`Downloading logo: ${logo.name} (${logo.fileType})\n\n(In production: initiates download package)`);
+    const url = this.logoDisplayUrl(logo);
+    if (!url) {
+      alert(`Logo "${logo?.name || 'file'}" has no downloadable data.`);
+      return;
+    }
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${(logo?.name || 'logo').replace(/[^\w.-]+/g, '_')}.${(logo?.fileType || 'png').toLowerCase()}`;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
+  logoDisplayUrl(logo: { dataUrl?: string; sourceUrl?: string } | null | undefined): string {
+    if (!logo) return '';
+    if (logo.dataUrl) return logo.dataUrl;
+    if (logo.sourceUrl) return this.fileUpload.resolveFileUrl(logo.sourceUrl);
+    return '';
   }
 
   deleteLogo(index: number): void {
@@ -1017,6 +1285,148 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
       this.companyStore.updateLogos(this.logos.filter((_, idx) => idx !== index));
     }
   }
+
+  // Canva Integration Link Importer
+  canvaImportModalOpen = signal(false);
+  canvaLinkInput = '';
+  isImporting = signal(false);
+  importStatus = signal('');
+  importProgress = signal(0);
+
+  openCanvaImportModal(): void {
+    this.canvaLinkInput = '';
+    this.isImporting.set(false);
+    this.importStatus.set('');
+    this.importProgress.set(0);
+    this.canvaImportModalOpen.set(true);
+  }
+
+  closeCanvaImportModal(): void {
+    if (this.isImporting()) return;
+    this.canvaImportModalOpen.set(false);
+  }
+
+  startCanvaImport(): void {
+    if (!this.canvaLinkInput.trim()) {
+      alert('Please enter a Canva design or image link.');
+      return;
+    }
+
+    const inputUrl = this.canvaLinkInput.trim();
+    let parsed: URL;
+    try {
+      parsed = new URL(inputUrl);
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') throw new Error('bad scheme');
+    } catch {
+      alert('Please enter a valid http(s) URL from Canva or a direct image link.');
+      return;
+    }
+
+    this.isImporting.set(true);
+    this.importProgress.set(15);
+    this.importStatus.set('Fetching design from Canva...');
+
+    const designName = this.guessCanvaDesignName(inputUrl);
+
+    this.fileUpload.importFromUrl(inputUrl, `${designName}.png`, 'logo-canva').subscribe({
+      next: uploaded => {
+        this.importProgress.set(90);
+        this.importStatus.set('Saving logo to AuthorVault...');
+        const resolved = this.fileUpload.resolveFileUrl(uploaded.url);
+        const fileType = (uploaded.contentType?.split('/')[1] || uploaded.fileName.split('.').pop() || 'png').toUpperCase().replace('JPEG', 'JPG');
+
+        // Prefer embedding as data URL for durable offline preview when possible
+        this.embedRemoteImage(resolved).then(dataUrl => {
+          this.isImporting.set(false);
+          this.importProgress.set(100);
+          this.importStatus.set('Import complete!');
+          this.saveImportedLogo(designName, fileType, dataUrl || undefined, resolved, uploaded.id);
+        }).catch(() => {
+          this.isImporting.set(false);
+          this.importProgress.set(100);
+          this.saveImportedLogo(designName, fileType, undefined, resolved, uploaded.id);
+        });
+      },
+      error: err => {
+        this.isImporting.set(false);
+        this.importProgress.set(0);
+        const msg = err?.error?.message || err?.message || 'Import failed.';
+        this.importStatus.set('');
+        alert(msg);
+      },
+    });
+  }
+
+  private guessCanvaDesignName(url: string): string {
+    const canvaDesignRegex = /\/design\/([a-zA-Z0-9_-]+)(?:\/([a-zA-Z0-9_-]+))?/;
+    const match = url.match(canvaDesignRegex);
+    if (match) {
+      const designId = match[1];
+      const designSlug = match[2] ? decodeURIComponent(match[2].replace(/-/g, ' ')) : '';
+      return designSlug
+        ? designSlug.charAt(0).toUpperCase() + designSlug.slice(1)
+        : `Canva Design (${designId.slice(0, 8)})`;
+    }
+    try {
+      const parsed = new URL(url);
+      const filename = parsed.pathname.substring(parsed.pathname.lastIndexOf('/') + 1);
+      if (filename && filename.includes('.')) return filename.substring(0, filename.lastIndexOf('.'));
+    } catch { /* ignore */ }
+    return `Canva Logo ${new Date().toISOString().slice(0, 10)}`;
+  }
+
+  private embedRemoteImage(url: string): Promise<string | undefined> {
+    return new Promise(resolve => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      const timer = setTimeout(() => resolve(undefined), 8000);
+      img.onload = () => {
+        clearTimeout(timer);
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalWidth || img.width;
+          canvas.height = img.naturalHeight || img.height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx || !canvas.width || !canvas.height) {
+            resolve(undefined);
+            return;
+          }
+          ctx.drawImage(img, 0, 0);
+          resolve(canvas.toDataURL('image/png'));
+        } catch {
+          resolve(undefined);
+        }
+      };
+      img.onerror = () => {
+        clearTimeout(timer);
+        resolve(undefined);
+      };
+      img.src = url;
+    });
+  }
+
+  private saveImportedLogo(
+    name: string,
+    fileType: string,
+    dataUrl: string | undefined,
+    sourceUrl?: string,
+    fileId?: number
+  ): void {
+    const newLogo = {
+      name,
+      format: 'Square',
+      dimensions: dataUrl ? 'Imported' : '—',
+      fileType: fileType || 'PNG',
+      uploaded: new Date().toISOString().split('T')[0],
+      bg: '#ffffff',
+      dataUrl,
+      sourceUrl,
+      fileId,
+    };
+    this.companyStore.updateLogos([...this.logos, newLogo]);
+    this.closeCanvaImportModal();
+  }
+
 
   // Financial Documents Vault
   financialCategoryFilter = '';
@@ -1049,20 +1459,50 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
   }
 
   onFinancialUpload(event: Event): void {
-    if (!this.editMode()) return;
+    if (!this.editMode() && !this.isCardEditing('financial')) return;
     const file = (event.target as HTMLInputElement).files?.[0];
     if (!file) return;
-    const newDoc = {
-      month: new Date().toLocaleString('default', { month: 'short' }),
-      year: new Date().getFullYear().toString(),
-      category: this.financialCategoryFilter || 'P&L Reports',
-      fileName: file.name,
-      status: 'Approved',
-      fileSize: (file.size / 1024).toFixed(0) + ' KB',
-      uploadedDate: new Date().toISOString().split('T')[0]
-    };
-    this.companyStore.updateFinancialDocs([...this.financialDocs, newDoc]);
-    (event.target as HTMLInputElement).value = '';
+    this.fileUpload.upload(file, 'financial-doc').subscribe({
+      next: uploaded => {
+        const newDoc = {
+          month: new Date().toLocaleString('default', { month: 'short' }),
+          year: new Date().getFullYear().toString(),
+          category: this.financialCategoryFilter || 'P&L Reports',
+          fileName: uploaded.fileName,
+          status: 'Approved',
+          fileSize: (uploaded.sizeBytes / 1024).toFixed(0) + ' KB',
+          uploadedDate: new Date().toISOString().split('T')[0],
+          fileUrl: uploaded.url,
+          fileId: uploaded.id,
+        };
+        this.companyStore.updateFinancialDocs([...this.financialDocs, newDoc]);
+        (event.target as HTMLInputElement).value = '';
+      },
+      error: () => alert('Upload failed. Make sure you are logged in and the API is running.'),
+    });
+  }
+
+  onFinancialRowUpload(event: Event, index: number): void {
+    if (!this.editMode() && !this.isCardEditing('financial')) return;
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file || index < 0) return;
+    this.fileUpload.upload(file, 'financial-doc').subscribe({
+      next: uploaded => {
+        const list = [...this.financialDocs];
+        if (!list[index]) return;
+        list[index] = {
+          ...list[index],
+          fileName: uploaded.fileName,
+          fileSize: (uploaded.sizeBytes / 1024).toFixed(0) + ' KB',
+          uploadedDate: list[index].uploadedDate || new Date().toISOString().split('T')[0],
+          fileUrl: uploaded.url,
+          fileId: uploaded.id,
+        };
+        this.companyStore.updateFinancialDocs(list);
+        (event.target as HTMLInputElement).value = '';
+      },
+      error: () => alert('Upload failed. Make sure you are logged in and the API is running.'),
+    });
   }
 
   deleteFinancialDoc(doc: any): void {
@@ -1288,7 +1728,7 @@ Contractor: ____________________________`;
   }
 
   get catalogChartTotal(): number {
-    return this.company().imprints.length + this.penNameCount + this.bookCount;
+    return this.vs.totalImprints() + this.vs.totalPenNames() + this.vs.totalBooks();
   }
 
   get activeContractCount(): number {
@@ -1296,7 +1736,7 @@ Contractor: ____________________________`;
   }
 
   catalogBarPct(value: number): number {
-    const max = Math.max(this.company().imprints.length, this.penNameCount, this.bookCount, 1);
+    const max = Math.max(this.vs.totalImprints(), this.vs.totalPenNames(), this.vs.totalBooks(), 1);
     return Math.round((value / max) * 100);
   }
 
@@ -1356,8 +1796,16 @@ Contractor: ____________________________`;
     this.companyStore.updateContracts(list);
   }
 
+  patchFinancialDoc(index: number, key: string, val: string): void {
+    if (!this.editMode() && !this.isCardEditing('financial')) return;
+    if (index < 0 || index >= this.financialDocs.length) return;
+    const list = [...this.financialDocs];
+    list[index] = { ...list[index], [key]: val };
+    this.companyStore.updateFinancialDocs(list);
+  }
+
   patchFinancialDocStatus(fileName: string, status: string): void {
-    if (!this.editMode()) return;
+    if (!this.editMode() && !this.isCardEditing('financial')) return;
     this.companyStore.updateFinancialDocs(
       this.financialDocs.map(d => d.fileName === fileName ? { ...d, status } : d)
     );
@@ -1401,6 +1849,20 @@ Contractor: ____________________________`;
       }
     });
 
+    // Seed ISBN Block Details from imprint legal ISBN data when the editable table is empty.
+    if (this.isbnBlocks.length === 0 && this.company().imprints.length > 0) {
+      this.companyStore.updateIsbnBlocks(
+        this.company().imprints.map(imp => ({
+          imprintName: imp.identity?.name || '',
+          isbnPrefix: String(imp.legalIsbn?.isbnPrefix ?? ''),
+          isbnBlockPurchased: String(imp.legalIsbn?.isbnBlockPurchased ?? ''),
+          isbnBlockCount: String(imp.legalIsbn?.isbnBlockCount ?? ''),
+          isbnsAssigned: String(imp.legalIsbn?.isbnsAssigned ?? ''),
+          isbnsRemaining: String(imp.legalIsbn?.isbnsRemaining ?? ''),
+        }))
+      );
+    }
+
     this.pinService.getStatus().subscribe({
       next: status => {
         this.isFirstTime = !status.hasPin;
@@ -1412,13 +1874,16 @@ Contractor: ____________________________`;
 
     // Start reveal timer ticks
     this.timerIntervalRef = setInterval(() => {
-      for (const key of Object.keys(this.revealTimers)) {
+      const keys = Object.keys(this.revealTimers);
+      if (keys.length === 0) return;
+      for (const key of keys) {
         if (this.revealTimers[key] > 0) {
           this.revealTimers[key]--;
         } else {
           delete this.revealTimers[key];
         }
       }
+      this.cdr.markForCheck();
     }, 1000);
   }
 

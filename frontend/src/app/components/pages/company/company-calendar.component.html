@@ -45,24 +45,76 @@
       </div>
     </div>
 
-    <div class="toolbar" style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;">
-      <select [(ngModel)]="filterCat" class="filter-select">
-        <option value="">All Categories</option>
-        <option value="Tax">Tax Deadlines</option>
-        <option value="Domain">Domain Renewals</option>
-        <option value="ISBN">ISBN Purchases</option>
-        <option value="Software">Software Renewals</option>
-        <option value="Trademark">Trademark Renewals</option>
-        <option value="Contract">Contract Renewals</option>
-        <option value="Filing">Annual Filings</option>
-      </select>
-      
-      <div class="date-range-filter" style="display:flex;align-items:center;gap:.35rem;font-size:.8125rem;color:var(--text-secondary);">
-        <span>Range:</span>
-        <input type="date" [(ngModel)]="filterStartDate" class="date-input" style="padding:.35rem;border:1px solid var(--border-color);border-radius:6px;background:var(--background);color:var(--text-primary);" />
-        <span>to</span>
-        <input type="date" [(ngModel)]="filterEndDate" class="date-input" style="padding:.35rem;border:1px solid var(--border-color);border-radius:6px;background:var(--background);color:var(--text-primary);" />
-        <button *ngIf="filterStartDate || filterEndDate" (click)="clearDateRange()" class="clear-range-btn" style="background:none;border:none;color:var(--error);cursor:pointer;font-weight:600;padding:0 .25rem;">✕</button>
+    <div class="filters-panel">
+      <div class="filters-header">
+        <h3 class="filters-title">Filters</h3>
+        <p class="filters-subtitle">Narrow dates by category and date range. Apply the range to update the calendar and list.</p>
+      </div>
+
+      <div class="filters-row">
+        <div class="filter-field">
+          <label class="filter-label" for="filter-category">Category</label>
+          <select
+            id="filter-category"
+            [ngModel]="filterCat()"
+            (ngModelChange)="filterCat.set($event)"
+            class="filter-select"
+            title="Filter by category">
+            <option value="">All Categories</option>
+            <option value="Tax">Tax Deadlines</option>
+            <option value="Domain">Domain Renewals</option>
+            <option value="ISBN">ISBN Purchases</option>
+            <option value="Software">Software Renewals</option>
+            <option value="Trademark">Trademark Renewals</option>
+            <option value="Contract">Contract Renewals</option>
+            <option value="Filing">Annual Filings</option>
+          </select>
+        </div>
+
+        <div class="filter-field range-field">
+          <label class="filter-label">Date range</label>
+          <div class="date-range-filter">
+            <input
+              type="date"
+              [(ngModel)]="draftStartDate"
+              class="date-input"
+              aria-label="From date"
+              title="From date" />
+            <span class="range-sep">to</span>
+            <input
+              type="date"
+              [(ngModel)]="draftEndDate"
+              class="date-input"
+              aria-label="To date"
+              title="To date" />
+            <button
+              type="button"
+              class="btn-apply-range"
+              (click)="applyDateRange()"
+              [disabled]="!draftStartDate && !draftEndDate">
+              Apply Range
+            </button>
+            @if (rangeFilterActive()) {
+              <button type="button" class="btn-clear-range" (click)="clearDateRange()">Clear</button>
+            }
+          </div>
+          @if (rangeFilterError) {
+            <p class="range-filter-error">{{ rangeFilterError }}</p>
+          }
+          @if (rangeFilterActive()) {
+            <div class="range-filter-active">Showing: {{ rangeFilterLabel() }}</div>
+          } @else {
+            <p class="filter-hint">Choose From / To, then click Apply Range to filter the calendar and list.</p>
+          }
+        </div>
+
+        @if (viewMode() === 'list') {
+          <div class="legend">
+            <span class="legend-dot red"></span><span>Due within 30 days</span>
+            <span class="legend-dot amber"></span><span>Due within 90 days</span>
+            <span class="legend-dot green"></span><span>90+ days away</span>
+          </div>
+        }
       </div>
     </div>
 
@@ -88,7 +140,8 @@
             <div class="weekday-header" *ngFor="let day of weekDays">{{ day }}</div>
             <div class="calendar-day" *ngFor="let day of calendarDays()"
               [class.outside]="!day.inMonth"
-              [class.today]="day.isToday">
+              [class.today]="day.isToday"
+              [class.out-of-range]="rangeFilterActive() && !isDayInRange(day.date)">
               <span class="day-number">{{ day.date.getDate() }}</span>
               <div class="day-events">
                 <div class="calendar-event" *ngFor="let event of day.events.slice(0, 3)"

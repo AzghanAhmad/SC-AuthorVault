@@ -68,12 +68,14 @@
     @if(activeTab==='contributors') {
       <div class="card"><h2 class="section-title">Contributors</h2>
         @if(!book.contributors.length) { <div class="empty-state"><div class="empty-icon">👥</div><p>No contributors recorded</p></div> }
-        <table class="data-table" *ngIf="book.contributors.length"><thead><tr><th>Name</th><th>Type</th><th>Role</th><th>Fee</th><th>Status</th></tr></thead>
+        <div class="table-scroll-wrap" *ngIf="book.contributors.length">
+        <table class="data-table"><thead><tr><th>Name</th><th>Type</th><th>Role</th><th>Fee</th><th>Status</th></tr></thead>
           <tbody>@for(c of book.contributors; track c.id) {
             <tr><td class="td-primary">{{c.displayName}}</td><td>{{c.type}}</td><td>{{c.role}}</td><td>{{c.feeAmount}}</td>
               <td><span class="status" [ngClass]="getStatusClass(c.qaStatus)">{{c.qaStatus}}</span></td></tr>
           }</tbody>
         </table>
+        </div>
       </div>
     }
 
@@ -129,11 +131,13 @@
         </div>
       </div>
       <div class="card"><h2 class="section-title">ARC Reviews</h2>
+        <div class="table-scroll-wrap">
         <table class="data-table"><thead><tr><th>Reviewer</th><th>Rating</th><th>Posted</th><th>Platforms</th><th>Usable Quote</th></tr></thead>
           <tbody>@for(r of book.arcReviews; track r.id) {
             <tr><td class="td-primary">{{r.recipientName}}</td><td>{{r.rating}}★</td><td>{{r.reviewPosted ? 'Yes' : 'No'}}</td><td>{{r.reviewPlatforms}}</td><td>{{r.quoteUsable ? r.quoteText : '—'}}</td></tr>
           }</tbody>
         </table>
+        </div>
       </div>
     }
 
@@ -242,11 +246,13 @@
 
     @if(activeTab==='revisions') {
       <div class="card"><h2 class="section-title">Revision History</h2>
+        <div class="table-scroll-wrap">
         <table class="data-table"><thead><tr><th>Date</th><th>Type</th><th>By</th><th>Reason</th><th>Platforms</th></tr></thead>
           <tbody>@for(r of book.revisionHistory; track r.id) {
             <tr><td>{{r.date}}</td><td class="td-primary">{{r.revisionType}}</td><td>{{r.performedBy}}</td><td>{{r.reason}}</td><td>{{r.affectedPlatforms}}</td></tr>
           }</tbody>
         </table>
+        </div>
       </div>
     }
 

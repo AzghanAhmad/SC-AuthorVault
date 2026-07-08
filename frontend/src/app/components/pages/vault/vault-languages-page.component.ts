@@ -4,6 +4,8 @@ import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthorVaultService } from '../../../services/author-vault.service';
 import { LanguageBranch } from '../../../models/author-vault.model';
+import { EditableFieldComponent } from '../../shared/editable-field/editable-field.component';
+import { PageActionBarComponent } from '../../shared/page-action-bar/page-action-bar.component';
 
 const ALL_LANGUAGES = [
   'Afrikaans','Albanian','Arabic','Armenian','Azerbaijani','Basque','Belarusian','Bengali',
@@ -27,14 +29,25 @@ interface BookEdition {
 @Component({
   selector: 'app-vault-languages-page',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, EditableFieldComponent, PageActionBarComponent],
   styleUrls: ['../company-vault/company-vault.component.css', './vault-languages-page.component.css'],
   templateUrl: './vault-languages-page.component.html',
   })
 export class VaultLanguagesPageComponent {
-  private readonly vs = inject(AuthorVaultService);
+  readonly vs = inject(AuthorVaultService);
   private readonly router = inject(Router);
   readonly ALL_LANGUAGES = ALL_LANGUAGES;
+
+  editMode = signal(false);
+  cardEditModes: Record<string, boolean> = {};
+
+  isCardEditing(cardId: string): boolean {
+    return !!(this.cardEditModes[cardId] || this.editMode());
+  }
+
+  toggleCardEdit(cardId: string): void {
+    this.cardEditModes[cardId] = !this.cardEditModes[cardId];
+  }
 
   goTo(r: string) { this.router.navigate([r]); }
 
@@ -54,7 +67,7 @@ export class VaultLanguagesPageComponent {
     return result;
   });
 
-  selectedLanguage = 'English'; // default English
+  selectedLanguage = '';
   selectedEdition: BookEdition | null = null;
   detailTab = signal('edition');
   showAddLang = false;
@@ -72,7 +85,20 @@ export class VaultLanguagesPageComponent {
     return Array.from(langs).sort();
   }
 
+  /** Prefer English when present; otherwise first available language. */
+  private ensureLanguageSelection(): void {
+    const langs = this.availableLanguages;
+    if (!langs.length) {
+      this.selectedLanguage = '';
+      return;
+    }
+    if (!this.selectedLanguage || !langs.includes(this.selectedLanguage)) {
+      this.selectedLanguage = langs.includes('English') ? 'English' : langs[0];
+    }
+  }
+
   titlesForLanguage(): BookEdition[] {
+    this.ensureLanguageSelection();
     if (!this.selectedLanguage) return this.allEditions();
     return this.allEditions().filter(e => e.branch.edition.language === this.selectedLanguage);
   }
@@ -82,12 +108,15 @@ export class VaultLanguagesPageComponent {
   }
 
   publishedInLanguage(): number {
+    this.ensureLanguageSelection();
     return this.titlesForLanguage().filter(e => e.branch.edition.publicationStatus === 'Published').length;
   }
   inProgressInLanguage(): number {
+    this.ensureLanguageSelection();
     return this.titlesForLanguage().filter(e => e.branch.edition.publicationStatus === 'In Progress').length;
   }
   formatsInLanguage(): number {
+    this.ensureLanguageSelection();
     return this.titlesForLanguage().reduce((a, e) => a + e.branch.formats.length, 0);
   }
 
@@ -105,5 +134,44 @@ export class VaultLanguagesPageComponent {
       this.showAddLang = false;
       this.selectedEdition = null;
     }
+  }
+
+  patchEdition(be: BookEdition, key: string, val: string | number): void {
+    if (!this.isCardEditing('edition')) return;
+    this.vs.updateLanguageBranchEdition(be.branch.id, { [key]: val } as any);
+  }
+
+  patchMetadata(be: BookEdition, key: string, val: string): void {
+    if (!this.isCardEditing('metadata')) return;
+    this.vs.updateLanguageBranchMetadata(be.branch.id, { [key]: val } as any);
+  }
+
+  patchIdentifiers(be: BookEdition, key: string, val: string): void {
+    if (!this.isCardEditing('identifiers')) return;
+    this.vs.updateLanguageBranchIdentifiers(be.branch.id, { [key]: val } as any);
+  }
+
+  deleteEditionSection(be: BookEdition): void {
+    if (!confirm('Clear this edition\'s details?')) return;
+    this.vs.updateLanguageBranchEdition(be.branch.id, {
+      releaseDate: '', wordCount: 0, pageCount: 0, chapterCount: 0,
+    });
+  }
+
+  deleteMetadataSection(be: BookEdition): void {
+    if (!confirm('Clear localized metadata for this edition?')) return;
+    this.vs.updateLanguageBranchMetadata(be.branch.id, {
+      localizedTitle: '', localizedSubtitle: '', localizedSeriesName: '', localizedHook: '',
+      localizedShortDescription: '', localizedLongDescription: '', localizedAuthorBio: '',
+      localizedContentWarnings: '', translatorCreditLine: '',
+    });
+  }
+
+  deleteIdentifiersSection(be: BookEdition): void {
+    if (!confirm('Clear ISBN identifiers for this edition?')) return;
+    this.vs.updateLanguageBranchIdentifiers(be.branch.id, {
+      isbnEbook: '', isbnPaperback: '', isbnHardcover: '', isbnLargePrint: '', isbnAudiobook: '',
+      isbnAssignedDate: '',
+    });
   }
 }

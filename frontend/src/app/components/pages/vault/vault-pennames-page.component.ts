@@ -4,20 +4,24 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthorVaultService } from '../../../services/author-vault.service';
 import { PenName, BoxSetRecord } from '../../../models/author-vault.model';
+import { ExcelImportService } from '../../../services/excel-import.service';
 import { EditableFieldComponent } from '../../shared/editable-field/editable-field.component';
 import { PageActionBarComponent } from '../../shared/page-action-bar/page-action-bar.component';
+import { VaultCreateModalComponent, VaultCreateResult } from '../../shared/vault-create-modal/vault-create-modal.component';
 
 @Component({
   selector: 'app-vault-pennames-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, EditableFieldComponent, PageActionBarComponent],
+  imports: [CommonModule, FormsModule, EditableFieldComponent, PageActionBarComponent, VaultCreateModalComponent],
   styleUrls: ['../company-vault/company-vault.component.css', './vault-pennames-page.component.css'],
   templateUrl: './vault-pennames-page.component.html',
   })
 export class VaultPenNamesPageComponent {
   readonly vs = inject(AuthorVaultService);
   private router = inject(Router);
+  private excelImport = inject(ExcelImportService);
   editMode = signal(false);
+  cardEditModes: Record<string, boolean> = {};
 
   allPenNames = computed(() => {
     const pns: PenName[] = [];
@@ -25,7 +29,14 @@ export class VaultPenNamesPageComponent {
     return pns;
   });
 
-  selected = signal<PenName | null>(null);
+  selectedId = signal<string | null>(null);
+  /** Always resolve from the live company signal so edits/adds stay in sync. */
+  selected = computed(() => {
+    const id = this.selectedId();
+    if (!id) return null;
+    return this.allPenNames().find(p => p.id === id) ?? null;
+  });
+
   tab = signal('identity');
 
   addingGenre = signal(false);
@@ -34,6 +45,11 @@ export class VaultPenNamesPageComponent {
   newSocialPlatform = '';
   newSocialHandle = '';
   newSocialUrl = '';
+
+  // Publishing platforms
+  newPlatformName = '';
+  newPlatformInfo = '';
+  newPlatformUrl = '';
 
   // Press Kit items
   pressKitItems = ['Author Photo', 'Multi-length Bios', 'Cover Assets', 'Comp Titles', 'Contact Details', 'Book Sheet'];
@@ -90,8 +106,66 @@ export class VaultPenNamesPageComponent {
     return p.length > 1 ? (p[0][0] + p[p.length - 1][0]).toUpperCase() : name.substring(0, 2).toUpperCase();
   }
 
-  selectItem(pn: PenName) { this.selected.set(pn); this.tab.set('identity'); }
+  selectItem(pn: PenName) { this.selectedId.set(pn.id); this.tab.set('identity'); }
+  clearSelection(): void { this.selectedId.set(null); this.tab.set('identity'); }
   goTo(r: string) { this.router.navigate([r]); }
+
+  isCardEditing(cardId: string): boolean {
+    return !!(this.cardEditModes[cardId] || this.editMode());
+  }
+
+  toggleCardEdit(cardId: string): void {
+    this.cardEditModes[cardId] = !this.cardEditModes[cardId];
+  }
+
+  showCreatePenName = signal(false);
+  showCreateSeries = signal(false);
+  createSeriesForPenNameId = '';
+
+  imprintOptions() {
+    return this.vs.company().imprints.map(i => ({
+      id: i.id,
+      label: i.identity.name || 'Untitled imprint',
+    }));
+  }
+
+  addPenNameToList(): void {
+    const imprints = this.vs.company().imprints;
+    if (imprints.length === 0) {
+      alert('Create an imprint first before adding a pen name.');
+      this.goTo('/vault/imprints');
+      return;
+    }
+    this.showCreatePenName.set(true);
+  }
+
+  onCreatePenName(result: VaultCreateResult): void {
+    this.showCreatePenName.set(false);
+    const imprintId = result.parentId || this.vs.company().imprints[0]?.id;
+    if (!imprintId) return;
+    const created = this.vs.addPenName(imprintId, result.name || 'New Pen Name');
+    if (created) {
+      this.selectedId.set(created.id);
+      this.tab.set('identity');
+      this.cardEditModes['identity'] = true;
+    }
+  }
+
+  addSeriesToSelected(pn: PenName): void {
+    if (!this.isCardEditing('series')) {
+      this.cardEditModes['series'] = true;
+    }
+    this.createSeriesForPenNameId = pn.id;
+    this.showCreateSeries.set(true);
+  }
+
+  onCreateSeriesUnderPenName(result: VaultCreateResult): void {
+    this.showCreateSeries.set(false);
+    const pnId = this.createSeriesForPenNameId || this.selectedId();
+    if (!pnId) return;
+    this.vs.addSeries(pnId, result.name || 'New Series');
+    this.createSeriesForPenNameId = '';
+  }
 
   // Avatar Upload
   onPenNameAvatarUpload(event: Event, penNameId: string): void {
@@ -106,6 +180,7 @@ export class VaultPenNamesPageComponent {
 
   // Branding update
   updateBranding(pn: PenName, field: keyof PenName['branding'], value: string): void {
+    if (!this.isCardEditing('branding')) return;
     this.vs.updatePenNameFull(pn.id, {
       branding: {
         ...pn.branding,
@@ -121,6 +196,7 @@ export class VaultPenNamesPageComponent {
   }
 
   addAdditionalGenre(pn: PenName, value: string): void {
+    if (!this.isCardEditing('identity')) return;
     if (!value.trim()) return;
     const current = this.getAdditionalGenres(pn);
     if (!current.includes(value.trim())) {
@@ -131,6 +207,7 @@ export class VaultPenNamesPageComponent {
   }
 
   removeAdditionalGenre(pn: PenName, value: string): void {
+    if (!this.isCardEditing('identity')) return;
     const current = this.getAdditionalGenres(pn);
     const updatedList = current.filter(g => g !== value);
     this.vs.updatePenName(pn.id, { additionalGenres: updatedList.join(', ') });
@@ -138,16 +215,27 @@ export class VaultPenNamesPageComponent {
 
   // Presence platform helpers
   addSocialAccount(pn: PenName): void {
-    if (!this.newSocialPlatform.trim() || !this.newSocialHandle.trim()) return;
-    const current = [...pn.onlinePresence.socialAccounts];
+    if (!this.isCardEditing('presence') && !this.isCardEditing('social')) return;
+    const platform = this.newSocialPlatform.trim();
+    const handle = this.newSocialHandle.trim();
+    if (!platform || !handle) {
+      alert('Enter both a platform name and a handle.');
+      return;
+    }
+    const live = this.selected() ?? pn;
+    const current = [...(live.onlinePresence?.socialAccounts ?? [])];
+    if (current.some(s => s.platform.toLowerCase() === platform.toLowerCase() && s.handle.toLowerCase() === handle.toLowerCase())) {
+      alert('That channel is already in the list.');
+      return;
+    }
     current.push({
-      platform: this.newSocialPlatform.trim(),
-      handle: this.newSocialHandle.trim(),
+      platform,
+      handle,
       url: this.newSocialUrl.trim()
     });
-    this.vs.updatePenNameFull(pn.id, {
+    this.vs.updatePenNameFull(live.id, {
       onlinePresence: {
-        ...pn.onlinePresence,
+        ...live.onlinePresence,
         socialAccounts: current
       }
     });
@@ -156,13 +244,117 @@ export class VaultPenNamesPageComponent {
     this.newSocialUrl = '';
   }
 
-  removeSocialAccount(pn: PenName, platform: string): void {
-    const current = pn.onlinePresence.socialAccounts.filter(s => s.platform !== platform);
+  addPlatformAccount(pn: PenName): void {
+    if (!this.isCardEditing('platforms')) return;
+    const name = this.newPlatformName.trim();
+    if (!name) {
+      alert('Enter a platform name.');
+      return;
+    }
+    const live = this.selected() ?? pn;
+    const current = [...(live.platformAccounts || [])];
+    current.push({
+      platform: name,
+      accountInfo: this.newPlatformInfo.trim(),
+      url: this.newPlatformUrl.trim(),
+    });
+    this.vs.updatePenNameFull(live.id, { platformAccounts: current });
+    this.newPlatformName = '';
+    this.newPlatformInfo = '';
+    this.newPlatformUrl = '';
+  }
+
+  patchPlatformAccount(pn: PenName, index: number, key: 'platform' | 'accountInfo' | 'url', value: string): void {
+    if (!this.isCardEditing('platforms')) return;
+    const live = this.selected() ?? pn;
+    const current = [...(live.platformAccounts || [])];
+    if (!current[index]) return;
+    current[index] = { ...current[index], [key]: value };
+    this.vs.updatePenNameFull(live.id, { platformAccounts: current });
+  }
+
+  removePlatformAccount(pn: PenName, index: number): void {
+    if (!this.isCardEditing('platforms')) return;
+    const live = this.selected() ?? pn;
+    const current = (live.platformAccounts || []).filter((_, i) => i !== index);
+    this.vs.updatePenNameFull(live.id, { platformAccounts: current });
+  }
+
+  removeSocialAccount(pn: PenName, index: number): void {
+    if (!this.isCardEditing('presence') && !this.isCardEditing('social')) return;
+    const live = this.selected() ?? pn;
+    const current = (live.onlinePresence?.socialAccounts ?? []).filter((_, i) => i !== index);
+    this.vs.updatePenNameFull(live.id, {
+      onlinePresence: {
+        ...live.onlinePresence,
+        socialAccounts: current
+      }
+    });
+  }
+
+  deleteEmailStoreSection(pn: PenName): void {
+    if (!confirm('Clear email & store account fields?')) return;
     this.vs.updatePenNameFull(pn.id, {
       onlinePresence: {
         ...pn.onlinePresence,
-        socialAccounts: current
+        penNameEmail: '',
+        directStoreUrl: '',
+        goodreadsUrl: '',
+        bookbubUrl: '',
       }
+    });
+  }
+
+  loadEmailStoreDefaults(pn: PenName): void {
+    const slug = pn.identity.displayName.toLowerCase().replace(/\s+/g, '');
+    const dash = pn.identity.displayName.toLowerCase().replace(/\s+/g, '-');
+    const site = (pn.onlinePresence.authorWebsite || '').replace(/\/$/, '');
+    this.vs.updatePenNameFull(pn.id, {
+      onlinePresence: {
+        ...pn.onlinePresence,
+        penNameEmail: `${slug}@authorvaultpress.com`,
+        directStoreUrl: site ? `${site}/shop` : '',
+        goodreadsUrl: `goodreads.com/author/${dash}`,
+        bookbubUrl: `bookbub.com/authors/${dash}`,
+      }
+    });
+    this.cardEditModes['email_store'] = true;
+  }
+
+  deleteSocialSection(pn: PenName): void {
+    if (!confirm('Delete all social media channels?')) return;
+    this.vs.updatePenNameFull(pn.id, {
+      onlinePresence: { ...pn.onlinePresence, socialAccounts: [] }
+    });
+  }
+
+  emailStoreValue(pn: PenName, field: 'penNameEmail' | 'directStoreUrl' | 'goodreadsUrl' | 'bookbubUrl'): string {
+    const op = pn.onlinePresence;
+    if (field === 'penNameEmail') {
+      return op.penNameEmail || `${pn.identity.displayName.toLowerCase().replace(/\s+/g, '')}@authorvaultpress.com`;
+    }
+    if (field === 'directStoreUrl') {
+      return op.directStoreUrl || (op.authorWebsite ? `${op.authorWebsite.replace(/\/$/, '')}/shop` : '');
+    }
+    if (field === 'goodreadsUrl') {
+      return op.goodreadsUrl || `goodreads.com/author/${pn.identity.displayName.toLowerCase().replace(/\s+/g, '-')}`;
+    }
+    return op.bookbubUrl || `bookbub.com/authors/${pn.identity.displayName.toLowerCase().replace(/\s+/g, '-')}`;
+  }
+
+  updatePresenceField(pn: PenName, field: string, value: string | number): void {
+    if (!this.isCardEditing('presence') && !this.isCardEditing('email_store') && !this.isCardEditing('social')) return;
+    const live = this.selected() ?? pn;
+    const nextValue = field === 'subscriberCount' ? (Number(value) || 0) : value;
+    this.vs.updatePenNameFull(live.id, {
+      onlinePresence: { ...live.onlinePresence, [field]: nextValue }
+    });
+  }
+
+  updateCommunityField(pn: PenName, field: string, value: string): void {
+    if (!this.isCardEditing('community')) return;
+    this.vs.updatePenNameFull(pn.id, {
+      readerCommunity: { ...pn.readerCommunity, [field]: value }
     });
   }
 
@@ -172,6 +364,7 @@ export class VaultPenNamesPageComponent {
   }
 
   togglePressKitItem(pn: PenName, item: string): void {
+    if (!this.isCardEditing('branding')) return;
     const current = pn.branding.pressKitChecklist ? [...pn.branding.pressKitChecklist] : [];
     const idx = current.indexOf(item);
     if (idx >= 0) {
@@ -188,6 +381,7 @@ export class VaultPenNamesPageComponent {
   }
 
   onPressKitUpload(event: Event, pn: PenName): void {
+    if (!this.isCardEditing('branding')) return;
     const file = (event.target as HTMLInputElement).files?.[0];
     if (!file) return;
     this.vs.updatePenNameFull(pn.id, {
@@ -199,6 +393,7 @@ export class VaultPenNamesPageComponent {
   }
 
   removePressKitFile(pn: PenName): void {
+    if (!this.isCardEditing('branding')) return;
     this.vs.updatePenNameFull(pn.id, {
       branding: {
         ...pn.branding,
@@ -229,8 +424,23 @@ export class VaultPenNamesPageComponent {
   }
 
   openAddBoxSet(pn: PenName): void {
+    if (!this.isCardEditing('boxsets')) {
+      this.cardEditModes['boxsets'] = true;
+    }
+    const live = this.selected() ?? pn;
+    let seriesId = live.series[0]?.id || '';
+    if (!live.series.length) {
+      const name = prompt('No series yet. Create a series to assign this box set:', 'New Series');
+      if (name === null) return;
+      const created = this.vs.addSeries(live.id, name.trim() || 'New Series');
+      if (!created) {
+        alert('Could not create series.');
+        return;
+      }
+      seriesId = created.id;
+    }
     this.editingBoxSet.set(null);
-    this.selectedSeriesId = pn.series[0]?.id || '';
+    this.selectedSeriesId = seriesId;
     this.boxSetForm = {
       id: '',
       title: '',
@@ -238,14 +448,14 @@ export class VaultPenNamesPageComponent {
       type: 'Digital Omnibus',
       status: 'Draft',
       dueDate: new Date().toISOString().split('T')[0],
-      penName: pn.identity.displayName,
+      penName: live.identity.displayName,
       copyrightHolder: this.vs.company().identity.legalName,
       totalWordCount: 220000,
       totalPageCount: 880,
       constituentTitles: [],
       exclusiveContent: false,
       exclusiveDescription: '',
-      coverDesigner: 'James Okafor',
+      coverDesigner: '',
       oneLineHook: '',
       shortDescription: '',
       longDescription: '',
@@ -255,7 +465,7 @@ export class VaultPenNamesPageComponent {
     };
 
     const selections: Record<string, boolean> = {};
-    for (const b of this.getAllPenNameBooks(pn)) {
+    for (const b of this.getAllPenNameBooks(this.selected() ?? live)) {
       selections[b.id] = false;
     }
     this.constituentBookSelections.set(selections);
@@ -310,19 +520,44 @@ export class VaultPenNamesPageComponent {
   }
 
   saveBoxSet(pn: PenName): void {
-    if (!this.boxSetForm.title.trim()) return;
+    const live = this.selected() ?? pn;
+    if (!this.boxSetForm.title.trim()) {
+      alert('Enter a box set title.');
+      return;
+    }
+    if (!this.boxSetForm.bundleRightsConfirmed) {
+      alert('Confirm bundle publishing rights before saving.');
+      return;
+    }
 
-    const selectedBooks = this.getAllPenNameBooks(pn).filter(b => this.constituentBookSelections()[b.id]);
+    let seriesId = this.selectedSeriesId;
+    let series = live.series.find(s => s.id === seriesId);
+    if (!series) {
+      if (!live.series.length) {
+        const name = prompt('Create a series to attach this box set to:', 'New Series');
+        if (name === null) return;
+        const created = this.vs.addSeries(live.id, name.trim() || 'New Series');
+        if (!created) {
+          alert('Could not create series.');
+          return;
+        }
+        seriesId = created.id;
+        series = created;
+        this.selectedSeriesId = seriesId;
+      } else {
+        seriesId = live.series[0].id;
+        series = live.series[0];
+        this.selectedSeriesId = seriesId;
+      }
+    }
+
+    const selectedBooks = this.getAllPenNameBooks(live).filter(b => this.constituentBookSelections()[b.id]);
     const constituentTitles = selectedBooks.map((b, i) => ({
       bookId: b.id,
       title: b.coreWork.masterTitle,
       position: i + 1,
       edition: 'First Edition'
     }));
-
-    const seriesId = this.selectedSeriesId;
-    const series = pn.series.find(s => s.id === seriesId);
-    if (!series) return;
 
     const currentBoxSets = [...(series.boxSets ?? [])];
 
@@ -334,8 +569,8 @@ export class VaultPenNamesPageComponent {
       type: this.boxSetForm.type,
       status: this.boxSetForm.status,
       publicationDate: this.boxSetForm.dueDate,
-      penName: pn.identity.displayName,
-      copyrightHolder: this.boxSetForm.copyrightHolder || 'Company LLC',
+      penName: live.identity.displayName,
+      copyrightHolder: this.boxSetForm.copyrightHolder || this.vs.company().identity.legalName || 'Company LLC',
       totalWordCount: Number(this.boxSetForm.totalWordCount),
       totalPageCount: Number(this.boxSetForm.totalPageCount),
       constituentTitles,
@@ -354,27 +589,124 @@ export class VaultPenNamesPageComponent {
       const idx = currentBoxSets.findIndex(b => b.id === record.id);
       if (idx >= 0) {
         currentBoxSets[idx] = record;
+      } else {
+        currentBoxSets.push(record);
       }
     } else {
       currentBoxSets.push(record);
     }
 
-    this.vs.updateBoxSets(pn.id, seriesId, currentBoxSets);
+    this.vs.updateBoxSets(live.id, seriesId, currentBoxSets);
+    this.cardEditModes['boxsets'] = true;
     this.closeBoxSetModal();
   }
 
   deleteBoxSet(pn: PenName, seriesId: string, boxSetId: string): void {
-    if (!this.editMode()) return;
+    if (!this.isCardEditing('boxsets')) return;
     const series = pn.series.find(s => s.id === seriesId);
     if (!series) return;
     const updated = (series.boxSets ?? []).filter(b => b.id !== boxSetId);
     this.vs.updateBoxSets(pn.id, seriesId, updated);
   }
 
+  // ── Section delete handlers ──
+  deleteIdentitySection(pn: PenName): void {
+    if (!confirm('Clear this pen name\'s identity fields?')) return;
+    this.vs.updatePenName(pn.id, {
+      legalNameLinked: '',
+      genre: '',
+      subgenre: '',
+      additionalGenres: '',
+      reason: '',
+      notes: '',
+      avatarUrl: '',
+    });
+  }
+
+  deleteBrandingSection(pn: PenName): void {
+    if (!confirm('Clear branding & press kit info for this pen name?')) return;
+    this.vs.updatePenNameFull(pn.id, {
+      branding: {
+        authorPhoto: '', bioShort: '', bioMedium: '', bioLong: '', bioFirstPerson: '', bioThirdPerson: '',
+        tagline: '', brandColors: '', brandFonts: '', coverStyleNotes: '', logo: '',
+        pressKitFile: undefined, pressKitChecklist: [],
+      }
+    });
+  }
+
+  deletePlatformsSection(pn: PenName): void {
+    if (!confirm('Remove all publishing platform accounts for this pen name?')) return;
+    this.vs.updatePenNameFull(pn.id, { platformAccounts: [] });
+  }
+
+  deletePresenceSection(pn: PenName): void {
+    if (!confirm('Clear online presence details for this pen name?')) return;
+    this.vs.updatePenNameFull(pn.id, {
+      onlinePresence: {
+        authorWebsite: '', newsletterPlatform: '', newsletterName: '', subscriberCount: 0, socialAccounts: [],
+      }
+    });
+  }
+
+  deleteCommunitySection(pn: PenName): void {
+    if (!confirm('Clear reader community details for this pen name?')) return;
+    this.vs.updatePenNameFull(pn.id, {
+      readerCommunity: {
+        primaryDemographic: '', readerPersona: '', arcTeam: '', betaReaderPool: '', readerFacebookGroup: '', engagementNotes: '',
+      }
+    });
+  }
+
+  deleteBoxsetsSection(pn: PenName): void {
+    if (!confirm('Delete all box sets across every series for this pen name?')) return;
+    for (const sr of pn.series) {
+      if (sr.boxSets?.length) this.vs.updateBoxSets(pn.id, sr.id, []);
+    }
+  }
+
+  deleteSeriesSection(pn: PenName): void {
+    if (!confirm('Delete all series (and their books) under this pen name?')) return;
+    for (const sr of [...pn.series]) {
+      this.vs.removeSeries(pn.id, sr.id);
+    }
+  }
+
+  // ── Load (CSV/xlsx) for Identity section ──
+  triggerIdentityLoad(): void {
+    const input = document.getElementById('penname-csv-input') as HTMLInputElement | null;
+    if (input) {
+      input.value = '';
+      input.click();
+    }
+  }
+
+  onCsvSelected(event: Event): void {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    const pn = this.selected();
+    if (!file || !pn) return;
+
+    this.excelImport.parseFile(file).then(rows => {
+      rows.forEach((r: any) => {
+        const field = String(r.field || '').toLowerCase().trim();
+        const value = String(r.value || '');
+        if (field.includes('display') && field.includes('name')) this.vs.updatePenName(pn.id, { displayName: value });
+        else if (field.includes('legal')) this.vs.updatePenName(pn.id, { legalNameLinked: value });
+        else if (field.includes('subgenre')) this.vs.updatePenName(pn.id, { subgenre: value });
+        else if (field.includes('genre')) this.vs.updatePenName(pn.id, { genre: value });
+        else if (field.includes('date')) this.vs.updatePenName(pn.id, { dateCreated: value });
+        else if (field.includes('reason') || field.includes('purpose')) this.vs.updatePenName(pn.id, { reason: value });
+        else if (field.includes('notes')) this.vs.updatePenName(pn.id, { notes: value });
+      });
+      this.cardEditModes['identity'] = true;
+      alert('Import applied to Identity section.');
+    }).catch(err => alert(err.message || 'Import failed.'));
+  }
+
   deleteAllPenNames(): void {
     if (!confirm('Delete all pen names (and their series, books, and box sets)? This cannot be undone.')) return;
     this.vs.clearAllPenNames();
-    this.selected.set(null);
+    this.selectedId.set(null);
     this.editMode.set(false);
+    this.cardEditModes = {};
   }
 }

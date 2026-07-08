@@ -11,29 +11,30 @@ interface CalendarDay {
   events: ImportantDate[];
 }
 
-const STORAGE_KEY = 'av_important_dates_v1'; // legacy — persisted via API
-
 @Component({
   selector: 'app-company-calendar',
   standalone: true,
   imports: [CommonModule, FormsModule, PageActionBarComponent],
   templateUrl: './company-calendar.component.html',
   styleUrls: ['./company-calendar.component.css'],
-  })
+})
 export class CompanyCalendarComponent implements OnInit {
   private readonly datesService = inject(ImportantDatesService);
   editMode = signal(false);
 
-  filterCat = '';
-  filterStartDate = '';
-  filterEndDate = '';
+  filterCat = signal('');
+  draftStartDate = '';
+  draftEndDate = '';
+  appliedStartDate = signal('');
+  appliedEndDate = signal('');
+  rangeFilterError = '';
   viewMode = signal<'list' | 'calendar'>('calendar');
   calView = signal<'month' | 'quarter' | 'year'>('month');
   viewMonth = signal(new Date());
   showAddModal = signal(false);
   editingId = signal<string | null>(null);
 
-  dates = signal<ImportantDate[]>([]);
+  readonly dates = this.datesService.dates;
 
   form = {
     title: '',
@@ -45,15 +46,70 @@ export class CompanyCalendarComponent implements OnInit {
 
   readonly weekDays = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
 
+  rangeFilterActive = computed(() => !!(this.appliedStartDate() || this.appliedEndDate()));
+
+  rangeFilterLabel = computed(() => {
+    const start = this.appliedStartDate();
+    const end = this.appliedEndDate();
+    const fmt = (s: string) =>
+      new Date(s + 'T00:00:00').toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
+    if (start && end) return `${fmt(start)} – ${fmt(end)}`;
+    if (start) return `from ${fmt(start)}`;
+    if (end) return `through ${fmt(end)}`;
+    return '';
+  });
+
+  applyDateRange(): void {
+    this.rangeFilterError = '';
+    if (!this.draftStartDate && !this.draftEndDate) {
+      this.rangeFilterError = 'Pick at least a start or end date.';
+      return;
+    }
+
+    let start = this.draftStartDate;
+    let end = this.draftEndDate;
+    if (start && end && start > end) {
+      [start, end] = [end, start];
+      this.draftStartDate = start;
+      this.draftEndDate = end;
+    }
+
+    this.appliedStartDate.set(start);
+    this.appliedEndDate.set(end);
+
+    const jump = start || end;
+    if (jump) {
+      const d = new Date(jump + 'T00:00:00');
+      this.viewMonth.set(new Date(d.getFullYear(), d.getMonth(), 1));
+    }
+  }
+
   clearDateRange(): void {
-    this.filterStartDate = '';
-    this.filterEndDate = '';
+    this.draftStartDate = '';
+    this.draftEndDate = '';
+    this.appliedStartDate.set('');
+    this.appliedEndDate.set('');
+    this.rangeFilterError = '';
+  }
+
+  isDayInRange(date: Date): boolean {
+    if (!this.rangeFilterActive()) return true;
+    const key = this.dateKey(date);
+    const start = this.appliedStartDate();
+    const end = this.appliedEndDate();
+    if (start && key < start) return false;
+    if (end && key > end) return false;
+    return true;
   }
 
   filtered = computed(() => {
-    const cat = this.filterCat;
-    const start = this.filterStartDate;
-    const end = this.filterEndDate;
+    const cat = this.filterCat();
+    const start = this.appliedStartDate();
+    const end = this.appliedEndDate();
     return [...this.dates()]
       .filter(d => !cat || d.category === cat)
       .filter(d => !start || d.dueDate >= start)
@@ -95,23 +151,33 @@ export class CompanyCalendarComponent implements OnInit {
     const activeYear = activeDate.getFullYear();
     const currentMonth = activeDate.getMonth();
     const quarterStartMonth = Math.floor(currentMonth / 3) * 3;
-    
+
     return [
-      { year: activeYear, monthIndex: quarterStartMonth, name: new Date(activeYear, quarterStartMonth, 1).toLocaleDateString('en-US', { month: 'long' }) },
-      { year: activeYear, monthIndex: quarterStartMonth + 1, name: new Date(activeYear, quarterStartMonth + 1, 1).toLocaleDateString('en-US', { month: 'long' }) },
-      { year: activeYear, monthIndex: quarterStartMonth + 2, name: new Date(activeYear, quarterStartMonth + 2, 1).toLocaleDateString('en-US', { month: 'long' }) }
+      {
+        year: activeYear,
+        monthIndex: quarterStartMonth,
+        name: new Date(activeYear, quarterStartMonth, 1).toLocaleDateString('en-US', { month: 'long' }),
+      },
+      {
+        year: activeYear,
+        monthIndex: quarterStartMonth + 1,
+        name: new Date(activeYear, quarterStartMonth + 1, 1).toLocaleDateString('en-US', { month: 'long' }),
+      },
+      {
+        year: activeYear,
+        monthIndex: quarterStartMonth + 2,
+        name: new Date(activeYear, quarterStartMonth + 2, 1).toLocaleDateString('en-US', { month: 'long' }),
+      },
     ];
   });
 
   yearMonthsGrid = computed(() => {
     const year = this.viewMonth().getFullYear();
-    return Array.from({ length: 12 }, (_, i) => {
-      return {
-        year,
-        monthIndex: i,
-        name: new Date(year, i, 1).toLocaleDateString('en-US', { month: 'long' })
-      };
-    });
+    return Array.from({ length: 12 }, (_, i) => ({
+      year,
+      monthIndex: i,
+      name: new Date(year, i, 1).toLocaleDateString('en-US', { month: 'long' }),
+    }));
   });
 
   getMonthDays(year: number, monthIndex: number): CalendarDay[] {
@@ -157,17 +223,12 @@ export class CompanyCalendarComponent implements OnInit {
   }
 
   private loadDates(): void {
-    this.datesService.load().subscribe({
-      next: dates => {
-        this.dates.set(Array.isArray(dates) ? dates : []);
-      },
-      error: () => this.dates.set([])
-    });
+    this.datesService.load().subscribe();
   }
 
-  private persist(): void {
-    this.datesService.save(this.dates()).subscribe({
-      error: err => console.error('Failed to save dates', err)
+  private persist(list: ImportantDate[]): void {
+    this.datesService.save(list).subscribe({
+      error: err => console.error('Failed to save dates', err),
     });
   }
 
@@ -213,7 +274,11 @@ export class CompanyCalendarComponent implements OnInit {
   }
 
   formatDate(dateStr: string): string {
-    return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
   }
 
   prevMonth(): void {
@@ -279,11 +344,10 @@ export class CompanyCalendarComponent implements OnInit {
       recurring: this.form.recurring,
     };
     if (this.editingId()) {
-      this.dates.update(list => list.map(d => (d.id === payload.id ? payload : d)));
+      this.persist(this.dates().map(d => (d.id === payload.id ? payload : d)));
     } else {
-      this.dates.update(list => [...list, payload]);
+      this.persist([...this.dates(), payload]);
     }
-    this.persist();
     this.closeAddModal();
     const due = new Date(payload.dueDate + 'T00:00:00');
     this.viewMonth.set(new Date(due.getFullYear(), due.getMonth(), 1));
@@ -291,18 +355,14 @@ export class CompanyCalendarComponent implements OnInit {
 
   deleteDate(id: string): void {
     if (!this.editMode()) return;
-    this.dates.update(list => list.filter(d => d.id !== id));
-    this.persist();
+    this.persist(this.dates().filter(d => d.id !== id));
   }
 
   deleteAllDates(): void {
     if (!confirm('Delete all important dates? This cannot be undone.')) return;
     this.datesService.clearAll().subscribe({
-      next: () => {
-        this.dates.set([]);
-        this.editMode.set(false);
-      },
-      error: err => console.error('Failed to clear dates', err)
+      next: () => this.editMode.set(false),
+      error: err => console.error('Failed to clear dates', err),
     });
   }
 }

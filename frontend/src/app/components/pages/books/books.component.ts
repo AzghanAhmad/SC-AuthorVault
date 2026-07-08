@@ -2,17 +2,22 @@ import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
+import { forkJoin } from 'rxjs';
 import { BookService } from '../../../services/book.service';
 import { Book } from '../../../models/book.model';
+import { PageActionBarComponent } from '../../shared/page-action-bar/page-action-bar.component';
 
 type ViewMode = 'list' | 'grid' | 'table';
 
 @Component({
   selector: 'app-books',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule, PageActionBarComponent],
   templateUrl: './books.component.html',
-  styleUrls: ['./books.component.css'],
+  styleUrls: [
+    '../company-vault/company-vault.component.css',
+    './books.component.css',
+  ],
   })
 export class BooksComponent implements OnInit {
   private bookService = inject(BookService);
@@ -20,9 +25,49 @@ export class BooksComponent implements OnInit {
   books = signal<Book[]>([]);
   filteredBooks = signal<Book[]>([]);
   loading = signal(true);
+  editMode = signal(false);
+  cardEditModes: Record<string, boolean> = {};
   searchQuery = '';
   filterStatus = '';
   viewMode: ViewMode = 'grid';
+
+  isCardEditing(cardId: string): boolean {
+    return !!(this.cardEditModes[cardId] || this.editMode());
+  }
+
+  toggleCardEdit(cardId: string): void {
+    this.cardEditModes[cardId] = !this.cardEditModes[cardId];
+  }
+
+  deleteCatalogSection(): void {
+    const list = this.books();
+    if (!list.length) return;
+    if (!confirm(`Delete all ${list.length} book(s) from the catalog? This cannot be undone.`)) return;
+    forkJoin(list.map(b => this.bookService.deleteBook(b.id))).subscribe({
+      next: () => {
+        this.books.set([]);
+        this.filteredBooks.set([]);
+        this.cardEditModes = {};
+        this.editMode.set(false);
+      },
+      error: () => alert('Failed to delete some books.'),
+    });
+  }
+
+  deleteBookRow(id: string): void {
+    if (!this.isCardEditing('catalog')) return;
+    if (!confirm('Delete this book?')) return;
+    this.bookService.deleteBook(id).subscribe({
+      next: () => {
+        this.books.update(list => list.filter(b => b.id !== id));
+        this.applyFilters();
+      },
+    });
+  }
+
+  deleteAllBooks(): void {
+    this.deleteCatalogSection();
+  }
 
   private coverGradients = [
     'linear-gradient(135deg, #1c2e4a 0%, #2d4b78 100%)',

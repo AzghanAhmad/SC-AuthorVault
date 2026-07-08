@@ -87,6 +87,7 @@
             </div>
             <span class="book-group-meta">{{ group.seriesName }} · {{ group.penName }}</span>
           </div>
+          <div class="table-scroll-wrap">
           <table class="data-table">
             <thead>
               <tr><th>Format</th><th>Language</th><th>Status</th><th>Version</th><th>Trim / Runtime</th><th>File Size</th><th>Platforms</th></tr>
@@ -105,6 +106,7 @@
               }
             </tbody>
           </table>
+          </div>
         </div>
       }
       @if (filteredFormats().length === 0) {
@@ -117,7 +119,12 @@
 
   <!-- Format detail -->
   @if (selected(); as f) {
-    <button class="back-btn" (click)="selected.set(null); tab.set('specs')">← All Formats</button>
+    <app-page-action-bar
+      [editing]="editMode()"
+      deleteLabel="Clear this format's specs"
+      (editToggle)="editMode.update(v => !v)"
+      (deleteAll)="deleteSpecsSection(f)" />
+    <button class="back-btn" (click)="clearSelection()">← All Formats</button>
     <div style="margin:.75rem 0 1rem;padding:.875rem 1rem;background:var(--primary-light);border-radius:10px;font-size:.875rem;color:var(--text-secondary);display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="16" height="16"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
       <strong style="color:var(--text-primary)">{{ f.bookTitle }}</strong>
@@ -155,52 +162,121 @@
 
         @if (tab() === 'specs') {
           <div class="card">
-            <h3 class="section-title">{{ f.specs.formatType }} Specs</h3>
+            <div class="card-header-row">
+              <h3 class="section-title" style="margin:0">{{ f.specs.formatType }} Specs</h3>
+              <div class="box-actions">
+                <button type="button" class="box-action-btn edit" [class.active]="isCardEditing('specs')" (click)="toggleCardEdit('specs')">
+                  {{ isCardEditing('specs') ? 'Save' : 'Edit' }}
+                </button>
+                <button type="button" class="box-action-btn load" (click)="loadSpecsDefaults(f)">Load</button>
+                <button type="button" class="box-action-btn delete" (click)="deleteSpecsSection(f)">Delete</button>
+              </div>
+            </div>
             <div class="form-grid">
               <div class="form-group"><span class="form-label">Format Type</span><div class="form-value">{{ f.specs.formatType }}</div></div>
-              <div class="form-group"><span class="form-label">Status</span><div class="form-value"><span class="status" [ngClass]="f.specs.status==='Live'?'status-green':'status-amber'">{{ f.specs.status }}</span></div></div>
-              <div class="form-group"><span class="form-label">Version</span><div class="form-value">v{{ f.specs.versionNumber }}</div></div>
-              <div class="form-group"><span class="form-label">Release Date</span><div class="form-value">{{ f.specs.releaseDate || '—' }}</div></div>
-              <div class="form-group"><span class="form-label">Word Count</span><div class="form-value">{{ f.specs.wordCount | number }}</div></div>
-              <div class="form-group"><span class="form-label">Page Count</span><div class="form-value">{{ f.specs.pageCount }}</div></div>
-              <div class="form-group"><span class="form-label">File Size</span><div class="form-value">{{ f.specs.fileSize || '—' }}</div></div>
-              <div class="form-group"><span class="form-label">DRM</span><div class="form-value">{{ f.specs.drmPreference || '—' }}</div></div>
-              @if (f.specs.trimSize) { <div class="form-group"><span class="form-label">Trim Size</span><div class="form-value">{{ f.specs.trimSize }}</div></div> }
-              @if (f.specs.paperType) { <div class="form-group"><span class="form-label">Paper Type</span><div class="form-value">{{ f.specs.paperType }}</div></div> }
-              @if (f.specs.bindingType) { <div class="form-group"><span class="form-label">Binding</span><div class="form-value">{{ f.specs.bindingType }}</div></div> }
-              @if (f.specs.printFinish) { <div class="form-group"><span class="form-label">Print Finish</span><div class="form-value">{{ f.specs.printFinish }}</div></div> }
-              @if (f.specs.interiorType) { <div class="form-group"><span class="form-label">Interior</span><div class="form-value">{{ f.specs.interiorType }}</div></div> }
-              @if (f.specs.audioRuntime) { <div class="form-group"><span class="form-label">Audio Runtime</span><div class="form-value">{{ f.specs.audioRuntime }}</div></div> }
-              @if (f.specs.deliveryMethod) { <div class="form-group"><span class="form-label">Delivery Method</span><div class="form-value">{{ f.specs.deliveryMethod }}</div></div> }
+              <div class="form-group">
+                <span class="form-label">Status</span>
+                @if (isCardEditing('specs')) {
+                  <select class="form-input" [ngModel]="f.specs.status" (ngModelChange)="patchSpecs(f, 'status', $event)">
+                    <option value="Draft">Draft</option>
+                    <option value="Ready">Ready</option>
+                    <option value="Live">Live</option>
+                    <option value="Retired">Retired</option>
+                  </select>
+                } @else {
+                  <div class="form-value"><span class="status" [ngClass]="f.specs.status==='Live'?'status-green':'status-amber'">{{ f.specs.status }}</span></div>
+                }
+              </div>
+              <app-editable-field [readOnly]="!isCardEditing('specs')" label="Version" [value]="'' + (f.specs.versionNumber || '')" (valueChange)="patchSpecs(f, 'versionNumber', $event)" />
+              <app-editable-field [readOnly]="!isCardEditing('specs')" type="date" label="Release Date" [value]="f.specs.releaseDate || ''" (valueChange)="patchSpecs(f, 'releaseDate', $event)" />
+              <app-editable-field [readOnly]="!isCardEditing('specs')" label="Word Count" [value]="'' + (f.specs.wordCount || '')" (valueChange)="patchSpecs(f, 'wordCount', $event)" />
+              <app-editable-field [readOnly]="!isCardEditing('specs')" label="Page Count" [value]="'' + (f.specs.pageCount || '')" (valueChange)="patchSpecs(f, 'pageCount', $event)" />
+              <app-editable-field [readOnly]="!isCardEditing('specs')" label="File Size" [value]="f.specs.fileSize || ''" (valueChange)="patchSpecs(f, 'fileSize', $event)" />
+              <app-editable-field [readOnly]="!isCardEditing('specs')" label="DRM" [value]="f.specs.drmPreference || ''" (valueChange)="patchSpecs(f, 'drmPreference', $event)" />
+              <app-editable-field [readOnly]="!isCardEditing('specs')" label="Trim Size" [value]="f.specs.trimSize || ''" (valueChange)="patchSpecs(f, 'trimSize', $event)" />
+              <app-editable-field [readOnly]="!isCardEditing('specs')" label="Paper Type" [value]="f.specs.paperType || ''" (valueChange)="patchSpecs(f, 'paperType', $event)" />
+              <app-editable-field [readOnly]="!isCardEditing('specs')" label="Binding" [value]="f.specs.bindingType || ''" (valueChange)="patchSpecs(f, 'bindingType', $event)" />
+              <app-editable-field [readOnly]="!isCardEditing('specs')" label="Print Finish" [value]="f.specs.printFinish || ''" (valueChange)="patchSpecs(f, 'printFinish', $event)" />
+              <app-editable-field [readOnly]="!isCardEditing('specs')" label="Interior" [value]="f.specs.interiorType || ''" (valueChange)="patchSpecs(f, 'interiorType', $event)" />
+              <app-editable-field [readOnly]="!isCardEditing('specs')" label="Audio Runtime" [value]="f.specs.audioRuntime || ''" (valueChange)="patchSpecs(f, 'audioRuntime', $event)" />
+              <app-editable-field [readOnly]="!isCardEditing('specs')" label="Delivery Method" [value]="f.specs.deliveryMethod || ''" (valueChange)="patchSpecs(f, 'deliveryMethod', $event)" />
             </div>
           </div>
         }
 
         @if (tab() === 'kdpselect') {
           <div class="card">
-            <h3 class="section-title">KDP Select Enrollment</h3>
-            @if (f.kdpSelect) {
+            <div class="card-header-row">
+              <h3 class="section-title" style="margin:0">KDP Select Enrollment</h3>
+              <div class="box-actions">
+                <button type="button" class="box-action-btn edit" [class.active]="isCardEditing('kdpselect')" (click)="toggleCardEdit('kdpselect'); ensureKdpSelect(f)">
+                  {{ isCardEditing('kdpselect') ? 'Save' : 'Edit' }}
+                </button>
+                <button type="button" class="box-action-btn load" (click)="loadKdpDefaults(f)">Load</button>
+                <button type="button" class="box-action-btn delete" (click)="deleteKdpSection(f)">Delete</button>
+              </div>
+            </div>
+            @if (f.kdpSelect; as kdp) {
               <div class="form-grid">
-                <div class="form-group"><span class="form-label">Status</span><div class="form-value">{{ f.kdpSelect.enrollmentStatus }}</div></div>
-                <div class="form-group"><span class="form-label">Auto-Renew</span><div class="form-value">{{ f.kdpSelect.autoRenew ? 'On' : 'Off' }}</div></div>
-                <div class="form-group"><span class="form-label">Period Start</span><div class="form-value">{{ f.kdpSelect.periodStart }}</div></div>
-                <div class="form-group"><span class="form-label">Period End</span><div class="form-value">{{ f.kdpSelect.periodEnd }}</div></div>
-                <div class="form-group"><span class="form-label">KENP Pages</span><div class="form-value">{{ f.kdpSelect.kenpPages | number }}</div></div>
-                <div class="form-group"><span class="form-label">KENP Revenue</span><div class="form-value">{{ f.kdpSelect.kenpRevenue }}</div></div>
-                <div class="form-group"><span class="form-label">Countdown Deals Used</span><div class="form-value">{{ f.kdpSelect.countdownDealUsed ? 'Yes' : 'No' }}</div></div>
-                <div class="form-group"><span class="form-label">Free Days Used</span><div class="form-value">{{ f.kdpSelect.freeDaysUsed ? 'Yes' : 'No' }}</div></div>
+                <div class="form-group">
+                  <span class="form-label">Status</span>
+                  @if (isCardEditing('kdpselect')) {
+                    <select class="form-input" [ngModel]="kdp.enrollmentStatus" (ngModelChange)="patchKdp(f, 'enrollmentStatus', $event)">
+                      <option value="Enrolled">Enrolled</option>
+                      <option value="Not enrolled">Not enrolled</option>
+                      <option value="Previously enrolled">Previously enrolled</option>
+                    </select>
+                  } @else {
+                    <div class="form-value">{{ kdp.enrollmentStatus }}</div>
+                  }
+                </div>
+                <div class="form-group">
+                  <span class="form-label">Auto-Renew</span>
+                  @if (isCardEditing('kdpselect')) {
+                    <select class="form-input" [ngModel]="kdp.autoRenew ? 'Yes' : 'No'" (ngModelChange)="patchKdp(f, 'autoRenew', $event === 'Yes')">
+                      <option value="Yes">On</option>
+                      <option value="No">Off</option>
+                    </select>
+                  } @else {
+                    <div class="form-value">{{ kdp.autoRenew ? 'On' : 'Off' }}</div>
+                  }
+                </div>
+                <app-editable-field [readOnly]="!isCardEditing('kdpselect')" type="date" label="Period Start" [value]="kdp.periodStart" (valueChange)="patchKdp(f, 'periodStart', $event)" />
+                <app-editable-field [readOnly]="!isCardEditing('kdpselect')" type="date" label="Period End" [value]="kdp.periodEnd" (valueChange)="patchKdp(f, 'periodEnd', $event)" />
+                <app-editable-field [readOnly]="!isCardEditing('kdpselect')" label="KENP Pages" [value]="'' + (kdp.kenpPages || '')" (valueChange)="patchKdp(f, 'kenpPages', $event)" />
+                <app-editable-field [readOnly]="!isCardEditing('kdpselect')" label="KENP Revenue" [value]="kdp.kenpRevenue || ''" (valueChange)="patchKdp(f, 'kenpRevenue', $event)" />
+                <div class="form-group">
+                  <span class="form-label">Countdown Deals Used</span>
+                  @if (isCardEditing('kdpselect')) {
+                    <select class="form-input" [ngModel]="kdp.countdownDealUsed ? 'Yes' : 'No'" (ngModelChange)="patchKdp(f, 'countdownDealUsed', $event === 'Yes')">
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                    </select>
+                  } @else {
+                    <div class="form-value">{{ kdp.countdownDealUsed ? 'Yes' : 'No' }}</div>
+                  }
+                </div>
+                <div class="form-group">
+                  <span class="form-label">Free Days Used</span>
+                  @if (isCardEditing('kdpselect')) {
+                    <select class="form-input" [ngModel]="kdp.freeDaysUsed ? 'Yes' : 'No'" (ngModelChange)="patchKdp(f, 'freeDaysUsed', $event === 'Yes')">
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                    </select>
+                  } @else {
+                    <div class="form-value">{{ kdp.freeDaysUsed ? 'Yes' : 'No' }}</div>
+                  }
+                </div>
+                <app-editable-field [readOnly]="!isCardEditing('kdpselect')" label="Reason for Enrollment" [value]="kdp.reasonForEnrollment || ''" (valueChange)="patchKdp(f, 'reasonForEnrollment', $event)" [full]="true" />
               </div>
             } @else {
               <div class="empty-state">
-                <div class="empty-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="40" height="40" style="color:var(--text-muted)">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                    <line x1="9" y1="9" x2="15" y2="9"/>
-                    <line x1="9" y1="13" x2="15" y2="13"/>
-                    <line x1="9" y1="17" x2="13" y2="17"/>
-                  </svg>
-                </div>
-                <p>Not enrolled in KDP Select</p>
+                <p>Not enrolled in KDP Select.</p>
+                @if (isCardEditing('kdpselect')) {
+                  <button type="button" class="btn-primary" style="margin-top:.75rem" (click)="ensureKdpSelect(f)">Start Enrollment Record</button>
+                } @else {
+                  <p style="font-size:.8125rem;color:var(--text-muted)">Click Edit or Load to add enrollment details.</p>
+                }
               </div>
             }
           </div>
@@ -208,93 +284,191 @@
 
         @if (tab() === 'pricing') {
           <div class="card">
-            <h3 class="section-title">Pricing History</h3>
+            <div class="card-header-row">
+              <h3 class="section-title" style="margin:0">Pricing History</h3>
+              <div class="box-actions">
+                <button type="button" class="box-action-btn edit" [class.active]="isCardEditing('pricing')" (click)="toggleCardEdit('pricing')">
+                  {{ isCardEditing('pricing') ? 'Save' : 'Edit' }}
+                </button>
+                <button type="button" class="box-action-btn load" (click)="loadPricingDefaults(f)">Load</button>
+                <button type="button" class="box-action-btn delete" (click)="deletePricingSection(f)">Delete</button>
+              </div>
+            </div>
+            <div class="table-scroll-wrap">
             <table class="data-table">
-              <thead><tr><th>Regular</th><th>Launch</th><th>Pre-Order</th><th>Sale</th><th>Currency</th><th>Start Date</th><th>Reason</th></tr></thead>
+              <thead>
+                <tr>
+                  <th>Regular</th><th>Launch</th><th>Pre-Order</th><th>Sale</th><th>Currency</th><th>Start Date</th><th>Reason</th>
+                  @if (isCardEditing('pricing')) { <th></th> }
+                </tr>
+              </thead>
               <tbody>
-                @for (p of f.pricingHistory; track p.startDate) {
+                @for (row of pageSliceIndexed('pricing', f.pricingHistory || []); track row.index) {
                   <tr>
-                    <td class="td-primary">{{ p.regularPrice }}</td>
-                    <td>{{ p.launchPrice || '—' }}</td>
-                    <td>{{ p.preOrderPrice || '—' }}</td>
-                    <td>{{ p.salePrice || '—' }}</td>
-                    <td>{{ p.currency }}</td>
-                    <td>{{ p.startDate }}</td>
-                    <td>{{ p.reason || '—' }}</td>
+                    @if (isCardEditing('pricing')) {
+                      <td><input class="form-input table-cell-field" [ngModel]="row.item.regularPrice" (ngModelChange)="patchPricing(f, row.index, 'regularPrice', $event)" placeholder="$4.99" /></td>
+                      <td><input class="form-input table-cell-field" [ngModel]="row.item.launchPrice" (ngModelChange)="patchPricing(f, row.index, 'launchPrice', $event)" placeholder="$2.99" /></td>
+                      <td><input class="form-input table-cell-field" [ngModel]="row.item.preOrderPrice" (ngModelChange)="patchPricing(f, row.index, 'preOrderPrice', $event)" placeholder="$0.99" /></td>
+                      <td><input class="form-input table-cell-field" [ngModel]="row.item.salePrice" (ngModelChange)="patchPricing(f, row.index, 'salePrice', $event)" placeholder="$1.99" /></td>
+                      <td><input class="form-input table-cell-field" [ngModel]="row.item.currency" (ngModelChange)="patchPricing(f, row.index, 'currency', $event)" placeholder="USD" /></td>
+                      <td><input type="date" class="form-input table-cell-field" [ngModel]="row.item.startDate" (ngModelChange)="patchPricing(f, row.index, 'startDate', $event)" /></td>
+                      <td><input class="form-input table-cell-field" [ngModel]="row.item.reason" (ngModelChange)="patchPricing(f, row.index, 'reason', $event)" placeholder="Launch" /></td>
+                      <td><button type="button" class="row-upload-btn" (click)="removePricingRow(f, row.index)">Delete</button></td>
+                    } @else {
+                      <td class="td-primary">{{ row.item.regularPrice || '—' }}</td>
+                      <td>{{ row.item.launchPrice || '—' }}</td>
+                      <td>{{ row.item.preOrderPrice || '—' }}</td>
+                      <td>{{ row.item.salePrice || '—' }}</td>
+                      <td>{{ row.item.currency || '—' }}</td>
+                      <td>{{ row.item.startDate || '—' }}</td>
+                      <td>{{ row.item.reason || '—' }}</td>
+                    }
                   </tr>
+                } @empty {
+                  <tr><td [attr.colspan]="isCardEditing('pricing') ? 8 : 7" class="empty-table-hint">No pricing rows. Click Edit, then Add Row — or Load a sample.</td></tr>
                 }
               </tbody>
             </table>
+            </div>
+            <app-vault-table-footer
+              [totalItems]="(f.pricingHistory || []).length"
+              [page]="tablePage('pricing')"
+              [pageSize]="TABLE_PAGE_SIZE"
+              [editMode]="isCardEditing('pricing')"
+              [allowAdd]="true"
+              (pageChange)="setTablePage('pricing', $event)"
+              (addRow)="addPricingRow(f)" />
           </div>
         }
 
         @if (tab() === 'variants') {
           <div class="card">
-            <h3 class="section-title">Platform Variants</h3>
+            <div class="card-header-row">
+              <h3 class="section-title" style="margin:0">Platform Variants</h3>
+              <div class="box-actions">
+                <button type="button" class="box-action-btn edit" [class.active]="isCardEditing('variants')" (click)="toggleCardEdit('variants')">
+                  {{ isCardEditing('variants') ? 'Save' : 'Edit' }}
+                </button>
+                <button type="button" class="box-action-btn load" (click)="loadVariantDefaults(f)">Load</button>
+                <button type="button" class="box-action-btn delete" (click)="deleteVariantsSection(f)">Delete</button>
+              </div>
+            </div>
             <p class="section-subtitle">Each platform may have different metadata, cover sizes, and pricing</p>
-            @for (pv of f.platformVariants; track pv.id) {
-              <div class="record-card" style="margin-bottom:.75rem">
-                <div class="record-header">
-                  <h3 class="record-title">{{ pv.platformName }} ({{ pv.storeRegion }})</h3>
-                  <span class="status" [ngClass]="pv.uploadStatus==='Live'?'status-green':'status-amber'">{{ pv.uploadStatus }}</span>
-                </div>
-                <div class="record-grid">
-                  <div class="record-field"><span class="label">Price</span><span class="value">{{ pv.platformPrice }}</span></div>
-                  <div class="record-field"><span class="label">ASIN / ID</span><span class="value" style="font-family:monospace">{{ pv.asinOrPlatformId }}</span></div>
-                  <div class="record-field"><span class="label">Published</span><span class="value">{{ pv.publicationDate }}</span></div>
-                  <div class="record-field"><span class="label">Last Updated</span><span class="value">{{ pv.lastUpdated }}</span></div>
-                  <div class="record-field"><span class="label">Keywords</span><span class="value">{{ pv.keywords || '—' }}</span></div>
-                  <div class="record-field"><span class="label">Categories</span><span class="value">{{ pv.categories || '—' }}</span></div>
-                </div>
-              </div>
-            }
-            @if (!f.platformVariants.length) {
-              <div class="empty-state">
-                <div class="empty-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="40" height="40" style="color:var(--text-muted)">
-                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
-                    <line x1="8" y1="21" x2="16" y2="21"/>
-                    <line x1="12" y1="17" x2="12" y2="21"/>
-                  </svg>
-                </div>
-                <p>No platform variants yet</p>
-              </div>
-            }
+            <div class="table-scroll-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Platform</th><th>Region</th><th>Status</th><th>Price</th><th>ASIN / ID</th><th>Published</th><th>Keywords</th>
+                  @if (isCardEditing('variants')) { <th></th> }
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of pageSliceIndexed('variants', f.platformVariants || []); track row.item.id) {
+                  <tr>
+                    @if (isCardEditing('variants')) {
+                      <td><input class="form-input table-cell-field" [ngModel]="row.item.platformName" (ngModelChange)="patchVariant(f, row.index, 'platformName', $event)" placeholder="Amazon KDP" /></td>
+                      <td><input class="form-input table-cell-field" [ngModel]="row.item.storeRegion" (ngModelChange)="patchVariant(f, row.index, 'storeRegion', $event)" placeholder="US" /></td>
+                      <td>
+                        <select class="form-input table-cell-field" [ngModel]="row.item.uploadStatus" (ngModelChange)="patchVariant(f, row.index, 'uploadStatus', $event)">
+                          <option value="Planned">Planned</option>
+                          <option value="Draft">Draft</option>
+                          <option value="Uploaded">Uploaded</option>
+                          <option value="Live">Live</option>
+                          <option value="Paused">Paused</option>
+                          <option value="Unpublished">Unpublished</option>
+                          <option value="Retired">Retired</option>
+                        </select>
+                      </td>
+                      <td><input class="form-input table-cell-field" [ngModel]="row.item.platformPrice" (ngModelChange)="patchVariant(f, row.index, 'platformPrice', $event)" placeholder="$4.99" /></td>
+                      <td><input class="form-input table-cell-field" style="font-family:monospace" [ngModel]="row.item.asinOrPlatformId" (ngModelChange)="patchVariant(f, row.index, 'asinOrPlatformId', $event)" placeholder="B0…" /></td>
+                      <td><input type="date" class="form-input table-cell-field" [ngModel]="row.item.publicationDate" (ngModelChange)="patchVariant(f, row.index, 'publicationDate', $event)" /></td>
+                      <td><input class="form-input table-cell-field" [ngModel]="row.item.keywords" (ngModelChange)="patchVariant(f, row.index, 'keywords', $event)" placeholder="keywords" /></td>
+                      <td><button type="button" class="row-upload-btn" (click)="removeVariantRow(f, row.index)">Delete</button></td>
+                    } @else {
+                      <td class="td-primary">{{ row.item.platformName || '—' }}</td>
+                      <td>{{ row.item.storeRegion || '—' }}</td>
+                      <td><span class="status" [ngClass]="row.item.uploadStatus==='Live'?'status-green':'status-amber'">{{ row.item.uploadStatus }}</span></td>
+                      <td>{{ row.item.platformPrice || '—' }}</td>
+                      <td style="font-family:monospace">{{ row.item.asinOrPlatformId || '—' }}</td>
+                      <td>{{ row.item.publicationDate || '—' }}</td>
+                      <td>{{ row.item.keywords || '—' }}</td>
+                    }
+                  </tr>
+                } @empty {
+                  <tr><td [attr.colspan]="isCardEditing('variants') ? 8 : 7" class="empty-table-hint">No platform variants. Click Edit, then Add Row — or Load a sample.</td></tr>
+                }
+              </tbody>
+            </table>
+            </div>
+            <app-vault-table-footer
+              [totalItems]="(f.platformVariants || []).length"
+              [page]="tablePage('variants')"
+              [pageSize]="TABLE_PAGE_SIZE"
+              [editMode]="isCardEditing('variants')"
+              [allowAdd]="true"
+              (pageChange)="setTablePage('variants', $event)"
+              (addRow)="addVariantRow(f)" />
           </div>
         }
 
         @if (tab() === 'logs') {
           <div class="card">
-            <h3 class="section-title">Upload Logs</h3>
-            @if (!f.uploadLogs.length) {
-              <div class="empty-state">
-                <div class="empty-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="40" height="40" style="color:var(--text-muted)">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                    <polyline points="14 2 14 8 20 8"/>
-                    <line x1="16" y1="13" x2="8" y2="13"/>
-                    <line x1="16" y1="17" x2="8" y2="17"/>
-                  </svg>
-                </div>
-                <p>No upload events recorded</p>
+            <div class="card-header-row">
+              <h3 class="section-title" style="margin:0">Upload Logs</h3>
+              <div class="box-actions">
+                <button type="button" class="box-action-btn edit" [class.active]="isCardEditing('logs')" (click)="toggleCardEdit('logs')">
+                  {{ isCardEditing('logs') ? 'Save' : 'Edit' }}
+                </button>
+                <button type="button" class="box-action-btn load" (click)="loadLogDefaults(f)">Load</button>
+                <button type="button" class="box-action-btn delete" (click)="deleteLogsSection(f)">Delete</button>
               </div>
-            }
-            @if (f.uploadLogs.length) {
-              <table class="data-table">
-                <thead><tr><th>Event</th><th>Timestamp</th><th>Performed By</th><th>Status</th><th>Notes</th></tr></thead>
-                <tbody>
-                  @for (ul of f.uploadLogs; track ul.id) {
-                    <tr>
-                      <td class="td-primary">{{ ul.eventType }}</td>
-                      <td>{{ ul.timestamp }}</td>
-                      <td>{{ ul.performedBy }}</td>
-                      <td><span class="status" [ngClass]="ul.status==='Success'?'status-green':'status-red'">{{ ul.status }}</span></td>
-                      <td>{{ ul.notes || '—' }}</td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            }
+            </div>
+            <div class="table-scroll-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Event</th><th>Timestamp</th><th>Performed By</th><th>Status</th><th>Notes</th>
+                  @if (isCardEditing('logs')) { <th></th> }
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of pageSliceIndexed('logs', f.uploadLogs || []); track row.item.id) {
+                  <tr>
+                    @if (isCardEditing('logs')) {
+                      <td><input class="form-input table-cell-field" [ngModel]="row.item.eventType" (ngModelChange)="patchLog(f, row.index, 'eventType', $event)" placeholder="Upload / Publish" /></td>
+                      <td><input type="datetime-local" class="form-input table-cell-field" [ngModel]="row.item.timestamp" (ngModelChange)="patchLog(f, row.index, 'timestamp', $event)" /></td>
+                      <td><input class="form-input table-cell-field" [ngModel]="row.item.performedBy" (ngModelChange)="patchLog(f, row.index, 'performedBy', $event)" placeholder="Name" /></td>
+                      <td>
+                        <select class="form-input table-cell-field" [ngModel]="row.item.status" (ngModelChange)="patchLog(f, row.index, 'status', $event)">
+                          <option value="Pending">Pending</option>
+                          <option value="Success">Success</option>
+                          <option value="Failed">Failed</option>
+                        </select>
+                      </td>
+                      <td><input class="form-input table-cell-field" [ngModel]="row.item.notes" (ngModelChange)="patchLog(f, row.index, 'notes', $event)" placeholder="Notes" /></td>
+                      <td><button type="button" class="row-upload-btn" (click)="removeLogRow(f, row.index)">Delete</button></td>
+                    } @else {
+                      <td class="td-primary">{{ row.item.eventType || '—' }}</td>
+                      <td>{{ row.item.timestamp || '—' }}</td>
+                      <td>{{ row.item.performedBy || '—' }}</td>
+                      <td><span class="status" [ngClass]="row.item.status==='Success'?'status-green':row.item.status==='Failed'?'status-red':'status-amber'">{{ row.item.status }}</span></td>
+                      <td>{{ row.item.notes || '—' }}</td>
+                    }
+                  </tr>
+                } @empty {
+                  <tr><td [attr.colspan]="isCardEditing('logs') ? 6 : 5" class="empty-table-hint">No upload events. Click Edit, then Add Row — or Load a sample.</td></tr>
+                }
+              </tbody>
+            </table>
+            </div>
+            <app-vault-table-footer
+              [totalItems]="(f.uploadLogs || []).length"
+              [page]="tablePage('logs')"
+              [pageSize]="TABLE_PAGE_SIZE"
+              [editMode]="isCardEditing('logs')"
+              [allowAdd]="true"
+              (pageChange)="setTablePage('logs', $event)"
+              (addRow)="addLogRow(f)" />
           </div>
         }
 

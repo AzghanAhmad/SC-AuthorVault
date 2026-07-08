@@ -27,7 +27,7 @@ export class EditableFieldComponent {
   @Input() label = '';
   @Input() value = '';
   @Input() readOnly = false;
-  @Input() type: 'text' | 'email' | 'url' | 'tel' | 'textarea' | 'select' | 'date' = 'text';
+  @Input() type: 'text' | 'email' | 'url' | 'tel' | 'textarea' | 'select' | 'date' | 'password' = 'text';
   @Input() full = false;
   @Input() rows = 3;
   @Input() placeholder = '';
@@ -67,6 +67,7 @@ export class EditableFieldComponent {
     if (this.type === 'email') return 'email';
     if (this.type === 'url') return 'url';
     if (this.type === 'tel') return 'tel';
+    if (this.type === 'password') return 'password';
     return 'text';
   }
 
