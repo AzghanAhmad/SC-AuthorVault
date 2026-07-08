@@ -77,6 +77,7 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddOpenApi();
+builder.Services.AddProblemDetails();
 builder.Services.AddSingleton<JwtService>();
 builder.Services.AddScoped<WorkspaceService>();
 
