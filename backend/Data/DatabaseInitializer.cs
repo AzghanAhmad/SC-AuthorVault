@@ -52,7 +52,8 @@ public static class DatabaseInitializer
         bool allowRepair = false,
         CancellationToken ct = default)
     {
-        await EnsureDatabaseExistsAsync(connectionString, ct);
+        if (ShouldEnsureDatabaseExists(connectionString))
+            await EnsureDatabaseExistsAsync(connectionString, ct);
 
         try
         {
@@ -65,6 +66,15 @@ public static class DatabaseInitializer
             await db.Database.CloseConnectionAsync();
             await ApplyMigrationsAsync(db, logger, ct);
         }
+    }
+
+    private static bool ShouldEnsureDatabaseExists(string connectionString)
+    {
+        var builder = new MySqlConnectionStringBuilder(connectionString);
+        var host = builder.Server?.Trim() ?? "";
+        return host.Equals("localhost", StringComparison.OrdinalIgnoreCase)
+               || host == "127.0.0.1"
+               || host.Equals("mysql", StringComparison.OrdinalIgnoreCase);
     }
 
     private static async Task ApplyMigrationsAsync(AppDbContext db, ILogger logger, CancellationToken ct)

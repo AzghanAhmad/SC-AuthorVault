@@ -2,26 +2,18 @@ namespace AuthorVault.Api.Configuration;
 
 public static class ConnectionStringResolver
 {
+    private static readonly string[] DatabaseUrlKeys =
+    [
+        "MYSQL_URL", "MYSQL_PRIVATE_URL", "MYSQL_PUBLIC_URL",
+        "DATABASE_URL", "DATABASE_PRIVATE_URL", "DATABASE_PUBLIC_URL",
+    ];
+
     public static string Resolve(IConfiguration configuration)
     {
         LogAvailableDatabaseKeys(configuration);
 
-        // 1. Explicit ASP.NET connection string (env: ConnectionStrings__Default)
-        var fromConfig = configuration.GetConnectionString("Default")
-            ?? configuration["ConnectionStrings:Default"]
-            ?? Env(configuration, "ConnectionStrings__Default");
-        if (IsUsableConnectionString(fromConfig))
-        {
-            Console.WriteLine("[DB] Using ConnectionStrings__Default");
-            return NormalizeAdoNet(fromConfig!);
-        }
-
-        // 2. Railway / cloud database URLs
-        foreach (var key in new[]
-        {
-            "MYSQL_URL", "MYSQL_PUBLIC_URL", "MYSQL_PRIVATE_URL",
-            "DATABASE_URL", "DATABASE_PRIVATE_URL", "DATABASE_PUBLIC_URL"
-        })
+        // 1. Cloud database URLs (Railway, etc.) — highest priority
+        foreach (var key in DatabaseUrlKeys)
         {
             var url = Env(configuration, key);
             var parsed = ParseDatabaseUrl(url) ?? ParseAdoNetString(url);
@@ -32,41 +24,69 @@ public static class ConnectionStringResolver
             }
         }
 
+        // 2. Explicit env connection string (set by docker-entrypoint or Railway variables)
+        var fromEnv = Environment.GetEnvironmentVariable("ConnectionStrings__Default");
+        if (IsUsableConnectionString(fromEnv))
+        {
+            Console.WriteLine("[DB] Using ConnectionStrings__Default (environment)");
+            return NormalizeAdoNet(fromEnv!);
+        }
+
         // 3. Individual MySQL components (MYSQLHOST + MYSQLPASSWORD, etc.)
         var host = Env(configuration,
             "MYSQLHOST", "MYSQL_HOST", "MYSQL_HOSTNAME",
             "DB_HOST", "DATABASE_HOST", "RAILWAY_MYSQL_HOST");
         var password = Env(configuration, "MYSQLPASSWORD", "MYSQL_PASSWORD", "DB_PASSWORD");
+        var user = Env(configuration, "MYSQLUSER", "MYSQL_USER", "DB_USER", "RAILWAY_MYSQL_USER");
+        var port = Env(configuration, "MYSQLPORT", "MYSQL_PORT", "DB_PORT", "RAILWAY_MYSQL_PORT");
+        var database = Env(configuration, "MYSQLDATABASE", "MYSQL_DATABASE", "DB_DATABASE", "DB_NAME", "RAILWAY_MYSQL_DATABASE");
 
         if (!string.IsNullOrWhiteSpace(host))
         {
-            var port = Env(configuration, "MYSQLPORT", "MYSQL_PORT", "DB_PORT", "RAILWAY_MYSQL_PORT") ?? "3306";
-            var user = Env(configuration, "MYSQLUSER", "MYSQL_USER", "DB_USER", "RAILWAY_MYSQL_USER") ?? "root";
-            password ??= "";
-            var database = Env(configuration, "MYSQLDATABASE", "MYSQL_DATABASE", "DB_DATABASE", "DB_NAME", "RAILWAY_MYSQL_DATABASE") ?? "railway";
-
             Console.WriteLine($"[DB] Using MYSQLHOST={host}");
-            return BuildMySqlConnectionString(host, port, user, password, database);
+            return BuildMySqlConnectionString(
+                host,
+                port ?? "3306",
+                user ?? "root",
+                password ?? "",
+                database ?? "railway");
         }
 
-        // 4. Password only — set MYSQLPASSWORD on the Railway *web* service (host defaults from RAILWAY_MYSQL_*)
+        // 4. appsettings / config fallback (local dev, docker-compose)
+        var fromConfig = configuration.GetConnectionString("Default")
+            ?? configuration["ConnectionStrings:Default"];
+        if (IsUsableConnectionString(fromConfig))
+        {
+            Console.WriteLine("[DB] Using ConnectionStrings:Default (config file)");
+            return NormalizeAdoNet(fromConfig!);
+        }
+
+        // 5. Password only — require explicit host (no baked-in Railway host)
         if (!string.IsNullOrWhiteSpace(password))
         {
-            host = Env(configuration, "RAILWAY_MYSQL_HOST") ?? "thomas.proxy.rlwy.net";
-            var port = Env(configuration, "RAILWAY_MYSQL_PORT") ?? "30264";
-            var user = Env(configuration, "RAILWAY_MYSQL_USER") ?? "root";
-            var database = Env(configuration, "RAILWAY_MYSQL_DATABASE") ?? "railway";
+            host = Env(configuration, "RAILWAY_MYSQL_HOST");
+            if (string.IsNullOrWhiteSpace(host))
+            {
+                throw new InvalidOperationException(
+                    "MYSQLPASSWORD is set but no database host was found. " +
+                    "Add MYSQL_URL (recommended: ${{YourMySqlService.MYSQL_URL}} on the web service), " +
+                    "or set MYSQLHOST / RAILWAY_MYSQL_HOST with the host from Railway → MySQL → Connect.");
+            }
 
-            Console.WriteLine($"[DB] Using MYSQLPASSWORD with host {host} (set RAILWAY_MYSQL_HOST to override)");
-            return BuildMySqlConnectionString(host, port, user, password, database);
+            Console.WriteLine($"[DB] Using MYSQLPASSWORD with host {host}");
+            return BuildMySqlConnectionString(
+                host,
+                port ?? Env(configuration, "RAILWAY_MYSQL_PORT") ?? "3306",
+                user ?? Env(configuration, "RAILWAY_MYSQL_USER") ?? "root",
+                password,
+                database ?? Env(configuration, "RAILWAY_MYSQL_DATABASE") ?? "railway");
         }
 
         throw new InvalidOperationException(
-            "No database connection configured on this Railway web service. " +
-            "Quickest fix — add these Variables on the WEB service (not MySQL): " +
-            "MYSQLPASSWORD=<your-mysql-password>, Jwt__Key=<32+ char secret>, ASPNETCORE_ENVIRONMENT=Production. " +
-            "Optional: RAILWAY_MYSQL_HOST, RAILWAY_MYSQL_PORT (defaults: thomas.proxy.rlwy.net / 30264). " +
-            "Or reference MYSQL_URL from your MySQL service. See DEPLOY.md.");
+            "No database connection configured. On Railway, add this to the WEB service (not MySQL): " +
+            "MYSQL_URL=${{YourMySqlServiceName.MYSQL_URL}} " +
+            "(or MYSQL_PRIVATE_URL for private networking). " +
+            "Also set Jwt__Key and ASPNETCORE_ENVIRONMENT=Production. See DEPLOY.md.");
     }
 
     private static void LogAvailableDatabaseKeys(IConfiguration configuration)
@@ -142,7 +162,8 @@ public static class ConnectionStringResolver
 
     private static string NormalizeAdoNet(string value)
     {
-        if (value.StartsWith("mysql://", StringComparison.OrdinalIgnoreCase))
+        if (value.StartsWith("mysql://", StringComparison.OrdinalIgnoreCase)
+            || value.StartsWith("mysql2://", StringComparison.OrdinalIgnoreCase))
             return ParseDatabaseUrl(value) ?? value;
 
         return value.Contains("SslMode=", StringComparison.OrdinalIgnoreCase)

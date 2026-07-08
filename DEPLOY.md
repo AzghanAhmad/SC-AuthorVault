@@ -1,50 +1,38 @@
 # AuthorVault — Deploy to Railway
 
-## Quickest fix (3 variables on the WEB service)
+## Recommended: reference MySQL from the web service
 
-Open your **web app service** → **Variables** → **Raw Editor** and paste:
+On your **web / Docker service** (not the MySQL service), open **Variables → Raw Editor** and add:
 
 ```env
-MYSQLPASSWORD=your-mysql-password-here
+MYSQL_URL=${{YourMySqlServiceName.MYSQL_URL}}
 Jwt__Key=change-this-to-a-long-random-secret-at-least-32-chars
 ASPNETCORE_ENVIRONMENT=Production
 ```
 
-Get the MySQL password from: **MySQL service** → **Connect** → copy **Password**.
+Replace `YourMySqlServiceName` with the exact name of your MySQL service in Railway (e.g. `MySQL` or `authorvault-mysql`).
 
-Default host/port (`thomas.proxy.rlwy.net` / `30264`) are built in automatically. Override if yours differ:
+For **private networking** (faster, no public proxy), use instead:
 
 ```env
-RAILWAY_MYSQL_HOST=your-host.proxy.rlwy.net
-RAILWAY_MYSQL_PORT=30264
-RAILWAY_MYSQL_DATABASE=railway
-RAILWAY_MYSQL_USER=root
+MYSQL_PRIVATE_URL=${{YourMySqlServiceName.MYSQL_PRIVATE_URL}}
 ```
 
-Click **Deploy** after saving variables.
+Railway resolves the full URL (host, user, password, database). Do **not** paste only the password unless you also set the correct host.
+
+Click **Deploy** after saving.
 
 ---
 
-## Alternative: full connection string
+## Alternative: manual connection string
 
-On the **web service** only:
+Copy from **MySQL service → Connect** (host, port, user, password, database):
 
 ```env
 ConnectionStrings__Default=Server=HOST;Port=PORT;Database=railway;User=root;Password=PASSWORD;SslMode=Required;
 Jwt__Key=your-secret
 ASPNETCORE_ENVIRONMENT=Production
 ```
-
----
-
-## Alternative: reference MySQL service
-
-On the **web service**, add reference variable:
-
-- Name: `MYSQL_URL`
-- Value: `${{YourMySQLServiceName.MYSQL_URL}}`
-
-(Replace `YourMySQLServiceName` with the exact name shown in Railway.)
 
 ---
 
@@ -61,9 +49,20 @@ Every git push redeploys.
 
 ## Troubleshooting
 
-Check **Deploy Logs** for lines starting with `[DB]`:
-- `No MYSQL/DATABASE env vars found` → variables are on the wrong service or not saved.
-- `Skipping unresolved Railway reference` → reference syntax wrong; use Raw Editor or copy password manually as `MYSQLPASSWORD`.
+### `Access denied for user 'root'@'100.64.x.x' (using password: YES)`
+
+This means the app reached MySQL but **credentials are wrong** or you're not using the URL Railway generated.
+
+**Fix:**
+1. Variables must be on the **web service**, not only on the MySQL service.
+2. Prefer `MYSQL_URL=${{YourMySqlService.MYSQL_URL}}` — do not rely on a stale password in `appsettings.Production.json`.
+3. If using `MYSQLPASSWORD` alone, you **must** also set `RAILWAY_MYSQL_HOST` (and port) from MySQL → Connect.
+4. Redeploy after changing variables.
+
+Check **Deploy Logs** for `[DB]` lines:
+- `Using MYSQL_URL` — good
+- `Skipping unresolved Railway reference` — fix `${{ServiceName.VAR}}` spelling
+- `No MYSQL/DATABASE env vars found` — variables on wrong service or not saved
 
 **Never** put database variables only on the MySQL service — they must be on the **web/Docker service**.
 
@@ -81,7 +80,7 @@ Then redeploy so migrations run cleanly from scratch.
 
 ```bash
 cp .env.example .env
-# Set MYSQLPASSWORD=... in .env
+# Set MYSQLPASSWORD=... and RAILWAY_MYSQL_HOST=... in .env
 npm run docker:build
 npm run docker:run
 ```
