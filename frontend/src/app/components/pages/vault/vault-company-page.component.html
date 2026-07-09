@@ -116,8 +116,8 @@
   <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.25rem;">
     <div>
       <label class="entity-avatar-upload" title="Upload company avatar (Click to change)" style="margin-right:.5rem;">
-        @if (company().identity.avatarUrl) {
-          <img [src]="company().identity.avatarUrl" alt="" class="entity-avatar-img" />
+        @if (companyAvatarUrl()) {
+          <img [src]="companyAvatarUrl()" alt="" class="entity-avatar-img" />
         } @else {
           <span class="entity-avatar-fallback">{{ companyInitials }}</span>
         }
@@ -825,11 +825,87 @@
             </div>
           </div>
           <div class="form-grid">
-            <app-editable-field [readOnly]="!isCardEditing('trademarks')" label="Trademark Registrations" [value]="company().contractsLegal.trademarkRegistrations" (valueChange)="vs.patchContractsLegal({ trademarkRegistrations: $event })" />
-            <app-editable-field [readOnly]="!isCardEditing('trademarks')" label="Copyright Assignments" [value]="company().contractsLegal.copyrightAssignments" (valueChange)="vs.patchContractsLegal({ copyrightAssignments: $event })" />
-            <app-editable-field [readOnly]="!isCardEditing('trademarks')" label="Insurance Policies" [value]="company().contractsLegal.insurancePolicies" (valueChange)="vs.patchContractsLegal({ insurancePolicies: $event })" />
+            <div>
+              <label class="form-label" style="display:block; font-size:0.875rem; font-weight:600; color:var(--text-secondary); margin-bottom:0.35rem">Trademark Registrations</label>
+              <div style="display:flex; gap:0.5rem; align-items:center; min-height:38px; font-size:0.8rem">
+                @if (company().contractsLegal.trademarkRegistrations) {
+                  <span class="file-link" (click)="openAttachedFile(company().contractsLegal.trademarkRegistrations, 'Trademark Registration File')" style="display:inline-flex; align-items:center; gap:0.25rem">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="vertical-align:middle"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    View file
+                  </span>
+                  @if (isCardEditing('trademarks')) {
+                    <button type="button" class="btn-text-delete" (click)="removeContractsLegalFile('trademarkRegistrations')" style="background:none;border:none;color:var(--accent-red);cursor:pointer;padding:0;display:inline-flex;align-items:center;gap:0.25rem">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" style="vertical-align:middle"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                      Remove
+                    </button>
+                  }
+                } @else if (isCardEditing('trademarks')) {
+                  <label style="cursor:pointer;color:var(--accent-blue);display:inline-flex;align-items:center;gap:0.25rem">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="vertical-align:middle"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    Upload File
+                    <input type="file" hidden accept=".pdf,.docx,.doc,.png,.xlsx" (change)="onContractsLegalFileUpload($event, 'trademarkRegistrations')" />
+                  </label>
+                } @else {
+                  <span style="color:var(--text-muted)">—</span>
+                }
+              </div>
+            </div>
+
+            <div>
+              <label class="form-label" style="display:block; font-size:0.875rem; font-weight:600; color:var(--text-secondary); margin-bottom:0.35rem">Copyright Assignments</label>
+              <div style="display:flex; gap:0.5rem; align-items:center; min-height:38px; font-size:0.8rem">
+                @if (company().contractsLegal.copyrightAssignments) {
+                  <span class="file-link" (click)="openAttachedFile(company().contractsLegal.copyrightAssignments, 'Copyright Assignment File')" style="display:inline-flex; align-items:center; gap:0.25rem">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="vertical-align:middle"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    View file
+                  </span>
+                  @if (isCardEditing('trademarks')) {
+                    <button type="button" class="btn-text-delete" (click)="removeContractsLegalFile('copyrightAssignments')" style="background:none;border:none;color:var(--accent-red);cursor:pointer;padding:0;display:inline-flex;align-items:center;gap:0.25rem">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" style="vertical-align:middle"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                      Remove
+                    </button>
+                  }
+                } @else if (isCardEditing('trademarks')) {
+                  <label style="cursor:pointer;color:var(--accent-blue);display:inline-flex;align-items:center;gap:0.25rem">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="vertical-align:middle"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    Upload File
+                    <input type="file" hidden accept=".pdf,.docx,.doc,.png,.xlsx" (change)="onContractsLegalFileUpload($event, 'copyrightAssignments')" />
+                  </label>
+                } @else {
+                  <span style="color:var(--text-muted)">—</span>
+                }
+              </div>
+            </div>
+
+            <div>
+              <label class="form-label" style="display:block; font-size:0.875rem; font-weight:600; color:var(--text-secondary); margin-bottom:0.35rem">Insurance Policies</label>
+              <div style="display:flex; gap:0.5rem; align-items:center; min-height:38px; font-size:0.8rem">
+                @if (company().contractsLegal.insurancePolicies) {
+                  <span class="file-link" (click)="openAttachedFile(company().contractsLegal.insurancePolicies, 'Insurance Policy File')" style="display:inline-flex; align-items:center; gap:0.25rem">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="vertical-align:middle"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    View file
+                  </span>
+                  @if (isCardEditing('trademarks')) {
+                    <button type="button" class="btn-text-delete" (click)="removeContractsLegalFile('insurancePolicies')" style="background:none;border:none;color:var(--accent-red);cursor:pointer;padding:0;display:inline-flex;align-items:center;gap:0.25rem">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" style="vertical-align:middle"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                      Remove
+                    </button>
+                  }
+                } @else if (isCardEditing('trademarks')) {
+                  <label style="cursor:pointer;color:var(--accent-blue);display:inline-flex;align-items:center;gap:0.25rem">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="vertical-align:middle"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    Upload File
+                    <input type="file" hidden accept=".pdf,.docx,.doc,.png,.xlsx" (change)="onContractsLegalFileUpload($event, 'insurancePolicies')" />
+                  </label>
+                } @else {
+                  <span style="color:var(--text-muted)">—</span>
+                }
+              </div>
+            </div>
+
             <app-editable-field [readOnly]="!isCardEditing('trademarks')" label="Attorney Name" [value]="company().contractsLegal.attorneyName" (valueChange)="vs.patchContractsLegal({ attorneyName: $event })" />
             <app-editable-field [readOnly]="!isCardEditing('trademarks')" label="Attorney Phone" type="tel" [value]="company().contractsLegal.attorneyContact" (valueChange)="vs.patchContractsLegal({ attorneyContact: $event })" placeholder="+1 555 123 4567" />
+            
             <app-editable-field [readOnly]="!isCardEditing('trademarks')" label="Attorney Email" type="email" [value]="company().contractsLegal.attorneyEmail || ''" (valueChange)="vs.patchContractsLegal({ attorneyEmail: $event })" />
           </div>
           <div class="copyright-office-panel">
@@ -1584,32 +1660,62 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                 Load
               </button>
+              @if (isCardEditing('financial')) {
+                <label class="box-action-btn edit" style="cursor:pointer; display:inline-flex; align-items:center; gap:0.25rem;">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  Upload Report
+                  <input type="file" hidden accept=".pdf,.xlsx,.csv,.doc,.docx" (change)="onIncomeReportUpload($event)" />
+                </label>
+              }
               <button type="button" class="box-action-btn delete" (click)="deleteBoxDetails('financial')">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                 Delete
               </button>
             </div>
           </div>
+          <p style="font-size:.8125rem;color:var(--text-muted);margin-top:.25rem;margin-bottom:1.25rem">Upload your monthly profit/loss and income reports (PDF, Excel, Word).</p>
+          
           <div class="table-scroll-wrap"><table class="data-table">
-            <thead><tr><th>Month</th><th>Revenue</th><th>Expenses</th><th>Net</th></tr></thead>
+            <thead><tr><th>File Name</th><th>Size</th><th>Date Uploaded</th><th>Actions</th></tr></thead>
             <tbody>
-              @for(row of pageSliceIndexed('financial', financialRecords); track row.index) {
+              @for(row of pageSliceFilteredIndexed('financialDocs', incomeReportsDocs, financialDocs); track row.index) {
                 <tr>
-                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('financial')" [title]="cellTitle(row.item.month)" [ngModel]="row.item.month" (ngModelChange)="patchFinancial(row.index, 'month', $event)" placeholder="e.g. Jan 2026" /></td>
-                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('financial')" [title]="cellTitle(row.item.revenue)" [ngModel]="row.item.revenue" (ngModelChange)="patchFinancial(row.index, 'revenue', $event)" placeholder="e.g. 12500" /></td>
-                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('financial')" [title]="cellTitle(row.item.expenses)" [ngModel]="row.item.expenses" (ngModelChange)="patchFinancial(row.index, 'expenses', $event)" placeholder="e.g. 4200" /></td>
-                  <td><input class="form-input table-cell-field" [disabled]="!isCardEditing('financial')" [title]="cellTitle(row.item.net)" [ngModel]="row.item.net" (ngModelChange)="patchFinancial(row.index, 'net', $event)" placeholder="e.g. 8300" /></td>
+                  <td class="td-primary" [title]="cellTitle(row.item.fileName)">
+                    @if (isCardEditing('financial')) {
+                      <input class="form-input table-cell-field" [ngModel]="row.item.fileName" (ngModelChange)="patchFinancialDoc(row.index, 'fileName', $event)" placeholder="e.g. Jan-income.pdf" />
+                    } @else if (row.item.fileName) {
+                      <span class="file-link" (click)="openAttachedFile(row.item.fileUrl, row.item.fileName)">{{ row.item.fileName }}</span>
+                    } @else {
+                      <span class="td-muted">—</span>
+                    }
+                  </td>
+                  <td>{{ row.item.fileSize }}</td>
+                  <td>{{ row.item.uploadedDate }}</td>
+                  <td>
+                    <div style="display:flex;gap:.5rem;align-items:center">
+                      @if (row.item.fileUrl) {
+                        <button type="button" class="file-download-btn" title="Download file" (click)="openAttachedFile(row.item.fileUrl, row.item.fileName)">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="12" height="12">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                          </svg>
+                        </button>
+                      }
+                      @if (isCardEditing('financial')) {
+                        <label class="row-upload-btn" title="Replace file">
+                          {{ row.item.fileName ? 'Replace' : 'Attach' }}
+                          <input type="file" hidden accept=".pdf,.xlsx,.csv,.png,.jpg,.jpeg" (change)="onFinancialRowUpload($event, row.index)" />
+                        </label>
+                        <button type="button" style="background:none;border:none;color:var(--error);cursor:pointer;font-size:.8125rem" (click)="deleteFinancialDoc(row.index)">Delete</button>
+                      }
+                    </div>
+                  </td>
                 </tr>
+              }
+              @if (incomeReportsDocs.length === 0) {
+                <tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:1.5rem">No income reports uploaded yet.</td></tr>
               }
             </tbody>
           </table></div>
-          <app-vault-table-footer
-            [totalItems]="financialRecords.length"
-            [page]="tablePage('financial')"
-            [pageSize]="TABLE_PAGE_SIZE"
-            [editMode]="isCardEditing('financial')"
-            (pageChange)="setTablePage('financial', $event)"
-            (addRow)="addFinancialRow()" />
         </div>
 
         <div class="card">
@@ -1627,6 +1733,13 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                 Load
               </button>
+              @if (isCardEditing('financial')) {
+                <label class="box-action-btn edit" style="cursor:pointer; display:inline-flex; align-items:center; gap:0.25rem;">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  Upload File
+                  <input type="file" hidden accept=".pdf,.xlsx,.csv,.png,.doc,.docx" (change)="onFinancialUpload($event)" />
+                </label>
+              }
               <button type="button" class="box-action-btn delete" (click)="deleteBoxDetails('financial')">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                 Delete
@@ -1637,21 +1750,16 @@
             <select [(ngModel)]="financialCategoryFilter" style="padding:.4rem .6rem;border:1px solid var(--border-color);border-radius:8px;background:var(--background);color:var(--text-secondary);font-size:.8125rem;font-family:inherit">
               <option value="">All Categories</option>
               @for (cat of financialCategories; track cat.id) {
-                <option [value]="cat.id">{{ cat.label }}</option>
+                @if (cat.id !== 'P&L Reports') {
+                  <option [value]="cat.id">{{ cat.label }}</option>
+                }
               }
             </select>
-            @if (isCardEditing('financial')) {
-              <label class="btn-primary btn-sm" style="cursor:pointer">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                Upload Report
-                <input type="file" hidden accept=".pdf,.xlsx,.csv,.png" (change)="onFinancialUpload($event)" />
-              </label>
-            }
           </div>
           <div class="table-scroll-wrap"><table class="data-table">
             <thead><tr><th>File Name</th><th>Category</th><th>Period</th><th>Size</th><th>Date Uploaded</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody>
-              @for(row of pageSliceFilteredIndexed('financialDocs', filteredFinancialDocs, financialDocs); track row.index) {
+              @for(row of pageSliceFilteredIndexed('financialDocs', otherFinancialDocs, financialDocs); track row.index) {
                 <tr>
                   <td class="td-primary" [title]="cellTitle(row.item.fileName)">
                     @if (isCardEditing('financial')) {
@@ -1684,26 +1792,16 @@
                       <span [title]="cellTitle(row.item.month + ' ' + row.item.year)">{{ row.item.month }} {{ row.item.year }}</span>
                     }
                   </td>
+                  <td>{{ row.item.fileSize }}</td>
+                  <td>{{ row.item.uploadedDate }}</td>
                   <td>
-                    @if (isCardEditing('financial')) {
-                      <input class="form-input table-cell-field" [ngModel]="row.item.fileSize || ''" (ngModelChange)="patchFinancialDoc(row.index, 'fileSize', $event)" placeholder="e.g. 240 KB" />
-                    } @else {
-                      <span style="color:var(--text-muted)" [title]="cellTitle(row.item.fileSize)">{{ row.item.fileSize || 'N/A' }}</span>
-                    }
+                    <span class="badge badge-success" [title]="cellTitle(row.item.status)">{{ row.item.status || 'Approved' }}</span>
                   </td>
                   <td>
-                    @if (isCardEditing('financial')) {
-                      <input type="date" class="form-input table-cell-field" [ngModel]="row.item.uploadedDate || ''" (ngModelChange)="patchFinancialDoc(row.index, 'uploadedDate', $event)" />
-                    } @else {
-                      <span style="color:var(--text-muted)" [title]="cellTitle(row.item.uploadedDate)">{{ row.item.uploadedDate || 'N/A' }}</span>
-                    }
-                  </td>
-                  <td><app-status-select kind="financialDoc" [readOnly]="!isCardEditing('financial')" [value]="row.item.status" (valueChange)="patchFinancialDoc(row.index, 'status', $event)" /></td>
-                  <td>
-                    <div class="file-attach-row">
-                      @if (row.item.fileUrl || row.item.fileName) {
-                        <button type="button" class="file-download-btn" title="Open / download" (click)="openAttachedFile(row.item.fileUrl, row.item.fileName)">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <div style="display:flex;gap:.5rem;align-items:center">
+                      @if (row.item.fileUrl) {
+                        <button type="button" class="file-download-btn" title="Download file" (click)="openAttachedFile(row.item.fileUrl, row.item.fileName)">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="12" height="12">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
                           </svg>
                         </button>
@@ -1713,7 +1811,7 @@
                           {{ row.item.fileName ? 'Replace' : 'Attach' }}
                           <input type="file" hidden accept=".pdf,.xlsx,.csv,.png,.jpg,.jpeg" (change)="onFinancialRowUpload($event, row.index)" />
                         </label>
-                        <button type="button" style="background:none;border:none;color:var(--error);cursor:pointer;font-size:.8125rem" (click)="deleteFinancialDoc(row.item)">Delete</button>
+                        <button type="button" style="background:none;border:none;color:var(--error);cursor:pointer;font-size:.8125rem" (click)="deleteFinancialDoc(row.index)">Delete</button>
                       }
                     </div>
                   </td>
@@ -1722,7 +1820,7 @@
             </tbody>
           </table></div>
           <app-vault-table-footer
-            [totalItems]="filteredFinancialDocs.length"
+            [totalItems]="otherFinancialDocs.length"
             [page]="tablePage('financialDocs')"
             [pageSize]="TABLE_PAGE_SIZE"
             [editMode]="isCardEditing('financial')"

@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import { AuthorVaultService } from '../../../services/author-vault.service';
 import { PenName, BoxSetRecord } from '../../../models/author-vault.model';
 import { ExcelImportService } from '../../../services/excel-import.service';
+import { FileUploadService } from '../../../services/file-upload.service';
 import { EditableFieldComponent } from '../../shared/editable-field/editable-field.component';
 import { PageActionBarComponent } from '../../shared/page-action-bar/page-action-bar.component';
 import { VaultCreateModalComponent, VaultCreateResult } from '../../shared/vault-create-modal/vault-create-modal.component';
@@ -20,6 +21,7 @@ export class VaultPenNamesPageComponent {
   readonly vs = inject(AuthorVaultService);
   private router = inject(Router);
   private excelImport = inject(ExcelImportService);
+  readonly fileUpload = inject(FileUploadService);
   editMode = signal(false);
   cardEditModes: Record<string, boolean> = {};
 
@@ -384,11 +386,16 @@ export class VaultPenNamesPageComponent {
     if (!this.isCardEditing('branding')) return;
     const file = (event.target as HTMLInputElement).files?.[0];
     if (!file) return;
-    this.vs.updatePenNameFull(pn.id, {
-      branding: {
-        ...pn.branding,
-        pressKitFile: file.name
-      }
+    this.fileUpload.upload(file, `presskit/${pn.id}`).subscribe({
+      next: uploaded => {
+        this.vs.updatePenNameFull(pn.id, {
+          branding: {
+            ...pn.branding,
+            pressKitFile: uploaded.fileName
+          }
+        });
+      },
+      error: () => alert('Upload failed.')
     });
   }
 
@@ -401,6 +408,41 @@ export class VaultPenNamesPageComponent {
       }
     });
   }
+
+  // Graphics and Assets uploading helpers
+  onAssetUpload(event: Event, pn: PenName, field: keyof PenName['branding']): void {
+    if (!this.isCardEditing('branding')) return;
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    this.fileUpload.upload(file, `assets/${pn.id}/${field}`).subscribe({
+      next: uploaded => {
+        this.vs.updatePenNameFull(pn.id, {
+          branding: {
+            ...pn.branding,
+            [field]: uploaded.url
+          }
+        });
+      },
+      error: () => alert('Upload failed.')
+    });
+  }
+
+  removeAssetFile(pn: PenName, field: keyof PenName['branding']): void {
+    if (!this.isCardEditing('branding')) return;
+    this.vs.updatePenNameFull(pn.id, {
+      branding: {
+        ...pn.branding,
+        [field]: ''
+      }
+    });
+  }
+
+  openAttachedFile(url: string | undefined | null): void {
+    if (url) {
+      window.open(this.fileUpload.resolveFileUrl(url), '_blank', 'noopener,noreferrer');
+    }
+  }
+
 
   composePressKitEmail(pn: PenName): string {
     const subject = encodeURIComponent(`Press Kit Request - ${pn.identity.displayName}`);
@@ -686,19 +728,76 @@ export class VaultPenNamesPageComponent {
     if (!file || !pn) return;
 
     this.excelImport.parseFile(file).then(rows => {
+      let presenceUpdated = false;
+      let communityUpdated = false;
+      let brandingUpdated = false;
+      let identityUpdated = false;
+
+      const currentPresence = { ...pn.onlinePresence };
+      const currentCommunity = { ...pn.readerCommunity };
+      const currentBranding = { ...pn.branding };
+      const identityPatch: any = {};
+
       rows.forEach((r: any) => {
         const field = String(r.field || '').toLowerCase().trim();
         const value = String(r.value || '');
-        if (field.includes('display') && field.includes('name')) this.vs.updatePenName(pn.id, { displayName: value });
-        else if (field.includes('legal')) this.vs.updatePenName(pn.id, { legalNameLinked: value });
-        else if (field.includes('subgenre')) this.vs.updatePenName(pn.id, { subgenre: value });
-        else if (field.includes('genre')) this.vs.updatePenName(pn.id, { genre: value });
-        else if (field.includes('date')) this.vs.updatePenName(pn.id, { dateCreated: value });
-        else if (field.includes('reason') || field.includes('purpose')) this.vs.updatePenName(pn.id, { reason: value });
-        else if (field.includes('notes')) this.vs.updatePenName(pn.id, { notes: value });
+
+        // Identity
+        if (field.includes('display') && field.includes('name')) { identityPatch.displayName = value; identityUpdated = true; }
+        else if (field.includes('legal')) { identityPatch.legalNameLinked = value; identityUpdated = true; }
+        else if (field.includes('subgenre')) { identityPatch.subgenre = value; identityUpdated = true; }
+        else if (field.includes('genre')) { identityPatch.genre = value; identityUpdated = true; }
+        else if (field.includes('date')) { identityPatch.dateCreated = value; identityUpdated = true; }
+        else if (field.includes('reason') || field.includes('purpose')) { identityPatch.reason = value; identityUpdated = true; }
+        else if (field.includes('notes')) { identityPatch.notes = value; identityUpdated = true; }
+
+        // Branding
+        else if (field.includes('tagline')) { currentBranding.tagline = value; brandingUpdated = true; }
+        else if (field.includes('bio') && field.includes('short')) { currentBranding.bioShort = value; brandingUpdated = true; }
+        else if (field.includes('bio') && field.includes('medium')) { currentBranding.bioMedium = value; brandingUpdated = true; }
+        else if (field.includes('bio') && field.includes('long')) { currentBranding.bioLong = value; brandingUpdated = true; }
+        else if (field.includes('bio') && field.includes('first')) { currentBranding.bioFirstPerson = value; brandingUpdated = true; }
+        else if (field.includes('bio') && field.includes('third')) { currentBranding.bioThirdPerson = value; brandingUpdated = true; }
+        else if (field.includes('color')) { currentBranding.brandColors = value; brandingUpdated = true; }
+        else if (field.includes('font')) { currentBranding.brandFonts = value; brandingUpdated = true; }
+
+        // Presence
+        else if (field.includes('website')) { currentPresence.authorWebsite = value; presenceUpdated = true; }
+        else if (field.includes('newsletter') && field.includes('platform')) { currentPresence.newsletterPlatform = value; presenceUpdated = true; }
+        else if (field.includes('newsletter') && field.includes('name')) { currentPresence.newsletterName = value; presenceUpdated = true; }
+        else if (field.includes('subscribers') || field.includes('subscriber')) { currentPresence.subscriberCount = Number(value) || 0; presenceUpdated = true; }
+        else if (field.includes('pen') && field.includes('email')) { currentPresence.penNameEmail = value; presenceUpdated = true; }
+        else if (field.includes('direct') && field.includes('store')) { currentPresence.directStoreUrl = value; presenceUpdated = true; }
+        else if (field.includes('goodreads')) { currentPresence.goodreadsUrl = value; presenceUpdated = true; }
+        else if (field.includes('bookbub')) { currentPresence.bookbubUrl = value; presenceUpdated = true; }
+
+        // Community
+        else if (field.includes('demographic')) { currentCommunity.primaryDemographic = value; communityUpdated = true; }
+        else if (field.includes('arc') && field.includes('team')) { currentCommunity.arcTeam = value; communityUpdated = true; }
+        else if (field.includes('beta') && field.includes('reader')) { currentCommunity.betaReaderPool = value; communityUpdated = true; }
+        else if (field.includes('facebook') && field.includes('group')) { currentCommunity.readerFacebookGroup = value; communityUpdated = true; }
+        else if (field.includes('reader') && field.includes('persona')) { currentCommunity.readerPersona = value; communityUpdated = true; }
+        else if (field.includes('engagement') && field.includes('notes')) { currentCommunity.engagementNotes = value; communityUpdated = true; }
       });
-      this.cardEditModes['identity'] = true;
-      alert('Import applied to Identity section.');
+
+      if (identityUpdated) {
+        this.vs.updatePenName(pn.id, identityPatch);
+        this.cardEditModes['identity'] = true;
+      }
+      if (brandingUpdated) {
+        this.vs.updatePenNameFull(pn.id, { branding: currentBranding });
+        this.cardEditModes['branding'] = true;
+      }
+      if (presenceUpdated) {
+        this.vs.updatePenNameFull(pn.id, { onlinePresence: currentPresence });
+        this.cardEditModes['presence'] = true;
+      }
+      if (communityUpdated) {
+        this.vs.updatePenNameFull(pn.id, { readerCommunity: currentCommunity });
+        this.cardEditModes['community'] = true;
+      }
+
+      alert('Import applied to the matching Pen Name fields.');
     }).catch(err => alert(err.message || 'Import failed.'));
   }
 

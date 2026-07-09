@@ -1,9 +1,10 @@
-import { Component, signal, Output, EventEmitter, inject, OnInit, OnDestroy } from '@angular/core';
+import { Component, signal, Output, EventEmitter, inject, OnInit, OnDestroy, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule, RouterLinkActive, NavigationEnd } from '@angular/router';
 import { filter, Subscription } from 'rxjs';
 import { AuthService } from '../../../services/auth.service';
 import { BrandIconComponent } from '../../shared/brand-icon/brand-icon.component';
+import { LayoutShellService } from '../../../services/layout-shell.service';
 
 interface NavGroup {
   id: string;
@@ -18,7 +19,7 @@ interface NavGroup {
   standalone: true,
   imports: [CommonModule, RouterModule, BrandIconComponent],
   template: `
-    <aside class="sidebar" [class.collapsed]="collapsed()">
+    <aside class="sidebar" [class.collapsed]="collapsed() && !shell.mobileSidebarOpen()" [class.mobile-open]="shell.mobileSidebarOpen()">
       <div class="sidebar-top-row" [class.is-collapsed]="collapsed()">
         <div class="sidebar-logo" *ngIf="!collapsed()">
           <app-brand-icon />
@@ -43,7 +44,8 @@ interface NavGroup {
         <a class="nav-item"
            routerLink="/dashboard"
            routerLinkActive="active"
-           [routerLinkActiveOptions]="{ exact: true }">
+           [routerLinkActiveOptions]="{ exact: true }"
+           (click)="onNavClick()">
           <span class="nav-icon">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.8V21h14V9.8"/>
@@ -73,16 +75,16 @@ interface NavGroup {
             <span class="nav-label">Company</span>
           </div>
           <div class="nav-children always-open" [class.visible]="!collapsed()">
-            <a class="nav-child" routerLink="/vault/company" routerLinkActive="child-active">
+            <a class="nav-child" routerLink="/vault/company" routerLinkActive="child-active" (click)="onNavClick()">
               <span class="child-dot"></span>Company File
             </a>
-            <a class="nav-child" routerLink="/vault/imprints" routerLinkActive="child-active">
+            <a class="nav-child" routerLink="/vault/imprints" routerLinkActive="child-active" (click)="onNavClick()">
               <span class="child-dot"></span>Imprints
             </a>
-            <a class="nav-child" routerLink="/company/isbns" routerLinkActive="child-active">
+            <a class="nav-child" routerLink="/company/isbns" routerLinkActive="child-active" (click)="onNavClick()">
               <span class="child-dot"></span>ISBNs
             </a>
-            <a class="nav-child" routerLink="/company/calendar" routerLinkActive="child-active">
+            <a class="nav-child" routerLink="/company/calendar" routerLinkActive="child-active" (click)="onNavClick()">
               <span class="child-dot"></span>Important Dates
             </a>
           </div>
@@ -99,19 +101,19 @@ interface NavGroup {
             <span class="nav-label">Library</span>
           </div>
           <div class="nav-children always-open" [class.visible]="!collapsed()">
-            <a class="nav-child" routerLink="/vault/pen-names" routerLinkActive="child-active">
+            <a class="nav-child" routerLink="/vault/pen-names" routerLinkActive="child-active" (click)="onNavClick()">
               <span class="child-dot"></span>Pen Names
             </a>
-            <a class="nav-child" routerLink="/vault/series" routerLinkActive="child-active">
+            <a class="nav-child" routerLink="/vault/series" routerLinkActive="child-active" (click)="onNavClick()">
               <span class="child-dot"></span>Series
             </a>
-            <a class="nav-child" routerLink="/vault/languages" routerLinkActive="child-active">
+            <a class="nav-child" routerLink="/vault/languages" routerLinkActive="child-active" (click)="onNavClick()">
               <span class="child-dot"></span>Languages
             </a>
-            <a class="nav-child" routerLink="/books" routerLinkActive="child-active">
+            <a class="nav-child" routerLink="/books" routerLinkActive="child-active" (click)="onNavClick()">
               <span class="child-dot"></span>Books
             </a>
-            <a class="nav-child" routerLink="/vault/formats" routerLinkActive="child-active">
+            <a class="nav-child" routerLink="/vault/formats" routerLinkActive="child-active" (click)="onNavClick()">
               <span class="child-dot"></span>Formats
             </a>
           </div>
@@ -123,7 +125,8 @@ interface NavGroup {
 
         <a class="nav-item settings-link"
            routerLink="/settings"
-           routerLinkActive="active">
+           routerLinkActive="active"
+           (click)="onNavClick()">
           <span class="nav-icon">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <circle cx="12" cy="12" r="3"/>
@@ -363,8 +366,24 @@ interface NavGroup {
     }
 
     @media (max-width: 768px) {
-      .sidebar { transform: translateX(-100%); }
-      .sidebar.mobile-open { transform: translateX(0); }
+      .sidebar {
+        transform: translateX(-100%);
+        width: min(280px, 88vw);
+        min-width: min(280px, 88vw);
+        z-index: 50;
+        box-shadow: none;
+      }
+      .sidebar.mobile-open {
+        transform: translateX(0);
+        box-shadow: 8px 0 32px rgba(0, 0, 0, 0.35);
+      }
+      .sidebar.collapsed {
+        width: min(280px, 88vw);
+        min-width: min(280px, 88vw);
+      }
+      .collapse-btn {
+        display: none;
+      }
     }
   `]
 })
@@ -373,14 +392,33 @@ export class SidebarComponent implements OnInit, OnDestroy {
   openGroup = signal<string | null>('library');
   @Output() collapsedChange = new EventEmitter<boolean>();
   readonly auth = inject(AuthService);
+  readonly shell = inject(LayoutShellService);
   private readonly router = inject(Router);
   private navSub?: Subscription;
+
+  constructor() {
+    effect(() => {
+      if (this.shell.mobileSidebarOpen() && this.collapsed()) {
+        this.collapsed.set(false);
+        this.collapsedChange.emit(false);
+      }
+    });
+  }
 
   ngOnInit(): void {
     this.syncOpenGroup();
     this.navSub = this.router.events
       .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
-      .subscribe(() => this.syncOpenGroup());
+      .subscribe(() => {
+        this.syncOpenGroup();
+        this.shell.closeMobileSidebar();
+      });
+  }
+
+  onNavClick(): void {
+    if (this.shell.isMobileViewport()) {
+      this.shell.closeMobileSidebar();
+    }
   }
 
   ngOnDestroy(): void {
@@ -408,6 +446,10 @@ export class SidebarComponent implements OnInit, OnDestroy {
   }
 
   toggleCollapse() {
+    if (this.shell.isMobileViewport()) {
+      this.shell.closeMobileSidebar();
+      return;
+    }
     this.collapsed.update(v => !v);
     this.collapsedChange.emit(this.collapsed());
   }

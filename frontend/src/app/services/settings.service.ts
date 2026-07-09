@@ -20,6 +20,50 @@ export interface AppSettings {
   notifProductUpdates: boolean;
 }
 
+export type NotificationPreferenceKey =
+  | 'notifBrokenLink'
+  | 'notifMilestones'
+  | 'notifWeeklyReport'
+  | 'notifProductUpdates';
+
+export interface NotificationPreferenceDefinition {
+  key: NotificationPreferenceKey;
+  title: string;
+  description: string;
+  category: 'email' | 'in-app';
+}
+
+export const NOTIFICATION_PREFERENCE_DEFINITIONS: NotificationPreferenceDefinition[] = [
+  {
+    key: 'notifBrokenLink',
+    title: 'Broken Link Alerts',
+    description: 'Email when a retailer or store link stops working',
+    category: 'email',
+  },
+  {
+    key: 'notifMilestones',
+    title: 'Publishing Milestones',
+    description: 'Celebrate launches, pre-orders, and release milestones',
+    category: 'email',
+  },
+  {
+    key: 'notifWeeklyReport',
+    title: 'Weekly Activity Report',
+    description: 'Summary of vault edits, uploads, and catalog changes',
+    category: 'email',
+  },
+  {
+    key: 'notifProductUpdates',
+    title: 'Product Updates',
+    description: 'News about new AuthorVault features and improvements',
+    category: 'email',
+  },
+];
+
+export interface NotificationPreferenceState extends NotificationPreferenceDefinition {
+  enabled: boolean;
+}
+
 const DEFAULT_SETTINGS: AppSettings = {
   name: 'Author User',
   email: 'author@scribecount.com',
@@ -44,6 +88,22 @@ export class SettingsService {
 
   getSnapshot(): AppSettings {
     return { ...this.settings };
+  }
+
+  buildNotificationPreferences(settings: Partial<AppSettings> = this.settings): NotificationPreferenceState[] {
+    const merged = this.normalize(settings);
+    return NOTIFICATION_PREFERENCE_DEFINITIONS.map(def => ({
+      ...def,
+      enabled: !!merged[def.key],
+    }));
+  }
+
+  notificationPrefsToPayload(prefs: NotificationPreferenceState[]): Partial<AppSettings> {
+    const patch: Partial<AppSettings> = {};
+    for (const pref of prefs) {
+      patch[pref.key] = pref.enabled;
+    }
+    return patch;
   }
 
   loadFromApi(): Observable<AppSettings> {

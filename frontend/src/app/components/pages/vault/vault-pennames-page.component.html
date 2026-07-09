@@ -302,39 +302,129 @@
           </div>
 
           <div class="card">
-            <h3 class="section-title">Pen Name Graphics & Assets</h3>
-            <p class="section-subtitle">Author photos, ads, logos, and graphics specific to {{ pn.identity.displayName }}</p>
+            <div class="card-header-row" style="margin-bottom:0.75rem">
+              <h3 class="section-title" style="margin:0">Pen Name Graphics & Assets</h3>
+              <div class="box-actions">
+                <button type="button" class="box-action-btn edit" [class.active]="isCardEditing('branding')" (click)="toggleCardEdit('branding')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                    @if (isCardEditing('branding')) { <polyline points="20 6 9 17 4 12"/> }
+                    @else { <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/> }
+                  </svg>
+                  {{ isCardEditing('branding') ? 'Save' : 'Edit' }}
+                </button>
+              </div>
+            </div>
+            <p class="section-subtitle" style="margin-top:-0.5rem; margin-bottom:1rem">Author photos, ads, logos, and graphics specific to {{ pn.identity.displayName }}</p>
             <div class="asset-grid">
-              <div class="asset-slot">
-                <div class="asset-icon">🖼</div>
+              
+              <div class="asset-slot" [class.has-file]="pn.branding.authorPhoto" (click)="pn.branding.authorPhoto ? openAttachedFile(pn.branding.authorPhoto) : null">
+                <div class="asset-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="24" height="24" style="color:var(--text-secondary)"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                </div>
                 <span class="asset-label">Author Photo</span>
-                <span class="asset-sub">JPG, PNG — 1:1 ratio</span>
+                <span class="asset-sub">{{ pn.branding.authorPhoto ? '✓ Uploaded (Click to view)' : 'JPG, PNG — 1:1 ratio' }}</span>
+                @if (isCardEditing('branding')) {
+                  <div style="margin-top: .5rem; display: flex; gap: .25rem; justify-content: center; width: 100%;">
+                    <label class="row-upload-btn" style="padding: 2px 6px; font-size: 11px; margin: 0; cursor: pointer;">
+                      Upload <input type="file" accept="image/*" hidden (change)="onAssetUpload($event, pn, 'authorPhoto')" />
+                    </label>
+                    @if (pn.branding.authorPhoto) {
+                      <button type="button" class="row-upload-btn" style="padding: 2px 6px; font-size: 11px;" (click)="$event.stopPropagation(); removeAssetFile(pn, 'authorPhoto')">✕</button>
+                    }
+                  </div>
+                }
               </div>
-              <div class="asset-slot">
-                <div class="asset-icon">🎨</div>
+
+              <div class="asset-slot" [class.has-file]="pn.branding.logo" (click)="pn.branding.logo ? openAttachedFile(pn.branding.logo) : null">
+                <div class="asset-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="24" height="24" style="color:var(--text-secondary)"><path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z"/><circle cx="7.5" cy="10.5" r="1.5"/><circle cx="11.5" cy="7.5" r="1.5"/><circle cx="16.5" cy="9.5" r="1.5"/><circle cx="15.5" cy="14.5" r="1.5"/></svg>
+                </div>
                 <span class="asset-label">Pen Name Logo</span>
-                <span class="asset-sub">SVG, PNG, EPS</span>
+                <span class="asset-sub">{{ pn.branding.logo ? '✓ Uploaded (Click to view)' : 'SVG, PNG, EPS' }}</span>
+                @if (isCardEditing('branding')) {
+                  <div style="margin-top: .5rem; display: flex; gap: .25rem; justify-content: center; width: 100%;">
+                    <label class="row-upload-btn" style="padding: 2px 6px; font-size: 11px; margin: 0; cursor: pointer;">
+                      Upload <input type="file" accept="image/*" hidden (change)="onAssetUpload($event, pn, 'logo')" />
+                    </label>
+                    @if (pn.branding.logo) {
+                      <button type="button" class="row-upload-btn" style="padding: 2px 6px; font-size: 11px;" (click)="$event.stopPropagation(); removeAssetFile(pn, 'logo')">✕</button>
+                    }
+                  </div>
+                }
               </div>
-              <div class="asset-slot">
-                <div class="asset-icon">📢</div>
+
+              <div class="asset-slot" [class.has-file]="pn.branding.coverStyleNotes" (click)="pn.branding.coverStyleNotes && pn.branding.coverStyleNotes.startsWith('http') ? openAttachedFile(pn.branding.coverStyleNotes) : null">
+                <div class="asset-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="24" height="24" style="color:var(--text-secondary)"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+                </div>
                 <span class="asset-label">Ad Creatives</span>
-                <span class="asset-sub">Facebook, Amazon, BookBub</span>
+                <span class="asset-sub">{{ pn.branding.coverStyleNotes && pn.branding.coverStyleNotes.startsWith('http') ? '✓ Uploaded (Click to view)' : 'Facebook, Amazon, BookBub' }}</span>
+                @if (isCardEditing('branding')) {
+                  <div style="margin-top: .5rem; display: flex; gap: .25rem; justify-content: center; width: 100%;">
+                    <label class="row-upload-btn" style="padding: 2px 6px; font-size: 11px; margin: 0; cursor: pointer;">
+                      Upload <input type="file" accept="image/*" hidden (change)="onAssetUpload($event, pn, 'coverStyleNotes')" />
+                    </label>
+                    @if (pn.branding.coverStyleNotes && pn.branding.coverStyleNotes.startsWith('http')) {
+                      <button type="button" class="row-upload-btn" style="padding: 2px 6px; font-size: 11px;" (click)="$event.stopPropagation(); removeAssetFile(pn, 'coverStyleNotes')">✕</button>
+                    }
+                  </div>
+                }
               </div>
-              <div class="asset-slot">
-                <div class="asset-icon">📱</div>
+
+              <div class="asset-slot" [class.has-file]="pn.branding.brandFonts" (click)="pn.branding.brandFonts && pn.branding.brandFonts.startsWith('http') ? openAttachedFile(pn.branding.brandFonts) : null">
+                <div class="asset-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="24" height="24" style="color:var(--text-secondary)"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                </div>
                 <span class="asset-label">Social Banners</span>
-                <span class="asset-sub">Twitter, Instagram, Facebook</span>
+                <span class="asset-sub">{{ pn.branding.brandFonts && pn.branding.brandFonts.startsWith('http') ? '✓ Uploaded (Click to view)' : 'Twitter, Instagram, Facebook' }}</span>
+                @if (isCardEditing('branding')) {
+                  <div style="margin-top: .5rem; display: flex; gap: .25rem; justify-content: center; width: 100%;">
+                    <label class="row-upload-btn" style="padding: 2px 6px; font-size: 11px; margin: 0; cursor: pointer;">
+                      Upload <input type="file" accept="image/*" hidden (change)="onAssetUpload($event, pn, 'brandFonts')" />
+                    </label>
+                    @if (pn.branding.brandFonts && pn.branding.brandFonts.startsWith('http')) {
+                      <button type="button" class="row-upload-btn" style="padding: 2px 6px; font-size: 11px;" (click)="$event.stopPropagation(); removeAssetFile(pn, 'brandFonts')">✕</button>
+                    }
+                  </div>
+                }
               </div>
-              <div class="asset-slot">
-                <div class="asset-icon">📧</div>
+
+              <div class="asset-slot" [class.has-file]="pn.branding.brandColors" (click)="pn.branding.brandColors && pn.branding.brandColors.startsWith('http') ? openAttachedFile(pn.branding.brandColors) : null">
+                <div class="asset-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="24" height="24" style="color:var(--text-secondary)"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                </div>
                 <span class="asset-label">Newsletter Header</span>
-                <span class="asset-sub">600px wide recommended</span>
+                <span class="asset-sub">{{ pn.branding.brandColors && pn.branding.brandColors.startsWith('http') ? '✓ Uploaded (Click to view)' : '600px wide recommended' }}</span>
+                @if (isCardEditing('branding')) {
+                  <div style="margin-top: .5rem; display: flex; gap: .25rem; justify-content: center; width: 100%;">
+                    <label class="row-upload-btn" style="padding: 2px 6px; font-size: 11px; margin: 0; cursor: pointer;">
+                      Upload <input type="file" accept="image/*" hidden (change)="onAssetUpload($event, pn, 'brandColors')" />
+                    </label>
+                    @if (pn.branding.brandColors && pn.branding.brandColors.startsWith('http')) {
+                      <button type="button" class="row-upload-btn" style="padding: 2px 6px; font-size: 11px;" (click)="$event.stopPropagation(); removeAssetFile(pn, 'brandColors')">✕</button>
+                    }
+                  </div>
+                }
               </div>
-              <div class="asset-slot">
-                <div class="asset-icon">🖨</div>
+
+              <div class="asset-slot" [class.has-file]="pn.branding.tagline" (click)="pn.branding.tagline && pn.branding.tagline.startsWith('http') ? openAttachedFile(pn.branding.tagline) : null">
+                <div class="asset-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="24" height="24" style="color:var(--text-secondary)"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                </div>
                 <span class="asset-label">Letterhead</span>
-                <span class="asset-sub">DOCX, PDF</span>
+                <span class="asset-sub">{{ pn.branding.tagline && pn.branding.tagline.startsWith('http') ? '✓ Uploaded (Click to view)' : 'DOCX, PDF' }}</span>
+                @if (isCardEditing('branding')) {
+                  <div style="margin-top: .5rem; display: flex; gap: .25rem; justify-content: center; width: 100%;">
+                    <label class="row-upload-btn" style="padding: 2px 6px; font-size: 11px; margin: 0; cursor: pointer;">
+                      Upload <input type="file" accept=".docx,.pdf,.png,.jpg,.jpeg" hidden (change)="onAssetUpload($event, pn, 'tagline')" />
+                    </label>
+                    @if (pn.branding.tagline && pn.branding.tagline.startsWith('http')) {
+                      <button type="button" class="row-upload-btn" style="padding: 2px 6px; font-size: 11px;" (click)="$event.stopPropagation(); removeAssetFile(pn, 'tagline')">✕</button>
+                    }
+                  </div>
+                }
               </div>
+
             </div>
           </div>
         }
@@ -380,8 +470,21 @@
                       </td>
                     } @else {
                       <td class="td-primary">{{ pa.platform || '—' }}</td>
-                      <td>{{ pa.accountInfo || '—' }}</td>
-                      <td>{{ pa.url || '—' }}</td>
+                      <td>
+                        {{ pa.accountInfo || '—' }}
+                        @if (pa.accountInfo && pa.accountInfo.includes('@')) {
+                          <a [href]="'mailto:' + pa.accountInfo" target="_blank" title="Send email" style="color: var(--accent-blue); margin-left: 6px;">✉️</a>
+                        }
+                      </td>
+                      <td>
+                        @if (pa.url) {
+                          <a [href]="pa.url.startsWith('http') ? pa.url : 'https://' + pa.url" target="_blank" style="color: var(--accent-blue); text-decoration: underline;">
+                            {{ pa.url }}
+                          </a>
+                        } @else {
+                          —
+                        }
+                      </td>
                     }
                   </tr>
                 }
@@ -424,6 +527,10 @@
                 <button type="button" class="box-action-btn edit" [class.active]="isCardEditing('presence')" (click)="toggleCardEdit('presence')">
                   {{ isCardEditing('presence') ? 'Save' : 'Edit' }}
                 </button>
+                <button type="button" class="box-action-btn load" (click)="triggerIdentityLoad()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  Load
+                </button>
                 <button type="button" class="box-action-btn delete" (click)="deletePresenceSection(pn)">Delete</button>
               </div>
             </div>
@@ -447,6 +554,10 @@
               <div class="box-actions">
                 <button type="button" class="box-action-btn edit" [class.active]="isCardEditing('social')" (click)="toggleCardEdit('social')">
                   {{ isCardEditing('social') ? 'Save' : 'Edit' }}
+                </button>
+                <button type="button" class="box-action-btn load" (click)="triggerIdentityLoad()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  Load
                 </button>
                 <button type="button" class="box-action-btn delete" (click)="deleteSocialSection(pn)">Delete</button>
               </div>
@@ -472,7 +583,15 @@
                   <tr>
                     <td class="td-primary">{{ s.platform }}</td>
                     <td>{{ s.handle }}</td>
-                    <td>{{ s.url || '—' }}</td>
+                    <td>
+                      @if (s.url) {
+                        <a [href]="s.url.startsWith('http') ? s.url : 'https://' + s.url" target="_blank" style="color: var(--accent-blue); text-decoration: underline;">
+                          {{ s.url }}
+                        </a>
+                      } @else {
+                        —
+                      }
+                    </td>
                     @if (isCardEditing('social') || isCardEditing('presence')) {
                       <td class="actions-cell">
                         <button type="button" class="row-upload-btn" (click)="removeSocialAccount(pn, i)" title="Delete channel">✕</button>
@@ -541,6 +660,10 @@
               <div class="box-actions">
                 <button type="button" class="box-action-btn edit" [class.active]="isCardEditing('community')" (click)="toggleCardEdit('community')">
                   {{ isCardEditing('community') ? 'Save' : 'Edit' }}
+                </button>
+                <button type="button" class="box-action-btn load" (click)="triggerIdentityLoad()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  Load
                 </button>
                 <button type="button" class="box-action-btn delete" (click)="deleteCommunitySection(pn)">Delete</button>
               </div>

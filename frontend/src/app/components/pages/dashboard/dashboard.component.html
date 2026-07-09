@@ -173,8 +173,8 @@
             <div class="node-badge">Company</div>
             <div class="company-node-card">
               <label class="entity-avatar-upload company-avatar-lg" [class.edit-disabled]="!editMode()" title="Upload company avatar (Click to change)">
-                @if (vs.company().identity.avatarUrl) {
-                  <img [src]="vs.company().identity.avatarUrl" alt="" class="entity-avatar-img" />
+                @if (companyAvatarUrl()) {
+                  <img [src]="companyAvatarUrl()" alt="" class="entity-avatar-img" />
                 } @else {
                   <span class="entity-avatar-fallback">{{ companyInitials }}</span>
                 }

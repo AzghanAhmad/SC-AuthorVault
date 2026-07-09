@@ -32,6 +32,25 @@ public class WorkspaceService(AppDbContext db)
         await db.SaveChangesAsync(ct);
     }
 
+    /// <summary>
+    /// Updates ONLY the PIN-related columns (PinHash, PinLastActivityUtc, UpdatedAt).
+    /// Avoids a full-row write of the large JSON blobs, preventing MySQL command timeouts.
+    /// </summary>
+    public async Task SavePinAsync(UserWorkspace ws, CancellationToken ct = default)
+    {
+        var now = DateTime.UtcNow;
+        ws.UpdatedAt = now;
+        ws.PinLastActivityUtc ??= ws.PinLastActivityUtc; // keep reference in sync
+
+        await db.UserWorkspaces
+            .Where(w => w.Id == ws.Id)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(w => w.PinHash, ws.PinHash)
+                .SetProperty(w => w.PinLastActivityUtc, ws.PinLastActivityUtc)
+                .SetProperty(w => w.UpdatedAt, now),
+                ct);
+    }
+
     public static int GetUserId(ClaimsPrincipal user)
     {
         var sub = user.FindFirstValue(ClaimTypes.NameIdentifier)

@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule, ActivatedRoute } from '@angular/router';
 import { AuthorVaultService } from '../../../services/author-vault.service';
 import { CompanyIdentity } from '../../../models/author-vault.model';
-import { ExcelImportService } from '../../../services/excel-import.service';
+import { ExcelImportService, FILE_ONLY_PATHS } from '../../../services/excel-import.service';
 import { VaultCompanyStoreService, VaultOwnerProfile, OwnerDocRef } from '../../../services/vault-company-store.service';
 import { CompanyPinService } from '../../../services/company-pin.service';
 import { FileUploadService } from '../../../services/file-upload.service';
@@ -101,6 +101,8 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
       const parts = path.split('.');
       const section = parts[0];
       const field = parts[1];
+      // Skip file-only fields — CSV cannot supply an actual file
+      if (FILE_ONLY_PATHS.has(path)) return;
       if (section === 'identity') identityPatch[field] = r.value;
       else if (section === 'financial') financialPatch[field] = r.value;
       else if (section === 'contractsLegal') contractsLegalPatch[field] = r.value;
@@ -270,13 +272,14 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
     }
     
     const cleanExpected = expectedHeaders.map(eh => eh.toLowerCase().replace(/\s+/g, ''));
+    let matchedAny = false;
     for (const key of keys) {
       const cleanKey = key.toLowerCase().replace(/\s+/g, '');
-      if (!cleanExpected.includes(cleanKey)) {
-        return false;
+      if (cleanExpected.includes(cleanKey)) {
+        matchedAny = true;
       }
     }
-    return true;
+    return matchedAny;
   }
 
   onBoxCSVFileSelected(event: Event): void {
@@ -299,10 +302,12 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
       });
     } else {
       this.excelImport.parseFile(file).then(rows => {
-        let hasUnmatched = false;
+        let matchedCount = 0;
         rows.forEach(r => {
           const path = this.excelImport.resolvePath(r.field);
-          if (!path) {
+          if (path) {
+            matchedCount++;
+          } else {
             const lowerField = r.field.toLowerCase().trim();
             let matchedFallback = false;
             if (lowerField === 'ein confirmation' || lowerField === 'ein confirmation file') matchedFallback = true;
@@ -326,11 +331,11 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
             else if (lowerField === 'emergency access') matchedFallback = true;
             else if (lowerField === 'offboarding steps') matchedFallback = true;
             
-            if (!matchedFallback) hasUnmatched = true;
+            if (matchedFallback) matchedCount++;
           }
         });
         
-        if (hasUnmatched) {
+        if (matchedCount === 0) {
           alert("No data imported as column name doesn't match");
           return;
         }
@@ -416,6 +421,13 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
   get companyInitials(): string {
     const n = this.company().identity.legalName || 'AV';
     return n.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  }
+
+  companyAvatarUrl(): string {
+    const url = this.company().identity.avatarUrl;
+    if (!url) return '';
+    if (url.startsWith('data:') || url.startsWith('http://') || url.startsWith('https://')) return url;
+    return this.fileUpload.resolveFileUrl(url);
   }
 
   get ownerProfiles() { return this.companyStore.ownerProfiles(); }
@@ -738,6 +750,36 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
         this.uploadingOwnershipFile.set(null);
         (event.target as HTMLInputElement).value = '';
       },
+    });
+  }
+
+  readonly uploadingContractsFile = signal<string | null>(null);
+
+  onContractsLegalFileUpload(event: Event, field: 'trademarkRegistrations' | 'copyrightAssignments' | 'insurancePolicies'): void {
+    if (!this.isCardEditing('trademarks') && !this.editMode()) return;
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    this.uploadingContractsFile.set(field);
+    this.fileUpload.upload(file, `contracts-legal/${field}`).subscribe({
+      next: uploaded => {
+        this.vs.patchContractsLegal({
+          [field]: uploaded.url
+        });
+        this.uploadingContractsFile.set(null);
+        (event.target as HTMLInputElement).value = '';
+      },
+      error: () => {
+        alert('Upload failed.');
+        this.uploadingContractsFile.set(null);
+        (event.target as HTMLInputElement).value = '';
+      }
+    });
+  }
+
+  removeContractsLegalFile(field: 'trademarkRegistrations' | 'copyrightAssignments' | 'insurancePolicies'): void {
+    if (!this.isCardEditing('trademarks') && !this.editMode()) return;
+    this.vs.patchContractsLegal({
+      [field]: ''
     });
   }
 
@@ -1193,8 +1235,21 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
-      const newLogo = { name: file.name.replace(/\.[^.]+$/, ''), format: 'General', dimensions: '—', fileType: file.name.split('.').pop()?.toUpperCase() || 'PNG', uploaded: new Date().toISOString().split('T')[0], bg: 'var(--primary-light)', dataUrl: reader.result as string };
-      this.companyStore.updateLogos([...this.logos, newLogo]);
+      // Show preview instantly using dataUrl, then replace with persistent sourceUrl after upload
+      const previewLogo = { name: file.name.replace(/\.[^.]+$/, ''), format: 'General', dimensions: '—', fileType: file.name.split('.').pop()?.toUpperCase() || 'PNG', uploaded: new Date().toISOString().split('T')[0], bg: 'var(--primary-light)', dataUrl: reader.result as string };
+      const previewIndex = this.logos.length;
+      this.companyStore.updateLogos([...this.logos, previewLogo]);
+
+      this.fileUpload.upload(file, 'logos').subscribe({
+        next: uploaded => {
+          const list = [...this.logos];
+          if (list[previewIndex]) {
+            list[previewIndex] = { ...list[previewIndex], sourceUrl: uploaded.url, fileId: uploaded.id };
+            this.companyStore.updateLogos(list);
+          }
+        },
+        error: () => alert('Upload failed. The logo preview will not be saved permanently.')
+      });
     };
     reader.readAsDataURL(file);
     (event.target as HTMLInputElement).value = '';
@@ -1205,9 +1260,25 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
+      // Show preview instantly
       const list = [...this.logos];
       list[index] = { ...list[index], dataUrl: reader.result as string, fileType: file.name.split('.').pop()?.toUpperCase() || list[index].fileType };
       this.companyStore.updateLogos(list);
+
+      this.fileUpload.upload(file, 'logos').subscribe({
+        next: uploaded => {
+          const updated = [...this.logos];
+          const oldFileId = updated[index]?.fileId;
+          if (updated[index]) {
+            updated[index] = { ...updated[index], sourceUrl: uploaded.url, fileId: uploaded.id };
+            this.companyStore.updateLogos(updated);
+          }
+          if (oldFileId) {
+            this.fileUpload.delete(oldFileId).subscribe({ error: () => undefined });
+          }
+        },
+        error: () => alert('Upload failed.')
+      });
     };
     reader.readAsDataURL(file);
     (event.target as HTMLInputElement).value = '';
@@ -1282,7 +1353,11 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
 
   deleteLogo(index: number): void {
     if (confirm('Are you sure you want to delete this logo?')) {
+      const target = this.logos[index];
       this.companyStore.updateLogos(this.logos.filter((_, idx) => idx !== index));
+      if (target?.fileId) {
+        this.fileUpload.delete(target.fileId).subscribe({ error: () => undefined });
+      }
     }
   }
 
@@ -1450,16 +1525,20 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
   }
 
   get financialDocs() { return this.companyStore.financialDocs(); }
-  get filteredFinancialDocs() {
-    if (!this.financialCategoryFilter) return this.financialDocs;
-    return this.financialDocs.filter(d =>
+  get incomeReportsDocs() {
+    return this.financialDocs.filter(d => this.normalizeFinancialCategory(d.category) === 'P&L Reports');
+  }
+  get otherFinancialDocs() {
+    // Return files that are not P&L Reports
+    const list = this.financialDocs.filter(d => this.normalizeFinancialCategory(d.category) !== 'P&L Reports');
+    if (!this.financialCategoryFilter) return list;
+    return list.filter(d =>
       this.normalizeFinancialCategory(d.category) === this.financialCategoryFilter ||
       d.category === this.financialCategoryFilter
     );
   }
 
-  onFinancialUpload(event: Event): void {
-    if (!this.editMode() && !this.isCardEditing('financial')) return;
+  onIncomeReportUpload(event: Event): void {
     const file = (event.target as HTMLInputElement).files?.[0];
     if (!file) return;
     this.fileUpload.upload(file, 'financial-doc').subscribe({
@@ -1467,7 +1546,30 @@ export class VaultCompanyPageComponent implements OnInit, OnDestroy {
         const newDoc = {
           month: new Date().toLocaleString('default', { month: 'short' }),
           year: new Date().getFullYear().toString(),
-          category: this.financialCategoryFilter || 'P&L Reports',
+          category: 'P&L Reports',
+          fileName: uploaded.fileName,
+          status: 'Approved',
+          fileSize: (uploaded.sizeBytes / 1024).toFixed(0) + ' KB',
+          uploadedDate: new Date().toISOString().split('T')[0],
+          fileUrl: uploaded.url,
+          fileId: uploaded.id,
+        };
+        this.companyStore.updateFinancialDocs([...this.financialDocs, newDoc]);
+        (event.target as HTMLInputElement).value = '';
+      },
+      error: () => alert('Upload failed. Make sure you are logged in and the API is running.'),
+    });
+  }
+
+  onFinancialUpload(event: Event): void {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    this.fileUpload.upload(file, 'financial-doc').subscribe({
+      next: uploaded => {
+        const newDoc = {
+          month: new Date().toLocaleString('default', { month: 'short' }),
+          year: new Date().getFullYear().toString(),
+          category: this.financialCategoryFilter || 'Invoices',
           fileName: uploaded.fileName,
           status: 'Approved',
           fileSize: (uploaded.sizeBytes / 1024).toFixed(0) + ' KB',
@@ -1634,7 +1736,7 @@ Contractor: ____________________________`;
   }
 
   createBlankSop(): void {
-    if (!this.editMode()) return;
+    if (!this.editMode() && !this.isCardEditing('sops')) return;
     const blank = {
       name: 'New SOP',
       category: 'General',
@@ -1671,7 +1773,7 @@ Contractor: ____________________________`;
   }
 
   saveSopContent(): void {
-    if (!this.editMode()) return;
+    if (!this.editMode() && !this.isCardEditing('sops')) return;
     const list = [...this.sopTemplates];
     const updatedSop = {
       name: this.sopEditName,
@@ -1689,6 +1791,14 @@ Contractor: ____________________________`;
     this.companyStore.updateSops(list);
     this.closeSopModal();
     this.showSopFeedback(`"${updatedSop.name}" saved.`);
+  }
+
+  removeSop(index: number): void {
+    if (!this.editMode() && !this.isCardEditing('sops')) return;
+    if (confirm('Are you sure you want to delete this SOP?')) {
+      const list = this.sopTemplates.filter((_, i) => i !== index);
+      this.companyStore.updateSops(list);
+    }
   }
 
   private readonly PIN_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
@@ -2116,12 +2226,22 @@ Contractor: ____________________________`;
   }
 
   onCompanyAvatar(event: Event): void {
-    if (!this.editMode()) return;
     const file = (event.target as HTMLInputElement).files?.[0];
     if (!file) return;
+
     const reader = new FileReader();
-    reader.onload = () => this.vs.setCompanyAvatar(reader.result as string);
+    reader.onload = () => {
+      this.vs.setCompanyAvatar(reader.result as string);
+      this.fileUpload.upload(file, 'company-avatar').subscribe({
+        next: uploaded => {
+          const resolvedUrl = this.fileUpload.resolveFileUrl(uploaded.url);
+          this.vs.patchIdentity({ avatarUrl: resolvedUrl, avatarFileId: uploaded.id });
+        },
+        error: () => alert('Logo upload failed. A preview is shown but may not persist after reload.'),
+      });
+    };
     reader.readAsDataURL(file);
+    (event.target as HTMLInputElement).value = '';
   }
 
   deleteAllVaultData(): void {

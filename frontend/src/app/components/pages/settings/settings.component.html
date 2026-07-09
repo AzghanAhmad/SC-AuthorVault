@@ -44,15 +44,29 @@
       <!-- Notifications -->
       <div class="settings-section" *ngIf="activeSection === 'notifications'">
         <div class="card">
-          <h2 class="section-title">Email Notifications</h2>
-          <p class="section-desc">Choose which emails you want to receive</p>
-          <div class="setting-item" *ngFor="let notif of emailNotifications">
+          <div class="notif-summary">
+            <div>
+              <h2 class="section-title" style="margin:0">Email Notifications</h2>
+              <p class="section-desc" style="margin:.35rem 0 0">Choose which alerts you want to receive</p>
+            </div>
+            <span class="notif-count-pill">{{ enabledNotificationCount }} of {{ notificationPreferences.length }} enabled</span>
+          </div>
+
+          <div class="setting-item" *ngFor="let notif of notificationPreferences">
             <div class="setting-info">
               <span class="setting-label">{{ notif.title }}</span>
               <span class="setting-desc">{{ notif.description }}</span>
             </div>
-            <input type="checkbox" class="toggle" [(ngModel)]="notif.enabled">
+            <input
+              type="checkbox"
+              class="toggle"
+              [checked]="notif.enabled"
+              (change)="onNotificationToggle(notif, $any($event.target).checked)"
+            />
           </div>
+
+          <p class="notif-hint">Changes update your notification center immediately. Click Save to persist preferences.</p>
+
           <button class="btn-primary" style="margin-top: 0.75rem;" (click)="saveSettings()" [disabled]="saving">
             {{ saving ? 'Saving...' : 'Save Changes' }}
           </button>

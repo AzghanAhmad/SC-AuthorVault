@@ -21,6 +21,7 @@ export interface CompanyIdentity {
   primaryEmail: string;
   website: string;
   avatarUrl?: string;
+  avatarFileId?: number;
   country?: string;
 }
 
@@ -82,6 +83,7 @@ export interface ImprintIdentity {
   status: 'Active' | 'Inactive' | 'Retired';
   dateEstablished: string;
   logo: string;
+  logoFileId?: number;
   website: string;
   email: string;
   avatarUrl?: string;

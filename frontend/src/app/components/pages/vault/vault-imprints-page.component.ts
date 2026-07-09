@@ -71,10 +71,20 @@ export class VaultImprintsPageComponent {
   onImprintAvatarUpload(event: Event, imprintId: string): void {
     const file = (event.target as HTMLInputElement).files?.[0];
     if (!file) return;
+    // Show preview instantly via base64
     const reader = new FileReader();
     reader.onload = () => {
       this.vs.setImprintAvatar(imprintId, reader.result as string);
-      this.vs.updateImprint(imprintId, { logo: file.name });
+      // Upload to server for persistence
+      this.fileUpload.upload(file, `imprint-avatar/${imprintId}`).subscribe({
+        next: uploaded => {
+          // Replace base64 with permanent server URL + store fileId
+          const resolvedUrl = this.fileUpload.resolveFileUrl(uploaded.url);
+          this.vs.setImprintAvatar(imprintId, resolvedUrl);
+          this.vs.updateImprint(imprintId, { logo: resolvedUrl, logoFileId: uploaded.id });
+        },
+        error: () => alert('Logo upload failed. Preview shown but may not persist after reload.')
+      });
     };
     reader.readAsDataURL(file);
     (event.target as HTMLInputElement).value = '';
@@ -82,8 +92,13 @@ export class VaultImprintsPageComponent {
 
   clearImprintLogo(imprintId: string): void {
     if (!this.isCardEditing('identity')) return;
+    const imprint = this.vs.company().imprints.find(i => i.id === imprintId);
+    const fileId = imprint?.identity?.logoFileId;
     this.vs.setImprintAvatar(imprintId, '');
-    this.vs.updateImprint(imprintId, { logo: '' });
+    this.vs.updateImprint(imprintId, { logo: '', logoFileId: undefined });
+    if (fileId) {
+      this.fileUpload.delete(fileId).subscribe({ error: () => undefined });
+    }
   }
 
   onTemplateUpload(event: Event, imprintId: string, kind: 'copyright' | 'contract'): void {

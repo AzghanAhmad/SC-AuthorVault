@@ -23,7 +23,10 @@ var connectionString = ConnectionStringResolver.Resolve(builder.Configuration);
 var mySqlVersion = new MySqlServerVersion(new Version(8, 0, 36));
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(connectionString, mySqlVersion, mySqlOptions =>
-        mySqlOptions.EnableRetryOnFailure(maxRetryCount: 3, maxRetryDelay: TimeSpan.FromSeconds(5), errorNumbersToAdd: null)));
+    {
+        mySqlOptions.EnableRetryOnFailure(maxRetryCount: 3, maxRetryDelay: TimeSpan.FromSeconds(5), errorNumbersToAdd: null);
+        mySqlOptions.CommandTimeout(120); // 120s timeout (default 30s was causing PIN save timeouts)
+    }));
 
 var jwtOpts = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

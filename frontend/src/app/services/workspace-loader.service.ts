@@ -7,6 +7,7 @@ import { SettingsService } from './settings.service';
 import { ImportantDatesService } from './important-dates.service';
 import { ThemeService } from './theme.service';
 import { BookService } from './book.service';
+import { NotificationService } from './notification.service';
 import { AppSettings } from './settings.service';
 
 @Injectable({ providedIn: 'root' })
@@ -17,6 +18,7 @@ export class WorkspaceLoaderService {
   private readonly importantDates = inject(ImportantDatesService);
   private readonly theme = inject(ThemeService);
   private readonly books = inject(BookService);
+  private readonly notifications = inject(NotificationService);
 
   loadAll(): Observable<void> {
     return forkJoin([
@@ -37,6 +39,7 @@ export class WorkspaceLoaderService {
         if (s?.theme) {
           this.theme.applyThemeFromSettings(s.theme, s.compactSidebar ?? false);
         }
+        this.notifications.refresh();
       }),
       map(() => void 0),
       catchError(err => {

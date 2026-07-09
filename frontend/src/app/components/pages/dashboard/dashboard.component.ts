@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { AuthorVaultService } from '../../../services/author-vault.service';
 import { AuthService } from '../../../services/auth.service';
+import { FileUploadService } from '../../../services/file-upload.service';
 import { ImportantDatesService, ImportantDate } from '../../../services/important-dates.service';
 import { PageActionBarComponent } from '../../shared/page-action-bar/page-action-bar.component';
 
@@ -16,6 +17,7 @@ import { PageActionBarComponent } from '../../shared/page-action-bar/page-action
 export class DashboardComponent implements OnInit {
   readonly vs = inject(AuthorVaultService);
   readonly auth = inject(AuthService);
+  private readonly fileUpload = inject(FileUploadService);
   private readonly datesService = inject(ImportantDatesService);
 
   upcomingDates = signal<any[]>([]);
@@ -112,6 +114,13 @@ export class DashboardComponent implements OnInit {
     return this.initials(this.vs.company()?.identity?.legalName || '');
   }
 
+  companyAvatarUrl(): string {
+    const url = this.vs.company().identity.avatarUrl;
+    if (!url) return '';
+    if (url.startsWith('data:') || url.startsWith('http://') || url.startsWith('https://')) return url;
+    return this.fileUpload.resolveFileUrl(url);
+  }
+
   hasCompany(): boolean {
     const identity = this.vs.company()?.identity;
     if (!identity) return false;
@@ -135,8 +144,18 @@ export class DashboardComponent implements OnInit {
     const file = (event.target as HTMLInputElement).files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = () => this.vs.setCompanyAvatar(reader.result as string);
+    reader.onload = () => {
+      this.vs.setCompanyAvatar(reader.result as string);
+      this.fileUpload.upload(file, 'company-avatar').subscribe({
+        next: uploaded => {
+          const resolvedUrl = this.fileUpload.resolveFileUrl(uploaded.url);
+          this.vs.patchIdentity({ avatarUrl: resolvedUrl, avatarFileId: uploaded.id });
+        },
+        error: () => alert('Logo upload failed. Preview shown but may not persist after reload.'),
+      });
+    };
     reader.readAsDataURL(file);
+    (event.target as HTMLInputElement).value = '';
   }
 
   onImprintAvatar(event: Event, imprintId: string): void {

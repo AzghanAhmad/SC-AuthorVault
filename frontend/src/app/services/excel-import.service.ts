@@ -56,6 +56,19 @@ export const COMPANY_FIELD_MAP: Record<string, string> = {
   's-corp election file': 'ownership.sCorpElectionFile',
 };
 
+/**
+ * Paths that map to file-upload-only fields.
+ * CSV imports must NEVER write text values to these paths
+ * because the user cannot supply a file via a spreadsheet.
+ */
+export const FILE_ONLY_PATHS = new Set<string>([
+  'contractsLegal.trademarkRegistrations',
+  'contractsLegal.copyrightAssignments',
+  'contractsLegal.insurancePolicies',
+  'ownership.operatingAgreementFile',
+  'ownership.sCorpElectionFile',
+]);
+
 @Injectable({ providedIn: 'root' })
 export class ExcelImportService {
 
@@ -102,6 +115,25 @@ export class ExcelImportService {
       const workbook = XLSX.read(buffer, { type: 'array' });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: '' });
+      if (rows.length === 0) return [];
+
+      const keys = Object.keys(rows[0]);
+      let horizontalMatch = false;
+      for (const k of keys) {
+        if (this.resolvePath(k)) {
+          horizontalMatch = true;
+          break;
+        }
+      }
+
+      if (horizontalMatch) {
+        const parsedRows: ParsedFieldRow[] = [];
+        keys.forEach(k => {
+          parsedRows.push({ field: k, value: String(rows[0][k] ?? '').trim() });
+        });
+        return parsedRows;
+      }
+
       return this.rowsFromObjects(rows);
     }
     throw new Error('Please upload a .csv, .xlsx, or .xls file.');
@@ -111,9 +143,30 @@ export class ExcelImportService {
     const lines = text.split(/\r?\n/).filter(l => l.trim());
     if (lines.length === 0) return [];
     const delimiter = lines[0].includes('\t') ? '\t' : (lines[0].split(';').length > lines[0].split(',').length ? ';' : ',');
-    const headers = this.splitCsvLine(lines[0], delimiter).map(h => h.trim().toLowerCase());
-    const fieldIdx = headers.findIndex(h => h.includes('field') || h === 'name' || h === 'label');
-    const valueIdx = headers.findIndex(h => h.includes('value') || h.includes('entry') || h === 'data');
+    const headers = this.splitCsvLine(lines[0], delimiter).map(h => h.trim());
+
+    let horizontalHeaderMatch = false;
+    for (const h of headers) {
+      if (this.resolvePath(h)) {
+        horizontalHeaderMatch = true;
+        break;
+      }
+    }
+
+    if (horizontalHeaderMatch && lines.length > 1) {
+      const cols = this.splitCsvLine(lines[1], delimiter);
+      const rows: ParsedFieldRow[] = [];
+      headers.forEach((h, idx) => {
+        if (h && cols[idx] !== undefined) {
+          rows.push({ field: h, value: cols[idx].trim() });
+        }
+      });
+      return rows;
+    }
+
+    const lowerHeaders = headers.map(h => h.toLowerCase());
+    const fieldIdx = lowerHeaders.findIndex(h => h.includes('field') || h === 'name' || h === 'label');
+    const valueIdx = lowerHeaders.findIndex(h => h.includes('value') || h.includes('entry') || h === 'data');
     const rows: ParsedFieldRow[] = [];
     if (fieldIdx >= 0 && valueIdx >= 0) {
       for (let i = 1; i < lines.length; i++) {
@@ -124,7 +177,6 @@ export class ExcelImportService {
       }
       return rows;
     }
-    // Two-column without header: col0 = field, col1 = value
     const start = headers.length >= 2 && (fieldIdx >= 0 || valueIdx >= 0) ? 1 : 0;
     for (let i = start; i < lines.length; i++) {
       const cols = this.splitCsvLine(lines[i], delimiter);

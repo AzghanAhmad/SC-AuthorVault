@@ -34,7 +34,7 @@ public class CompanyPinController(WorkspaceService workspace) : ControllerBase
         ws.PinHash = BC.HashPassword(req.Pin);
         ws.PinLastActivityUtc = DateTime.UtcNow;
         ws.UpdatedAt = DateTime.UtcNow;
-        await workspace.SaveAsync(ws, ct);
+        await workspace.SavePinAsync(ws, ct);
         return Ok(new { success = true });
     }
 
@@ -49,7 +49,7 @@ public class CompanyPinController(WorkspaceService workspace) : ControllerBase
 
         ws.PinLastActivityUtc = DateTime.UtcNow;
         ws.UpdatedAt = DateTime.UtcNow;
-        await workspace.SaveAsync(ws, ct);
+        await workspace.SavePinAsync(ws, ct);
         return Ok(new { success = true, unlocked = true });
     }
 
@@ -62,7 +62,7 @@ public class CompanyPinController(WorkspaceService workspace) : ControllerBase
 
         ws.PinLastActivityUtc = DateTime.UtcNow;
         ws.UpdatedAt = DateTime.UtcNow;
-        await workspace.SaveAsync(ws, ct);
+        await workspace.SavePinAsync(ws, ct);
         return Ok(new { success = true });
     }
 
@@ -72,7 +72,7 @@ public class CompanyPinController(WorkspaceService workspace) : ControllerBase
         var ws = await workspace.GetOrCreateAsync(WorkspaceService.GetUserId(User), ct);
         ws.PinLastActivityUtc = null;
         ws.UpdatedAt = DateTime.UtcNow;
-        await workspace.SaveAsync(ws, ct);
+        await workspace.SavePinAsync(ws, ct);
         return Ok(new { success = true });
     }
 
@@ -86,7 +86,7 @@ public class CompanyPinController(WorkspaceService workspace) : ControllerBase
         ws.PinHash = BC.HashPassword(req.Pin);
         ws.PinLastActivityUtc = DateTime.UtcNow;
         ws.UpdatedAt = DateTime.UtcNow;
-        await workspace.SaveAsync(ws, ct);
+        await workspace.SavePinAsync(ws, ct);
         return Ok(new { success = true });
     }
 }
