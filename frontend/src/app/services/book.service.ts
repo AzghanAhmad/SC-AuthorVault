@@ -149,7 +149,10 @@ export class BookService {
       language: asset.language || 'en',
       tags: asset.tags || [],
       createdAt: new Date().toISOString().split('T')[0],
-      updatedAt: new Date().toISOString().split('T')[0]
+      updatedAt: new Date().toISOString().split('T')[0],
+      fileUrl: asset.fileUrl,
+      fileName: asset.fileName,
+      fileId: asset.fileId
     };
     this.books.update(list =>
       list.map(b => b.id === bookId ? { ...b, marketingAssets: [...b.marketingAssets, newAsset] } : b)

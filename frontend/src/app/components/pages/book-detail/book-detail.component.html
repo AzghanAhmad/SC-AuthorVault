@@ -543,11 +543,25 @@
             </div>
           </div>
           <div class="form-group">
-            <label class="form-label">BISAC Categories</label>
-            <div class="tag-list" style="margin-bottom:.5rem">
-              @for (cat of book()!.metadata.bisacCategories; track cat) {
-                <span class="tag-chip">{{ cat }}</span>
-              }
+            <label class="form-label">BISAC Categories / Codes</label>
+            <div class="tag-input-wrap">
+              <div class="tag-list">
+                @for (cat of book()!.metadata.bisacCategories; track cat; let i = $index) {
+                  <span class="tag-chip removable">{{ cat }} <button (click)="removeBisacCategory(i)">&times;</button></span>
+                }
+              </div>
+              <input type="text" class="form-input" placeholder="Type BISAC code and press Enter..." (keydown.enter)="addBisacCategory($event)" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">#Hashtags &amp; Tags</label>
+            <div class="tag-input-wrap">
+              <div class="tag-list">
+                @for (tag of book()!.metadata.hashtags; track tag; let i = $index) {
+                  <span class="tag-chip removable">{{ tag }} <button (click)="removeHashtag(i)">&times;</button></span>
+                }
+              </div>
+              <input type="text" class="form-input" placeholder="Type hashtag (e.g. #SciFi) and press Enter..." (keydown.enter)="addHashtag($event)" />
             </div>
           </div>
         </div>
@@ -746,17 +760,37 @@
             <div class="asset-card">
               <div class="asset-header">
                 <span class="asset-type-badge" [class]="'at-' + asset.type">{{ assetTypeLabel(asset.type) }}</span>
-                <span class="badge" [class]="'badge-' + asset.status">{{ asset.status }}</span>
+                <div style="display:flex;gap:.5rem;align-items:center">
+                  <span class="badge" [class]="'badge-' + asset.status">{{ asset.status }}</span>
+                  <button type="button" style="background:none;border:none;color:var(--error);cursor:pointer;font-size:1.1rem;padding:0;line-height:1" (click)="deleteAsset(asset.id)" title="Delete Asset">&times;</button>
+                </div>
               </div>
               <h4 class="asset-title">{{ asset.title }}</h4>
-              <p class="asset-preview">{{ asset.content | slice:0:120 }}{{ asset.content.length > 120 ? '...' : '' }}</p>
+              
+              <!-- File/Media Preview -->
+              @if (asset.fileUrl) {
+                <div class="asset-media-preview" style="margin-bottom:.75rem;border-radius:8px;overflow:hidden;background:#f3f4f6;display:flex;align-items:center;justify-content:center;min-height:100px;border:1px solid var(--border-color)">
+                  @if (isImageFile(asset.fileName)) {
+                    <img [src]="resolveFileUrl(asset.fileUrl)" style="max-width:100%;max-height:160px;object-fit:contain" alt="Asset Preview" />
+                  } @else if (isVideoFile(asset.fileName)) {
+                    <video [src]="resolveFileUrl(asset.fileUrl)" controls style="max-width:100%;max-height:160px"></video>
+                  } @else {
+                    <div style="display:flex;flex-direction:column;align-items:center;padding:.75rem;gap:.25rem">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24" style="color:var(--text-muted)"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                      <a [href]="resolveFileUrl(asset.fileUrl)" target="_blank" class="file-link" style="font-size:.75rem;text-align:center;word-break:break-all">{{ asset.fileName || 'View Attachment' }}</a>
+                    </div>
+                  }
+                </div>
+              }
+
+              <p class="asset-preview" style="margin-bottom:.5rem">{{ asset.content | slice:0:120 }}{{ asset.content.length > 120 ? '...' : '' }}</p>
               <div class="asset-footer">
                 <div class="asset-tags">
                   @for (tag of asset.tags; track tag) {
                     <span class="tag-chip sm">{{ tag }}</span>
                   }
                 </div>
-                <span class="asset-meta">{{ asset.platform }} · {{ asset.updatedAt }}</span>
+                <span class="asset-meta">{{ asset.platform || 'General' }} · {{ asset.updatedAt }}</span>
               </div>
             </div>
           }
@@ -880,9 +914,35 @@
           <div class="form-group"><label class="form-label">Type</label><select class="form-input" [(ngModel)]="newAssetType"><option value="ad">Ad</option><option value="headline">Headline</option><option value="newsletter">Newsletter</option><option value="social-post">Social Post</option><option value="blog">Blog</option><option value="promo-graphic">Promo Graphic</option></select></div>
           <div class="form-group"><label class="form-label">Platform</label><input type="text" class="form-input" [(ngModel)]="newAssetPlatform" placeholder="e.g. Facebook" /></div>
         </div>
-        <div class="form-group"><label class="form-label">Content</label><textarea class="form-input" rows="4" [(ngModel)]="newAssetContent" placeholder="Asset content..."></textarea></div>
+        <div class="form-group"><label class="form-label">Content</label><textarea class="form-input" rows="4" [(ngModel)]="newAssetContent" placeholder="Asset copy, draft text, or notes..."></textarea></div>
+        <div class="form-group">
+          <label class="form-label">File Attachment (Image, Video, PDF, etc.)</label>
+          <div class="attach-file-row">
+            <input
+              #assetFileInput
+              type="file"
+              class="visually-hidden"
+              accept=".png,.jpg,.jpeg,.gif,.svg,.webp,.pdf,.mp4,.mov,.webm,.docx,.doc"
+              (change)="onAssetFileSelected($event)"
+            />
+            <button type="button" class="attach-file-btn" (click)="assetFileInput.click()" [disabled]="assetUploading">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="margin-right:4px"><path d="M21.44 11.05 12.25 20.24a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+              {{ selectedAssetFile ? 'Change file' : 'Attach file' }}
+            </button>
+            <div class="attached-file" *ngIf="selectedAssetFile" style="margin-left:12px;display:inline-flex;align-items:center;gap:.5rem">
+              <span class="attached-file-name" style="font-size:.8125rem;font-weight:500;color:var(--text-primary)">{{ selectedAssetFile.name }}</span>
+              <button type="button" style="background:none;border:none;color:var(--error);cursor:pointer;font-size:1.1rem;padding:0;line-height:1" (click)="selectedAssetFile = null">&times;</button>
+            </div>
+          </div>
+          <p class="attach-hint" style="margin-top:.25rem;font-size:.75rem;color:var(--text-muted)">Optional. Choose an image (ad, graphics), a video (TikTok), or document (excerpts).</p>
+        </div>
       </div>
-      <div class="modal-footer"><button class="btn-secondary" (click)="showAssetModal = false">Cancel</button><button class="btn-primary" (click)="addAsset()">Add Asset</button></div>
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="showAssetModal = false" [disabled]="assetUploading">Cancel</button>
+        <button class="btn-primary" (click)="addAsset()" [disabled]="assetUploading || !newAssetTitle.trim()">
+          {{ assetUploading ? 'Uploading...' : 'Add Asset' }}
+        </button>
+      </div>
     </div>
   </div>
 </div>

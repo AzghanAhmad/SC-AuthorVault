@@ -22,6 +22,7 @@ export interface BookMetadata {
   oneLineHook: string;
   keywords: string[];
   bisacCategories: string[];
+  hashtags?: string[];
   authorBio: string;
   seriesName: string;
   seriesNumber: number | null;
@@ -58,6 +59,9 @@ export interface MarketingAsset {
   tags: string[];
   createdAt: string;
   updatedAt: string;
+  fileUrl?: string;
+  fileName?: string;
+  fileId?: number;
 }
 
 export interface VersionHistoryEntry {

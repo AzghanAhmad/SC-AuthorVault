@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { BookService } from '../../../services/book.service';
 import { ToastService } from '../../../services/toast.service';
+import { FileUploadService } from '../../../services/file-upload.service';
 import { Book, BookFile, MarketingAsset, PlatformVersion, BookStatus } from '../../../models/book.model';
 
 type TabId = 'overview' | 'files' | 'metadata' | 'platforms' | 'marketing' | 'ai';
@@ -27,10 +28,14 @@ export class BookDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private bookService = inject(BookService);
   private toast = inject(ToastService);
+  private fileUpload = inject(FileUploadService);
   private router = inject(Router);
 
   book = signal<Book | null>(null);
   copiedField = '';
+
+  selectedAssetFile: File | null = null;
+  assetUploading = false;
 
   copyField(text: string | number | undefined | null, fieldName: string): void {
     const val = text === undefined || text === null ? '' : String(text);
@@ -503,6 +508,18 @@ export class BookDetailComponent implements OnInit {
 
     this.bookService.getBookById(id).subscribe(book => {
       if (!book) { this.notFound = true; return; }
+      if (!book.metadata.bisacCategories) {
+        book.metadata.bisacCategories = [];
+      }
+      if (!book.metadata.hashtags) {
+        book.metadata.hashtags = [];
+      }
+      if (!book.metadata.keywords) {
+        book.metadata.keywords = [];
+      }
+      if (!book.marketingAssets) {
+        book.marketingAssets = [];
+      }
       this.book.set(book);
       this.coreTitleFilter = book.id;
       this.computeStats(book);
@@ -570,6 +587,45 @@ export class BookDetailComponent implements OnInit {
 
   removeKeyword(index: number) {
     this.book()!.metadata.keywords.splice(index, 1);
+  }
+
+  addBisacCategory(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const value = input.value.trim();
+    if (value && this.book()) {
+      if (!this.book()!.metadata.bisacCategories) {
+        this.book()!.metadata.bisacCategories = [];
+      }
+      this.book()!.metadata.bisacCategories.push(value);
+      input.value = '';
+    }
+  }
+
+  removeBisacCategory(index: number) {
+    if (this.book() && this.book()!.metadata.bisacCategories) {
+      this.book()!.metadata.bisacCategories.splice(index, 1);
+    }
+  }
+
+  addHashtag(event: Event) {
+    const input = event.target as HTMLInputElement;
+    let value = input.value.trim();
+    if (value && this.book()) {
+      if (!value.startsWith('#')) {
+        value = '#' + value;
+      }
+      if (!this.book()!.metadata.hashtags) {
+        this.book()!.metadata.hashtags = [];
+      }
+      this.book()!.metadata.hashtags.push(value);
+      input.value = '';
+    }
+  }
+
+  removeHashtag(index: number) {
+    if (this.book() && this.book()!.metadata.hashtags) {
+      this.book()!.metadata.hashtags.splice(index, 1);
+    }
   }
 
   saveBook() {
@@ -656,16 +712,86 @@ export class BookDetailComponent implements OnInit {
     });
   }
 
+  onAssetFileSelected(event: Event): void {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (file) {
+      this.selectedAssetFile = file;
+    }
+  }
+
   addAsset() {
     if (!this.book() || !this.newAssetTitle.trim()) return;
-    this.bookService.addMarketingAsset(this.book()!.id, {
-      title: this.newAssetTitle, type: this.newAssetType as any, platform: this.newAssetPlatform, content: this.newAssetContent
-    }).subscribe(() => {
-      this.showAssetModal = false;
-      this.newAssetTitle = ''; this.newAssetContent = ''; this.newAssetPlatform = '';
-      this.bookService.getBookById(this.book()!.id).subscribe(b => { if (b) { this.book.set(b); this.computeStats(b); } });
-      this.toast.show('Marketing asset added!', 'success');
-    });
+
+    if (this.selectedAssetFile) {
+      this.assetUploading = true;
+      this.fileUpload.upload(this.selectedAssetFile, 'marketing-asset').subscribe({
+        next: uploaded => {
+          this.assetUploading = false;
+          this.bookService.addMarketingAsset(this.book()!.id, {
+            title: this.newAssetTitle,
+            type: this.newAssetType as any,
+            platform: this.newAssetPlatform,
+            content: this.newAssetContent,
+            fileUrl: uploaded.url,
+            fileName: uploaded.fileName,
+            fileId: uploaded.id
+          }).subscribe(() => {
+            this.showAssetModal = false;
+            this.newAssetTitle = ''; this.newAssetContent = ''; this.newAssetPlatform = ''; this.selectedAssetFile = null;
+            this.bookService.getBookById(this.book()!.id).subscribe(b => { if (b) { this.book.set(b); this.computeStats(b); } });
+            this.toast.show('Marketing asset added with attachment!', 'success');
+          });
+        },
+        error: () => {
+          this.assetUploading = false;
+          alert('Failed to upload file attachment. Asset not saved.');
+        }
+      });
+    } else {
+      this.bookService.addMarketingAsset(this.book()!.id, {
+        title: this.newAssetTitle, type: this.newAssetType as any, platform: this.newAssetPlatform, content: this.newAssetContent
+      }).subscribe(() => {
+        this.showAssetModal = false;
+        this.newAssetTitle = ''; this.newAssetContent = ''; this.newAssetPlatform = '';
+        this.bookService.getBookById(this.book()!.id).subscribe(b => { if (b) { this.book.set(b); this.computeStats(b); } });
+        this.toast.show('Marketing asset added!', 'success');
+      });
+    }
+  }
+
+  deleteAsset(assetId: string): void {
+    if (confirm('Are you sure you want to delete this marketing asset?')) {
+      const asset = this.book()?.marketingAssets.find(a => a.id === assetId);
+      const fileId = asset?.fileId;
+
+      const list = (this.book()?.marketingAssets || []).filter(a => a.id !== assetId);
+      const updatedBook = { ...this.book()!, marketingAssets: list };
+      
+      this.bookService.updateBook(updatedBook).subscribe(() => {
+        this.book.set(updatedBook);
+        this.computeStats(updatedBook);
+        this.toast.show('Marketing asset deleted!', 'success');
+        if (fileId) {
+          this.fileUpload.delete(fileId).subscribe({ error: () => undefined });
+        }
+      });
+    }
+  }
+
+  resolveFileUrl(url: string | undefined): string {
+    return url ? this.fileUpload.resolveFileUrl(url) : '';
+  }
+
+  isImageFile(fileName: string | undefined): boolean {
+    if (!fileName) return false;
+    const ext = fileName.split('.').pop()?.toLowerCase();
+    return ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp'].includes(ext || '');
+  }
+
+  isVideoFile(fileName: string | undefined): boolean {
+    if (!fileName) return false;
+    const ext = fileName.split('.').pop()?.toLowerCase();
+    return ['mp4', 'webm', 'mov', 'ogg'].includes(ext || '');
   }
 
   runAiAction(action: { label: string; mock: string }) {
