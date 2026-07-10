@@ -610,21 +610,21 @@ export class BookDetailComponent implements OnInit {
   addHashtag(event: Event) {
     const input = event.target as HTMLInputElement;
     let value = input.value.trim();
-    if (value && this.book()) {
+    if (value && this.book() && this.book()!.metadata) {
       if (!value.startsWith('#')) {
         value = '#' + value;
       }
       if (!this.book()!.metadata.hashtags) {
         this.book()!.metadata.hashtags = [];
       }
-      this.book()!.metadata.hashtags.push(value);
+      this.book()!.metadata.hashtags!.push(value);
       input.value = '';
     }
   }
 
   removeHashtag(index: number) {
-    if (this.book() && this.book()!.metadata.hashtags) {
-      this.book()!.metadata.hashtags.splice(index, 1);
+    if (this.book() && this.book()!.metadata && this.book()!.metadata.hashtags) {
+      this.book()!.metadata.hashtags!.splice(index, 1);
     }
   }
 
