@@ -749,7 +749,7 @@
       <div class="tab-panel" *ngIf="activeTab() === 'marketing'">
         <div class="section-header">
           <h2 class="section-title">Marketing Assets</h2>
-          <button class="btn-primary btn-sm" (click)="showAssetModal = true">
+          <button class="btn-primary btn-sm" (click)="openAddAssetModal()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Add Asset
           </button>
@@ -762,6 +762,9 @@
                 <span class="asset-type-badge" [class]="'at-' + asset.type">{{ assetTypeLabel(asset.type) }}</span>
                 <div style="display:flex;gap:.5rem;align-items:center">
                   <span class="badge" [class]="'badge-' + asset.status">{{ asset.status }}</span>
+                  <button type="button" style="background:none;border:none;color:var(--text-secondary);cursor:pointer;font-size:.9rem;padding:0;line-height:1;display:flex;align-items:center" (click)="editAsset(asset)" title="Edit Asset">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+                  </button>
                   <button type="button" style="background:none;border:none;color:var(--error);cursor:pointer;font-size:1.1rem;padding:0;line-height:1" (click)="deleteAsset(asset.id)" title="Delete Asset">&times;</button>
                 </div>
               </div>
@@ -907,7 +910,7 @@
   <!-- Asset Modal -->
   <div class="modal-overlay" *ngIf="showAssetModal" (click)="showAssetModal = false">
     <div class="modal-card" (click)="$event.stopPropagation()">
-      <div class="modal-header"><h2>Add Marketing Asset</h2><button class="modal-close" (click)="showAssetModal = false">&times;</button></div>
+      <div class="modal-header"><h2>{{ editingAssetId ? 'Edit' : 'Add' }} Marketing Asset</h2><button class="modal-close" (click)="showAssetModal = false">&times;</button></div>
       <div class="modal-body">
         <div class="form-group"><label class="form-label">Title</label><input type="text" class="form-input" [(ngModel)]="newAssetTitle" placeholder="Asset title" /></div>
         <div class="form-row two-col">
@@ -940,7 +943,7 @@
       <div class="modal-footer">
         <button class="btn-secondary" (click)="showAssetModal = false" [disabled]="assetUploading">Cancel</button>
         <button class="btn-primary" (click)="addAsset()" [disabled]="assetUploading || !newAssetTitle.trim()">
-          {{ assetUploading ? 'Uploading...' : 'Add Asset' }}
+          {{ assetUploading ? 'Uploading...' : (editingAssetId ? 'Save Changes' : 'Add Asset') }}
         </button>
       </div>
     </div>

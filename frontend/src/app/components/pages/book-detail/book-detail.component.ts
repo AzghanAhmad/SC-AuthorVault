@@ -36,6 +36,7 @@ export class BookDetailComponent implements OnInit {
 
   selectedAssetFile: File | null = null;
   assetUploading = false;
+  editingAssetId: string | null = null;
 
   copyField(text: string | number | undefined | null, fieldName: string): void {
     const val = text === undefined || text === null ? '' : String(text);
@@ -582,11 +583,15 @@ export class BookDetailComponent implements OnInit {
     if (value && this.book()) {
       this.book()!.metadata.keywords.push(value);
       input.value = '';
+      this.saveBook();
     }
   }
 
   removeKeyword(index: number) {
-    this.book()!.metadata.keywords.splice(index, 1);
+    if (this.book()) {
+      this.book()!.metadata.keywords.splice(index, 1);
+      this.saveBook();
+    }
   }
 
   addBisacCategory(event: Event) {
@@ -598,12 +603,14 @@ export class BookDetailComponent implements OnInit {
       }
       this.book()!.metadata.bisacCategories.push(value);
       input.value = '';
+      this.saveBook();
     }
   }
 
   removeBisacCategory(index: number) {
     if (this.book() && this.book()!.metadata.bisacCategories) {
       this.book()!.metadata.bisacCategories.splice(index, 1);
+      this.saveBook();
     }
   }
 
@@ -619,12 +626,14 @@ export class BookDetailComponent implements OnInit {
       }
       this.book()!.metadata.hashtags!.push(value);
       input.value = '';
+      this.saveBook();
     }
   }
 
   removeHashtag(index: number) {
     if (this.book() && this.book()!.metadata && this.book()!.metadata.hashtags) {
       this.book()!.metadata.hashtags!.splice(index, 1);
+      this.saveBook();
     }
   }
 
@@ -719,28 +728,89 @@ export class BookDetailComponent implements OnInit {
     }
   }
 
+  openAddAssetModal() {
+    this.editingAssetId = null;
+    this.newAssetTitle = '';
+    this.newAssetType = 'ad';
+    this.newAssetPlatform = '';
+    this.newAssetContent = '';
+    this.selectedAssetFile = null;
+    this.showAssetModal = true;
+  }
+
+  editAsset(asset: MarketingAsset) {
+    this.editingAssetId = asset.id;
+    this.newAssetTitle = asset.title;
+    this.newAssetType = asset.type;
+    this.newAssetPlatform = asset.platform;
+    this.newAssetContent = asset.content;
+    this.selectedAssetFile = null;
+    this.showAssetModal = true;
+  }
+
   addAsset() {
     if (!this.book() || !this.newAssetTitle.trim()) return;
+
+    const executeSave = (fileData?: { url: string; fileName: string; id: number }) => {
+      const bookData = this.book()!;
+      if (this.editingAssetId) {
+        // Edit existing asset
+        const updatedAssets = bookData.marketingAssets.map(a => {
+          if (a.id === this.editingAssetId) {
+            return {
+              ...a,
+              title: this.newAssetTitle,
+              type: this.newAssetType as any,
+              platform: this.newAssetPlatform,
+              content: this.newAssetContent,
+              fileUrl: fileData ? fileData.url : a.fileUrl,
+              fileName: fileData ? fileData.fileName : a.fileName,
+              fileId: fileData ? fileData.id : a.fileId,
+              updatedAt: new Date().toISOString().split('T')[0]
+            };
+          }
+          return a;
+        });
+        const updatedBook = { ...bookData, marketingAssets: updatedAssets };
+        this.bookService.updateBook(updatedBook).subscribe(() => {
+          this.showAssetModal = false;
+          this.newAssetTitle = ''; this.newAssetContent = ''; this.newAssetPlatform = ''; this.selectedAssetFile = null;
+          this.book.set(updatedBook);
+          this.computeStats(updatedBook);
+          this.toast.show('Marketing asset updated!', 'success');
+        });
+      } else {
+        // Create new asset
+        this.bookService.addMarketingAsset(bookData.id, {
+          title: this.newAssetTitle,
+          type: this.newAssetType as any,
+          platform: this.newAssetPlatform,
+          content: this.newAssetContent,
+          fileUrl: fileData?.url,
+          fileName: fileData?.fileName,
+          fileId: fileData?.id
+        }).subscribe(() => {
+          this.showAssetModal = false;
+          this.newAssetTitle = ''; this.newAssetContent = ''; this.newAssetPlatform = ''; this.selectedAssetFile = null;
+          this.bookService.getBookById(bookData.id).subscribe(b => { if (b) { this.book.set(b); this.computeStats(b); } });
+          this.toast.show(fileData ? 'Marketing asset added with attachment!' : 'Marketing asset added!', 'success');
+        });
+      }
+    };
 
     if (this.selectedAssetFile) {
       this.assetUploading = true;
       this.fileUpload.upload(this.selectedAssetFile, 'marketing-asset').subscribe({
         next: uploaded => {
           this.assetUploading = false;
-          this.bookService.addMarketingAsset(this.book()!.id, {
-            title: this.newAssetTitle,
-            type: this.newAssetType as any,
-            platform: this.newAssetPlatform,
-            content: this.newAssetContent,
-            fileUrl: uploaded.url,
-            fileName: uploaded.fileName,
-            fileId: uploaded.id
-          }).subscribe(() => {
-            this.showAssetModal = false;
-            this.newAssetTitle = ''; this.newAssetContent = ''; this.newAssetPlatform = ''; this.selectedAssetFile = null;
-            this.bookService.getBookById(this.book()!.id).subscribe(b => { if (b) { this.book.set(b); this.computeStats(b); } });
-            this.toast.show('Marketing asset added with attachment!', 'success');
-          });
+          // Delete old file if we are replacing it
+          if (this.editingAssetId) {
+            const oldAsset = this.book()?.marketingAssets.find(a => a.id === this.editingAssetId);
+            if (oldAsset?.fileId) {
+              this.fileUpload.delete(oldAsset.fileId).subscribe({ error: () => undefined });
+            }
+          }
+          executeSave(uploaded);
         },
         error: () => {
           this.assetUploading = false;
@@ -748,14 +818,7 @@ export class BookDetailComponent implements OnInit {
         }
       });
     } else {
-      this.bookService.addMarketingAsset(this.book()!.id, {
-        title: this.newAssetTitle, type: this.newAssetType as any, platform: this.newAssetPlatform, content: this.newAssetContent
-      }).subscribe(() => {
-        this.showAssetModal = false;
-        this.newAssetTitle = ''; this.newAssetContent = ''; this.newAssetPlatform = '';
-        this.bookService.getBookById(this.book()!.id).subscribe(b => { if (b) { this.book.set(b); this.computeStats(b); } });
-        this.toast.show('Marketing asset added!', 'success');
-      });
+      executeSave();
     }
   }
 
